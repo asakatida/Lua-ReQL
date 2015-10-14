@@ -710,7 +710,7 @@ local Cursor = class(
       if not self._type then
         if response.n then
           self._type = response.n
-          self._conn.weight = self.conn.weight + 2
+          self._conn.weight = self._conn.weight + 2
         else
           self._type = 'finite'
         end
