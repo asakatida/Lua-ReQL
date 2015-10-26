@@ -1340,7 +1340,7 @@ r.connect = class(
       end
     end,
     close = function(self, opts_or_callback, callback)
-      local opts = {}
+      local opts = { noreply_wait = true }
       local cb
       if callback then
         if type(opts_or_callback) ~= 'table' then
@@ -1374,7 +1374,7 @@ r.connect = class(
     noreply_wait = function(self, callback)
       local cb = function(err, cur)
         if cur then
-          return cur.next(function(err)
+          return cur:next(function(err)
             self.weight = 0
             for token, cur in pairs(self.outstanding_callbacks) do
               if cur.cursor then
