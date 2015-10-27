@@ -722,8 +722,6 @@ local Cursor = class(
         -- We got an error, SUCCESS_SEQUENCE, WAIT_COMPLETE, or a SUCCESS_ATOM
         self._end_flag = true
         self._conn:_del_query(self._token)
-      else
-        self._conn:_continue_query(self._token)
       end
       while (self._cb and self._responses[1]) do
         self:_run_cb(self._cb)
@@ -937,6 +935,7 @@ r.connect = class(
             local response_buffer = string.sub(self.buffer, 1, response_length)
             self.buffer = string.sub(self.buffer, response_length + 1)
             response_length = 0
+            self:_continue_query(token)
             self:_process_response(r._decode(response_buffer), token)
             if token == reqest_token then return end
           end
