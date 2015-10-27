@@ -778,11 +778,7 @@ local Cursor = class(
     clear = function(self)
       self._cb = nil
     end,
-    -- Implement IterableResult
-    next = function(self, callback)
-      local cb = function(err, row)
-        return callback(err, row)
-      end
+    next = function(self, cb)
       if self._cb then
         return cb(ReQLDriverError('Use `cur:clear()` before `cur:next`.'))
       end
