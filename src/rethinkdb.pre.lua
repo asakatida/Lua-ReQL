@@ -999,7 +999,7 @@ r.connect = class(
         return nil, err
       end
 
-      local noreply_wait = opts.noreply_wait and self.open
+      local noreply_wait = (opts.noreply_wait ~= false) and self.open
 
       if noreply_wait then
         return self:noreply_wait(wrapped_cb)
@@ -1009,7 +1009,7 @@ r.connect = class(
     noreply_wait = function(self, callback)
       local cb = function(err, cur)
         if cur then
-          return cur.next(function(err)
+          return cur:next(function(err)
             self.weight = 0
             for token, cur in pairs(self.outstanding_callbacks) do
               if cur.cursor then
