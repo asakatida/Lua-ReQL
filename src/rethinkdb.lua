@@ -1340,7 +1340,7 @@ r.connect = class(
       end
     end,
     close = function(self, opts_or_callback, callback)
-      local opts = { noreply_wait = true }
+      local opts = {}
       local cb
       if callback then
         if type(opts_or_callback) ~= 'table' then
@@ -1364,7 +1364,7 @@ r.connect = class(
         return nil, err
       end
 
-      local noreply_wait = opts.noreply_wait and self.open
+      local noreply_wait = (opts.noreply_wait ~= false) and self.open
 
       if noreply_wait then
         return self:noreply_wait(wrapped_cb)
