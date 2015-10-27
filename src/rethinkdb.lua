@@ -438,9 +438,9 @@ ReQLQueryPrinter = class(
         end
       end
       if frame then
-        return term.compose(args, optargs)
+        return term:compose(args, optargs)
       end
-      return self:carrotify(term.compose(args, optargs))
+      return self:carrotify(term:compose(args, optargs))
     end,
     carrot_marker = {},
     carrotify = function(self, tree)
