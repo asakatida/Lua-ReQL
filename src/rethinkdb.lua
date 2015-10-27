@@ -97,7 +97,7 @@ local SET_INTERSECTION, SET_UNION, SKIP, SLICE, SPLICE_AT, SPLIT, STATUS, SUB
 local SUM, SUNDAY, SYNC, TABLE, TABLE_CREATE, TABLE_DROP, TABLE_LIST, THURSDAY
 local TIME, TIMEZONE, TIME_OF_DAY, TO_EPOCH_TIME, TO_GEOJSON, TO_ISO8601
 local TO_JSON_STRING, TUESDAY, TYPE_OF, UNGROUP, UNION, UPCASE, UPDATE, UUID
-local VAR, WAIT, WEDNESDAY, WITHOUT, WITH_FIELDS, YEAR, ZIP
+local VALUES, VAR, WAIT, WEDNESDAY, WITHOUT, WITH_FIELDS, YEAR, ZIP
 local ReQLAuthError, ReQLAvailabilityError, ReQLClientError, ReQLCompileError
 local ReQLDriverError, ReQLError, ReQLInternalError, ReQLNonExistenceError
 local ReQLOpFailedError, ReQLOpIndeterminateError, ReQLQueryLogicError
@@ -663,6 +663,7 @@ ast_methods = {
   upcase = function(...) return UPCASE({}, ...) end,
   update = function(arg0, arg1, opts) return UPDATE(opts, arg0, arg1) end,
   uuid = function(...) return UUID({}, ...) end,
+  values = function(...) return VALUES({}, ...) end,
   var = function(...) return VAR({}, ...) end,
   wait = function(...) return WAIT({}, ...) end,
   wednesday = function(...) return WEDNESDAY({}, ...) end,
@@ -1051,6 +1052,7 @@ UNION = ast('UNION', {tt = 44, st = 'union'})
 UPCASE = ast('UPCASE', {tt = 141, st = 'upcase'})
 UPDATE = ast('UPDATE', {tt = 53, st = 'update'})
 UUID = ast('UUID', {tt = 169, st = 'uuid'})
+VALUES = ast('VALUES', {tt = 186, st = 'values'})
 VAR = ast('VAR', {tt = 10, st = 'var'})
 WAIT = ast('WAIT', {tt = 177, st = 'wait'})
 WEDNESDAY = ast('WEDNESDAY', {tt = 109, st = 'wednesday'})
