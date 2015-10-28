@@ -1360,7 +1360,7 @@ r.connect = class(
         return nil, err
       end
 
-      local noreply_wait = (opts.noreply_wait ~= false) and self.open()
+      local noreply_wait = (opts.noreply_wait ~= false) and self:open()
 
       if noreply_wait then
         return self:noreply_wait(wrapped_cb)
@@ -1390,7 +1390,7 @@ r.connect = class(
         end
         return callback(err)
       end
-      if not self.open() then
+      if not self:open() then
         return cb(ReQLDriverError('Connection is closed.'))
       end
 
@@ -1436,7 +1436,7 @@ r.connect = class(
         cur:close()
         return res
       end
-      if not self.open() then
+      if not self:open() then
         cb(ReQLDriverError('Connection is closed.'))
       end
 
@@ -1537,7 +1537,7 @@ r.pool = class(
     open = function(self)
       if not self._open then return false end
       for _, conn in ipairs(self.pool) do
-        if conn.open() then return true end
+        if conn:open() then return true end
       end
       self._open = false
       return false
