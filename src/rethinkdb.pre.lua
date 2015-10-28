@@ -863,7 +863,6 @@ r.connect = class(
       self.timeout = host.timeout or self.DEFAULT_TIMEOUT
       self.outstanding_callbacks = {}
       self.next_token = 1
-      self.open = false
       self.buffer = ''
       if self.raw_socket then
         self:close({noreply_wait = false})
@@ -896,7 +895,6 @@ r.connect = class(
             self.buffer = self.buffer:sub(i + 1)
             if status_str == 'SUCCESS' then
               -- We're good, finish setting up the connection
-              self.open = true
               return cb(nil, self)
             end
             return cb(ReQLDriverError('Server dropped connection with message: \'' .. status_str .. '\''))
@@ -920,6 +918,7 @@ r.connect = class(
         )
         buf = buf or partial
         if (not buf) and err then
+          self:close({noreply_wait = false})
           return self:_process_response(
             {
               t = --[[Response.CLIENT_ERROR]],
@@ -985,21 +984,27 @@ r.connect = class(
       end
 
       function wrapped_cb(err)
-        self.open = false
         self.raw_socket:shutdown()
         self.raw_socket:close()
+        self.raw_socket = nil
         if cb then
           return cb(err)
         end
         return nil, err
       end
 
-      local noreply_wait = (opts.noreply_wait ~= false) and self.open
+      local noreply_wait = (opts.noreply_wait ~= false) and self.open()
 
       if noreply_wait then
         return self:noreply_wait(wrapped_cb)
       end
       return wrapped_cb()
+    end,
+    open = function(self)
+      if self.raw_socket then
+        return true
+      end
+      return false
     end,
     noreply_wait = function(self, callback)
       local cb = function(err, cur)
@@ -1018,7 +1023,7 @@ r.connect = class(
         end
         return callback(err)
       end
-      if not self.open then
+      if not self.open() then
         return cb(ReQLDriverError('Connection is closed.'))
       end
 
@@ -1064,7 +1069,7 @@ r.connect = class(
         cur:close()
         return res
       end
-      if not self.open then
+      if not self.open() then
         cb(ReQLDriverError('Connection is closed.'))
       end
 
@@ -1109,11 +1114,14 @@ r.connect = class(
     end,
     _send_query = function(self, token, query)
       local data = r._encode(query)
-      self.raw_socket:send(
+      local idx, err = self.raw_socket:send(
         int_to_bytes(token, 8) ..
         int_to_bytes(#data, 4) ..
         data
       )
+      if err then
+        self:close({noreply_wait = false})
+      end
     end
   }
 )
@@ -1133,10 +1141,10 @@ r.pool = class(
         end
         return pool, err
       end
-      self.open = false
+      self._open = false
       return r.connect(host, function(err, conn)
         if err then return cb(err) end
-        self.open = true
+        self._open = true
         self.pool = {conn}
         self.size = host.size or 12
         self.host = host
@@ -1156,8 +1164,16 @@ r.pool = class(
       for _, conn in pairs(self.pool) do
         conn:close(opts, cb)
       end
-      self.open = false
+      self._open = false
       if callback then return callback(err) end
+    end,
+    open = function(self)
+      if not self._open then return false end
+      for _, conn in ipairs(self.pool) do
+        if conn.open() then return true end
+      end
+      self._open = false
+      return false
     end,
     _start = function(self, term, callback, opts)
       local weight = math.huge
@@ -1171,7 +1187,7 @@ r.pool = class(
       for i=1, self.size do
         if not self.pool[i] then self.pool[i] = r.connect(self.host) end
         local conn = self.pool[i]
-        if not conn.open then
+        if not conn.open() then
           conn = conn:reconnect()
           self.pool[i] = conn
         end
