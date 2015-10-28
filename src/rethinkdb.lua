@@ -1234,6 +1234,9 @@ r.connect = class(
       if self.raw_socket then
         self:close({noreply_wait = false})
       end
+      return self:_connect(cb)
+    end,
+    _connect = function(self, cb)
       self.raw_socket = r._socket()
       self.raw_socket:settimeout(self.timeout)
       local status, err = self.raw_socket:connect(self.host, self.port)
@@ -1417,7 +1420,7 @@ r.connect = class(
         callback = opts_or_callback
       end
       return self:close(opts, function()
-        return r.connect(self, callback)
+        return self:_connect(callback)
       end)
     end,
     use = function(self, db)
@@ -1554,8 +1557,8 @@ r.pool = class(
       for i=1, self.size do
         if not self.pool[i] then self.pool[i] = r.connect(self.host) end
         local conn = self.pool[i]
-        if not conn.open() then
-          conn = conn:reconnect()
+        if not conn:open() then
+          conn:reconnect()
           self.pool[i] = conn
         end
         if conn.weight < weight then
