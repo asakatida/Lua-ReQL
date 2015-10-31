@@ -1076,7 +1076,7 @@ r.connect = class(
         return res
       end
       if not self:open() then
-        cb(ReQLDriverError('Connection is closed.'))
+        return cb(ReQLDriverError('Connection is closed.'))
       end
 
       -- Assign token
