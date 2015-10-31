@@ -1411,7 +1411,7 @@ r.connect = class(
       self.outstanding_callbacks[token] = {cursor = cursor}
 
       -- Construct query
-      self:_send_query(token, {4})
+      self:_write_socket(token, {4})
 
       return cb(nil, cursor)
     end,
@@ -1471,19 +1471,6 @@ r.connect = class(
       -- Construct query
       local query = {1, term:build(), global_opts}
 
-      local cursor = Cursor(self, token, opts, term)
-
-      -- Save cursor
-      return self:_send_query(token, query, cursor, cb)
-    end,
-    _continue_query = function(self, token)
-      self:_write_socket(token, {2})
-    end,
-    _end_query = function(self, token)
-      self:_del_query(token)
-      self:_write_socket(token, {3})
-    end,
-    _send_query = function(self, token, query, cursor, cb)
       local idx, err = self:_write_socket(token, query)
       if err then
         self:close({noreply_wait = false}, function(err)
@@ -1491,8 +1478,17 @@ r.connect = class(
           return cb(ReQLDriverError('Connection is closed.'))
         end)
       end
+      local cursor = Cursor(self, token, opts, term)
+      -- Save cursor
       self.outstanding_callbacks[token] = {cursor = cursor}
       return cb(nil, cursor)
+    end,
+    _continue_query = function(self, token)
+      self:_write_socket(token, {2})
+    end,
+    _end_query = function(self, token)
+      self:_del_query(token)
+      self:_write_socket(token, {3})
     end,
     _write_socket = function(self, token, query)
       if not self.raw_socket then return nil, 'closed' end
