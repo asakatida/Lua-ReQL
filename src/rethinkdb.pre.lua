@@ -952,6 +952,7 @@ r.connect = class(
     end,
     _del_query = function(self, token)
       -- This query is done, delete this cursor
+      if not self.outstanding_callbacks[token] then return end
       if self.outstanding_callbacks[token].cursor then
         if self.outstanding_callbacks[token].cursor._type ~= 'finite' then
           self.weight = self.weight - 2
@@ -987,9 +988,11 @@ r.connect = class(
       end
 
       function wrapped_cb(err)
-        self.raw_socket:shutdown()
-        self.raw_socket:close()
-        self.raw_socket = nil
+        if self.raw_socket then
+          self.raw_socket:shutdown()
+          self.raw_socket:close()
+          self.raw_socket = nil
+        end
         if cb then
           return cb(err)
         end
@@ -1104,27 +1107,34 @@ r.connect = class(
       local cursor = Cursor(self, token, opts, term)
 
       -- Save cursor
-      self.outstanding_callbacks[token] = {cursor = cursor}
-      self:_send_query(token, query)
-      return cb(nil, cursor)
+      return self:_send_query(token, query, cursor, cb)
     end,
     _continue_query = function(self, token)
-      self:_send_query(token, {--[[Query.CONTINUE]]})
+      self:_write_socket(token, {2})
     end,
     _end_query = function(self, token)
       self:_del_query(token)
-      self:_send_query(token, {--[[Query.STOP]]})
+      self:_write_socket(token, {3})
     end,
-    _send_query = function(self, token, query)
+    _send_query = function(self, token, query, cursor, cb)
+      local idx, err = self:_write_socket(token, query)
+      if err then
+        self:close({noreply_wait = false}, function(err)
+          if err then return cb(err) end
+          return cb(ReQLDriverError('Connection is closed.'))
+        end)
+      end
+      self.outstanding_callbacks[token] = {cursor = cursor}
+      return cb(nil, cursor)
+    end,
+    _write_socket = function(self, token, query)
+      if not self.raw_socket then return nil, 'closed' end
       local data = r._encode(query)
-      local idx, err = self.raw_socket:send(
+      return self.raw_socket:send(
         int_to_bytes(token, 8) ..
         int_to_bytes(#data, 4) ..
         data
       )
-      if err then
-        self:close({noreply_wait = false})
-      end
     end
   }
 )
