@@ -40,7 +40,7 @@ describe('connection', function()
           r.table(reql_table):insert({id=_id}):run(c)
         end
       end,
-      ''
+      'ReQLDriverError Connection is closed.'
     )
 
     c:reconnect()
