@@ -1214,14 +1214,6 @@ r.connect = class(
       elseif host_or_callback then
         host = host_or_callback
       end
-      local cb = function(err, conn)
-        if callback then
-          local res = callback(err, conn)
-          conn:close({noreply_wait = false})
-          return res
-        end
-        return conn, err
-      end
       self.weight = 0
       self.host = host.host or self.DEFAULT_HOST
       self.port = host.port or self.DEFAULT_PORT
@@ -1234,9 +1226,17 @@ r.connect = class(
       if self.raw_socket then
         self:close({noreply_wait = false})
       end
-      return self:_connect(cb)
+      return self:_connect(callback)
     end,
-    _connect = function(self, cb)
+    _connect = function(self, callback)
+      local cb = function(err, conn)
+        if callback then
+          local res = callback(err, conn)
+          conn:close({noreply_wait = false})
+          return res
+        end
+        return conn, err
+      end
       self.raw_socket = r._socket()
       self.raw_socket:settimeout(self.timeout)
       local status, err = self.raw_socket:connect(self.host, self.port)

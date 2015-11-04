@@ -43,8 +43,9 @@ describe('connection', function()
       'ReQLDriverError Connection is closed.'
     )
 
-    c:reconnect()
-    r.table(reql_table):delete():run(c)
-    c:close()
+    c:reconnect(function(err, conn)
+      if err then error(err.message) end
+      r.table(reql_table):delete():run(conn)
+    end)
   end)
 end)
