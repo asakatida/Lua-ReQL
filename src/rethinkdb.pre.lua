@@ -877,7 +877,7 @@ r.connect = class(
         local buf, err, partial
         -- Initialize connection with magic number to validate version
         self.raw_socket:send(
-          '\62\232\117\95' ..
+          '\32\45\12\64' ..
           int_to_bytes(#(self.auth_key), 4) ..
           self.auth_key ..
           '\199\112\105\126'
