@@ -1,6 +1,5 @@
 local r = require('rethinkdb')
 local enable, dkjson = pcall(require, 'dkjson')
-local luajson = r.json_parser
 
 if enable then
   describe('control dkjson', function()
@@ -26,7 +25,7 @@ if enable then
     end)
 
     after_each(function()
-      r.json_parser = luajson
+      r.json_parser = nil
       r.table(reql_table):delete():run(c)
     end)
 

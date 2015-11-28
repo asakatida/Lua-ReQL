@@ -23,25 +23,21 @@ end
 function r._unb64(data)
   if r.unb64 then
     return r.unb64(data)
-  else
-    if not r._lib_mime then
-      r._lib_mime = require('mime')
-    end
-    r.unb64 = r._lib_mime.unb64
-    return r._lib_mime.unb64(data)
+  elseif not r._lib_mime then
+    r._lib_mime = require('mime')
   end
+  r.unb64 = r._lib_mime.unb64
+  return r._lib_mime.unb64(data)
 end
 
 function r._b64(data)
   if r.b64 then
     return r.b64(data)
-  else
-    if not r._lib_mime then
-      r._lib_mime = require('mime')
-    end
-    r.b64 = r._lib_mime.b64
-    return r._lib_mime.b64(data)
+  elseif not r._lib_mime then
+    r._lib_mime = require('mime')
   end
+  r.b64 = r._lib_mime.b64
+  return r._lib_mime.b64(data)
 end
 
 function r._encode(data)
@@ -50,13 +46,12 @@ function r._encode(data)
   elseif r.json_parser then
     r.encode = r.json_parser.encode
     return r.json_parser.encode(data)
-  else
-    if not r._lib_json then
-      r._lib_json = require('json')
-    end
-    r.json_parser = r._lib_json
-    return r._lib_json.encode(data)
+  elseif not r._lib_json then
+    r._lib_json = require('json')
   end
+  r.encode = r._lib_json.encode
+  r.json_parser = r._lib_json
+  return r._lib_json.encode(data)
 end
 
 function r._decode(buffer)
@@ -65,25 +60,22 @@ function r._decode(buffer)
   elseif r.json_parser then
     r.decode = r.json_parser.decode
     return r.json_parser.decode(buffer)
-  else
-    if not r._lib_json then
-      r._lib_json = require('json')
-    end
-    r.json_parser = r._lib_json
-    return r._lib_json.decode(buffer)
+  elseif not r._lib_json then
+    r._lib_json = require('json')
   end
+  r.decode = r._lib_json.decode
+  r.json_parser = r._lib_json
+  return r._lib_json.decode(buffer)
 end
 
 function r._socket()
   if r.socket then
     return r.socket()
-  else
-    if not r._lib_socket then
-      r._lib_socket = require('socket')
-    end
-    r.socket = r._lib_socket.tcp
-    return r._lib_socket.tcp()
+  elseif not r._lib_socket then
+    r._lib_socket = require('socket')
   end
+  r.socket = r._lib_socket.tcp
+  return r._lib_socket.tcp()
 end
 
 local DATUMTERM, ReQLOp
