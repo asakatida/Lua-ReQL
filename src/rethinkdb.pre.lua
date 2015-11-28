@@ -128,41 +128,6 @@ setmetatable(r, {
   end
 })
 
-function intsp(seq)
-  local res = {}
-  local sep = ''
-  for _, v in ipairs(seq) do
-    table.insert(res, {sep, v})
-    sep = ', '
-  end
-  return res
-end
-
-function kved(optargs)
-  local res = {'{'}
-  local sep = ''
-  for k, v in pairs(optargs) do
-    table.insert(res, {sep, k, ': ', v})
-    sep = ', '
-  end
-  table.insert(res, '}')
-  return res
-end
-
-function intspallargs(args, optargs)
-  local argrepr = {}
-  if next(args) then
-    table.insert(argrepr, intsp(args))
-  end
-  if optargs and next(optargs) then
-    if next(argrepr) then
-      table.insert(argrepr, ', ')
-    end
-    table.insert(argrepr, kved(optargs))
-  end
-  return argrepr
-end
-
 function get_opts(...)
   local args = {...}
   local opt = {}
@@ -172,26 +137,6 @@ function get_opts(...)
     args[#args] = nil
   end
   return opt, unpack(args)
-end
-
-function bytes_to_int(str)
-  local t = {str:byte(1,-1)}
-  local n = 0
-  for k=1,#t do
-    n = n + t[k] * 2 ^ ((k - 1) * 8)
-  end
-  return n
-end
-
-function int_to_bytes(num, bytes)
-  local res = {}
-  local mul = 0
-  for k = bytes, 1, -1 do
-    local den = 2 ^ (8 * (k - 1))
-    res[k] = math.floor(num / den)
-    num = math.fmod(num, den)
-  end
-  return string.char(unpack(res))
 end
 
 ReQLError = class(
@@ -417,12 +362,31 @@ class_methods = {
     return res
   end,
   compose = function(self, args, optargs)
+    intsp = function(seq)
+      local res = {}
+      local sep = ''
+      for _, v in ipairs(seq) do
+        table.insert(res, {sep, v})
+        sep = ', '
+      end
+      return res
+    end
     if self.tt == --[[Term.MAKE_ARRAY]] then
       return {
         '{',
         intsp(args),
         '}'
       }
+    end
+    kved = function(optargs)
+      local res = {'{'}
+      local sep = ''
+      for k, v in pairs(optargs) do
+        table.insert(res, {sep, k, ': ', v})
+        sep = ', '
+      end
+      table.insert(res, '}')
+      return res
     end
     if self.tt == --[[Term.MAKE_OBJ]] then
       return kved(optargs)
@@ -466,6 +430,19 @@ class_methods = {
       return {
         type(self)
       }
+    end
+    intspallargs = function(args, optargs)
+      local argrepr = {}
+      if args and next(args) then
+        table.insert(argrepr, intsp(args))
+      end
+      if optargs and next(optargs) then
+        if next(argrepr) then
+          table.insert(argrepr, ', ')
+        end
+        table.insert(argrepr, kved(optargs))
+      end
+      return argrepr
     end
     return {
       'r.' .. self.st .. '(',
@@ -595,7 +572,7 @@ r.connect = class(
         -- Initialize connection with magic number to validate version
         self.raw_socket:send(
           '\32\45\12\64' ..
-          int_to_bytes(#(self.auth_key), 4) ..
+          self.int_to_bytes(#(self.auth_key), 4) ..
           self.auth_key ..
           '\199\112\105\126'
         )
@@ -660,8 +637,8 @@ r.connect = class(
           end
         else
           if #(self.buffer) >= 12 then
-            token = bytes_to_int(self.buffer:sub(1, 8))
-            response_length = bytes_to_int(self.buffer:sub(9, 12))
+            token = self.bytes_to_int(self.buffer:sub(1, 8))
+            response_length = self.bytes_to_int(self.buffer:sub(9, 12))
             self.buffer = self.buffer:sub(13)
           end
         end
@@ -844,10 +821,28 @@ r.connect = class(
       if not self.raw_socket then return nil, 'closed' end
       local data = r._encode(query)
       return self.raw_socket:send(
-        int_to_bytes(token, 8) ..
-        int_to_bytes(#data, 4) ..
+        self.int_to_bytes(token, 8) ..
+        self.int_to_bytes(#data, 4) ..
         data
       )
+    end
+    bytes_to_int = function(str)
+      local t = {str:byte(1,-1)}
+      local n = 0
+      for k=1,#t do
+        n = n + t[k] * 2 ^ ((k - 1) * 8)
+      end
+      return n
+    end
+    int_to_bytes = function(num, bytes)
+      local res = {}
+      local mul = 0
+      for k = bytes, 1, -1 do
+        local den = 2 ^ (8 * (k - 1))
+        res[k] = math.floor(num / den)
+        num = math.fmod(num, den)
+      end
+      return string.char(unpack(res))
     end
   }
 )
