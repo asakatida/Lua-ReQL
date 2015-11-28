@@ -143,9 +143,13 @@ ReQLError = class(
   'ReQLError',
   function(self, msg, term, frames)
     self.msg = msg
-    self.message = self.__class.__name .. ' ' .. msg
-    if term then
-      self.message = self.message .. ' in:\n' .. ReQLQueryPrinter(term, frames):print_query()
+    self.message = function()
+      if self._message then return self._message end
+      self._message = self.__class.__name .. ' ' .. msg
+      if term then
+        self._message = self._message .. ' in:\n' .. ReQLQueryPrinter(term, frames):print_query()
+      end
+      return self._message
     end
   end
 )
