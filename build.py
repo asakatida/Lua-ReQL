@@ -48,7 +48,7 @@ def build():
         for name in ast_constants
     }
     ast_classes = [
-        '{0} = ast({0!r}, {{tt = {1}, st = {2!r}}})'.format(
+        '  {0} = ast({0!r}, {{tt = {1}, st = {2!r}}}),'.format(
             name,
             getattr(protodef.Term.TermType, name),
             ast_method_names[name]
