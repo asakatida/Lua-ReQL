@@ -8,7 +8,7 @@ import ReQLprotodef as protodef
 
 
 def lint_dir(d):
-    for test in pathlib.Path(d).glob('*.lua'):
+    for test in pathlib.Path(d).glob('**/*.lua'):
         if '.pre' in test.suffixes:
             continue
         returncode = subprocess.call(['luac', str(test.relative_to(d))], cwd=d)
@@ -31,7 +31,7 @@ def lint():
 
 
 def build():
-    print('building rethinkdb.lua')
+    print('building *.pre.lua files')
 
     ast_constants = list({
         term for term in dir(protodef.Term.TermType)
@@ -122,7 +122,7 @@ def build():
         'Term': protodef.Term.TermType,
     }
 
-    for path in pathlib.Path('src').glob('*.pre.lua'):
+    for path in pathlib.Path('src').glob('**/*.pre.lua'):
         path.with_suffix('').with_suffix('.lua').write_text(
             BuildFormat().vformat(path.read_text(), (), formatter)
         )
