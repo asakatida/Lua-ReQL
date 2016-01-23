@@ -36,7 +36,7 @@ def build():
     ast_constants = list({
         term for term in dir(protodef.Term.TermType)
         if not term.startswith('_')
-    } - {'DATUM', 'IMPLICIT_VAR'})
+    } - {'DATUM', 'BETWEEN_DEPRECATED', 'IMPLICIT_VAR'})
 
     ast_constants.sort()
 
@@ -78,7 +78,6 @@ def build():
             )
         },
         BETWEEN=const_args(3),
-        BETWEEN_DEPRECATED=const_args(3),
         DISTANCE=const_args(2),
         DURING=const_args(3),
         FILTER=const_args(2),
