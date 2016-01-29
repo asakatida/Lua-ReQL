@@ -78,11 +78,12 @@ return require('rethinkdb.class')(
         return cb(ReQLDriverError('No more rows in the cursor.'))
       end
       local _cb = self._cb
-      set(function(err, res)
-        self._cb = _cb
-        return cb(err, res)
-      end)
-      return self.get_response()
+      --set(function(err, res)
+        --self._cb = _cb
+        --return cb(err, res)
+      --end)
+      local err, res = self.get_response()
+      return cb(err, res)
     end,
     close = function(self, cb)
       if not self._end_flag then
