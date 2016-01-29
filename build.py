@@ -8,7 +8,7 @@ import ReQLprotodef as protodef
 
 
 def lint_dir(d):
-    for test in pathlib.Path(d).glob('*.lua'):
+    for test in pathlib.Path(d).glob('**/*.lua'):
         if '.pre' in test.suffixes:
             continue
         returncode = subprocess.call(['luac', str(test.relative_to(d))], cwd=d)
@@ -31,12 +31,12 @@ def lint():
 
 
 def build():
-    print('building rethinkdb.lua')
+    print('building *.pre.lua files')
 
     ast_constants = list({
         term for term in dir(protodef.Term.TermType)
         if not term.startswith('_')
-    } - {'DATUM', 'IMPLICIT_VAR'})
+    } - {'DATUM', 'BETWEEN_DEPRECATED', 'IMPLICIT_VAR'})
 
     ast_constants.sort()
 
@@ -48,7 +48,7 @@ def build():
         for name in ast_constants
     }
     ast_classes = [
-        '{0} = ast({0!r}, {{tt = {1}, st = {2!r}}})'.format(
+        '  {0} = ast({0!r}, {{tt = {1}, st = {2!r}}}),'.format(
             name,
             getattr(protodef.Term.TermType, name),
             ast_method_names[name]
@@ -78,7 +78,6 @@ def build():
             )
         },
         BETWEEN=const_args(3),
-        BETWEEN_DEPRECATED=const_args(3),
         DISTANCE=const_args(2),
         DURING=const_args(3),
         FILTER=const_args(2),
@@ -122,7 +121,7 @@ def build():
         'Term': protodef.Term.TermType,
     }
 
-    for path in pathlib.Path('src').glob('*.pre.lua'):
+    for path in pathlib.Path('src').glob('**/*.pre.lua'):
         path.with_suffix('').with_suffix('.lua').write_text(
             BuildFormat().vformat(path.read_text(), (), formatter)
         )

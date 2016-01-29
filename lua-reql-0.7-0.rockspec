@@ -17,6 +17,11 @@ dependencies = {
 build = {
   type = 'builtin',
   modules = {
+    ['rethinkdb.ast'] = 'src/rethinkdb/ast.lua',
+    ['rethinkdb.class'] = 'src/rethinkdb/class.lua',
+    ['rethinkdb.convert_pseudotype'] = 'src/rethinkdb/convert_pseudotype.lua',
+    ['rethinkdb.cursor'] = 'src/rethinkdb/cursor.lua',
+    ['rethinkdb.is_instance'] = 'src/rethinkdb/is_instance.lua',
     rethinkdb = 'src/rethinkdb.lua'
   }
 }
