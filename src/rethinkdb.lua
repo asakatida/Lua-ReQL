@@ -1,4 +1,3 @@
-local ast = require'rethinkdb.ast'
 local class = require'rethinkdb.class'
 local convert_pseudotype = require'rethinkdb.convert_pseudotype'
 local Cursor = require'rethinkdb.cursor'
@@ -8,6 +7,8 @@ local Cursor = require'rethinkdb.cursor'
 local r = {
   is_instance = require'rethinkdb.is_instance'
 }
+
+local ast = require'rethinkdb.ast'.init(r)
 
 function r._logger(err)
   if r.logger then
@@ -48,7 +49,11 @@ function r._encode(data)
     r.encode = r.json_parser.encode
     return r.json_parser.encode(data)
   elseif not r._lib_json then
-    r._lib_json = require('json')
+    if ngx == nil then
+      r._lib_json = require('json')
+    else
+      r._lib_json = require('cjson')
+    end
   end
   r.encode = r._lib_json.encode
   r.json_parser = r._lib_json
@@ -62,7 +67,11 @@ function r._decode(buffer)
     r.decode = r.json_parser.decode
     return r.json_parser.decode(buffer)
   elseif not r._lib_json then
-    r._lib_json = require('json')
+    if ngx == nil then
+      r._lib_json = require('json')
+    else
+      r._lib_json = require('cjson')
+    end
   end
   r.decode = r._lib_json.decode
   r.json_parser = r._lib_json
@@ -73,17 +82,21 @@ function r._socket()
   if r.socket then
     return r.socket()
   elseif not r._lib_socket then
-    r._lib_socket = require('socket')
+    if ngx == nil then
+      r._lib_socket = require('socket')
+    else
+      r._lib_socket = ngx.socket
+    end
   end
   r.socket = r._lib_socket.tcp
   return r._lib_socket.tcp()
 end
 
-local ReQLAuthError, ReQLAvailabilityError, ReQLClientError, ReQLCompileError
-local ReQLDriverError, ReQLError, ReQLInternalError, ReQLNonExistenceError
-local ReQLOpFailedError, ReQLOpIndeterminateError, ReQLQueryLogicError
-local ReQLQueryPrinter, ReQLResourceLimitError, ReQLRuntimeError
-local ReQLServerError, ReQLTimeoutError, ReQLUserError
+-- local ReQLAuthError, ReQLAvailabilityError, ReQLClientError, ReQLCompileError
+-- local ReQLDriverError, ReQLError, ReQLInternalError, ReQLNonExistenceError
+-- local ReQLOpFailedError, ReQLOpIndeterminateError, ReQLQueryLogicError
+-- local ReQLQueryPrinter, ReQLResourceLimitError, ReQLRuntimeError
+-- local ReQLServerError, ReQLTimeoutError, ReQLUserError
 
 setmetatable(r, {
   __call = function(cls, val, nesting_depth)
@@ -100,7 +113,7 @@ setmetatable(r, {
       return val
     end
     if type(val) == 'function' then
-      return FUNC({}, val)
+      return ast.FUNC({}, val)
     end
     if type(val) == 'table' then
       local array = true
@@ -109,21 +122,21 @@ setmetatable(r, {
         val[k] = r(v, nesting_depth - 1)
       end
       if array then
-        return MAKE_ARRAY({}, unpack(val))
+        return ast.MAKE_ARRAY({}, unpack(val))
       end
-      return MAKE_OBJ(val)
+      return ast.MAKE_OBJ(val)
     end
     if type(val) == 'userdata' then
       val = pcall(tostring, val)
       r._logger('Found userdata inserting "' .. val .. '" into query')
-      return DATUMTERM(val)
+      return ast.DATUMTERM(val)
     end
     if type(val) == 'thread' then
       val = pcall(tostring, val)
       r._logger('Cannot insert thread object into query ' .. val)
       return nil
     end
-    return DATUMTERM(val)
+    return ast.DATUMTERM(val)
   end
 })
 
@@ -392,7 +405,9 @@ r.connect = class(
 
       function wrapped_cb(err)
         if self.raw_socket then
-          self.raw_socket:shutdown()
+          if ngx == nil then
+            self.raw_socket:shutdown()
+          end
           self.raw_socket:close()
           self.raw_socket = nil
         end

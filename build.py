@@ -48,7 +48,7 @@ def build():
         for name in ast_constants
     }
     ast_classes = [
-        '  {0} = ast({0!r}, {{tt = {1}, st = {2!r}}}),'.format(
+        '  {0} = build_ast({0!r}, {{tt = {1}, st = {2!r}}}),'.format(
             name,
             getattr(protodef.Term.TermType, name),
             ast_method_names[name]
@@ -60,7 +60,7 @@ def build():
         pieces = [
             '{} = function(',
             ', '.join(args + ['opts']),
-            ') return {}(',
+            ') return ast.{}(',
             ', '.join(['opts'] + args),
             ') end'
         ]
@@ -68,7 +68,7 @@ def build():
 
     ast_methods_w_opt = dict(
         {
-            name: '{} = function(...) return {}(get_opts(...)) end'
+            name: '{} = function(...) return ast.{}(get_opts(...)) end'
             for name in (
                 'CIRCLE', 'DELETE', 'DISTINCT', 'EQ_JOIN', 'FILTER', 'GET_ALL',
                 'GET_INTERSECTING', 'GET_NEAREST', 'GROUP', 'HTTP',
@@ -86,7 +86,7 @@ def build():
     )
     ast_methods = [
         ast_methods_w_opt.get(
-            name, '{} = function(...) return {}({{}}, ...) end'
+            name, '{} = function(...) return ast.{}({{}}, ...) end'
         ).format(
             ast_method_names[name], name
         ) for name in ast_constants
