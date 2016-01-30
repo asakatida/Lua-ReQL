@@ -70,8 +70,8 @@ describe('control', function()
   test('do append', r({0, 1, 2}):do_(function(v) return v:append(3) end), {{0, 1, 2, 3}})
 
   if string.match(_VERSION, '5.[23]') then
-    test_error('do extra arg', r.do_(1, function(x, y) return x + y end), 'Expected 2 arguments but found 1.')
-    test_error('do missing arg', r.do_(1, 2, function(x) return x end), 'Expected 1 argument but found 2.')
+    test_error('do extra arg', r.do_(1, function(x, y) return x + y end), 'Expected function with 1 arguments but found function with 2 argument.')
+    test_error('do missing arg', r.do_(1, 2, function(x) return x end), 'Expected function with 2 arguments but found function with 1 argument.')
   end
 
   test('do mul', r(1):do_(function(v) return v:mul(2) end), {2})
