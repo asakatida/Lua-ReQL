@@ -1,3 +1,5 @@
+local proto = require'rethinkdb.protodef'
+
 return require('rethinkdb.class')(
   'Cursor',
   {
@@ -28,10 +30,10 @@ return require('rethinkdb.class')(
           self._type = 'finite'
         end
       end
-      if response.r[1] or t == 4 then
+      if response.r[1] or t == proto.Response.WAIT_COMPLETE then
         table.insert(self._responses, response)
       end
-      if t ~= 3 then
+      if t ~= proto.Response.SUCCESS_PARTIAL then
         -- We got an error, SUCCESS_SEQUENCE, WAIT_COMPLETE, or a SUCCESS_ATOM
         self._end_flag = true
         self.delete()
@@ -45,7 +47,7 @@ return require('rethinkdb.class')(
       -- Behavior varies considerably based on response type
       -- Error responses are not discarded, and the error will be sent to all future callbacks
       local t = response.t
-      if t == 1 or t == 3 or t == 2 then
+      if t == proto.Response.SUCCESS_ATOM or t == proto.Response.SUCCESS_PARTIAL or t == proto.Response.SUCCESS_SEQUENCE then
         local err
         local status, row = self.convert_pseudotype(response)
         if not status then

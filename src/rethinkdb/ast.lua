@@ -1,4 +1,5 @@
 local class = require'rethinkdb.class'
+local proto = require'rethinkdb.protodef'
 
 --local DATUMTERM, ReQLOp
 local ReQLOp
@@ -229,7 +230,7 @@ function m.init(r)
     __init = function(self, optargs, ...)
       local args = {...}
       optargs = optargs or {}
-      if self.tt == 69 then
+      if self.tt == proto.Term.FUNC then
         local func = args[1]
         local anon_args = {}
         local arg_nums = {}
@@ -250,7 +251,7 @@ function m.init(r)
         end
         optargs.arity = nil
         args = {arg_nums, func}
-      elseif self.tt == 155 then
+      elseif self.tt == proto.Term.BINARY then
         local data = args[1]
         if r.is_instance(data, 'ReQLOp') then
         elseif type(data) == 'string' then
@@ -258,13 +259,13 @@ function m.init(r)
         else
           return error('Parameter to `r.binary` must be a string or ReQL query.')
         end
-      elseif self.tt == 64 then
+      elseif self.tt == proto.Term.FUNCALL then
         local func = table.remove(args)
         if type(func) == 'function' then
           func = ast.FUNC({arity = #args}, func)
         end
         table.insert(args, 1, func)
-      elseif self.tt == 37 then
+      elseif self.tt == proto.Term.REDUCE then
         args[#args] = ast.FUNC({arity = 2}, args[#args])
       end
       self.args = {}
@@ -277,13 +278,13 @@ function m.init(r)
       end
     end,
     build = function(self)
-      if self.tt == 155 and (not self.args[1]) then
+      if self.tt == proto.Term.BINARY and (not self.args[1]) then
         return {
           ['$reql_type$'] = 'BINARY',
           data = self.base64_data
         }
       end
-      if self.tt == 3 then
+      if self.tt == proto.Term.MAKE_OBJ then
         local res = {}
         for key, val in pairs(self.optargs) do
           res[key] = val:build()
@@ -314,7 +315,7 @@ function m.init(r)
         end
         return res
       end
-      if self.tt == 2 then
+      if self.tt == proto.Term.MAKE_ARRAY then
         return {
           '{',
           intsp(args),
@@ -331,24 +332,19 @@ function m.init(r)
         table.insert(res, '}')
         return res
       end
-      if self.tt == 3 then
+      if self.tt == proto.Term.MAKE_OBJ then
         return kved(optargs)
       end
-      if self.tt == 10 then
+      if self.tt == proto.Term.VAR then
         return {'var_' .. args[1]}
       end
-      if self.tt == 155 and not self.args[1] then
+      if self.tt == proto.Term.BINARY and not self.args[1] then
         return 'r.binary(<data>)'
       end
-      if self.tt == 170 then
-        return {
-          args[1],
-          '(',
-          args[2],
-          ')'
-        }
+      if self.tt == proto.Term.BRACKET then
+        return {args[1], '(', args[2], ')'}
       end
-      if self.tt == 69 then
+      if self.tt == proto.Term.FUNC then
         return {
           'function(',
           intsp((function()
@@ -358,40 +354,29 @@ function m.init(r)
             end
             return _accum_0
           end)()),
-          ') return ',
-          args[2],
-          ' end'
+          ') return ', args[2], ' end'
         }
       end
-      if self.tt == 64 then
+      if self.tt == proto.Term.FUNCALL then
         local func = table.remove(args, 1)
         if func then
           table.insert(args, func)
         end
       end
       if not self.args then
-        return {
-          type(self)
-        }
+        return {type(self)}
       end
-      intspallargs = function(args, optargs)
-        local argrepr = {}
-        if args and next(args) then
-          table.insert(argrepr, intsp(args))
-        end
-        if optargs and next(optargs) then
-          if next(argrepr) then
-            table.insert(argrepr, ', ')
-          end
-          table.insert(argrepr, kved(optargs))
-        end
-        return argrepr
+      local argrepr = {}
+      if args and next(args) then
+        table.insert(argrepr, intsp(args))
       end
-      return {
-        'r.' .. self.st .. '(',
-        intspallargs(args, optargs),
-        ')'
-      }
+      if optargs and next(optargs) then
+        if next(argrepr) then
+          table.insert(argrepr, ', ')
+        end
+        table.insert(argrepr, kved(optargs))
+      end
+      return {'r.' .. self.st .. '(', argrepr, ')'}
     end,
     next_var_id = 0,
   }

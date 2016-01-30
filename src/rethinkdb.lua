@@ -1,6 +1,7 @@
 local class = require'rethinkdb.class'
 local convert_pseudotype = require'rethinkdb.convert_pseudotype'
 local Cursor = require'rethinkdb.cursor'
+local proto = require'rethinkdb.protodef'
 
 -- r is both the main export table for the module
 -- and a function that wraps a native Lua value in a ReQL datum
@@ -340,7 +341,7 @@ r.connect = class(
           self:close({noreply_wait = false})
           return self:_process_response(
             {
-              t = 16,
+              t = proto.Response.CLIENT_ERROR,
               r = {'connection returned: ' .. err},
               b = {}
             },
@@ -462,7 +463,7 @@ r.connect = class(
       self.outstanding_callbacks[token] = {cursor = cursor}
 
       -- Construct query
-      self:_write_socket(token, {4})
+      self:_write_socket(token, {proto.Query.NOREPLY_WAIT})
 
       return cb(nil, cursor)
     end,
@@ -520,7 +521,7 @@ r.connect = class(
       end
 
       -- Construct query
-      local query = {1, term:build(), global_opts}
+      local query = {proto.Query.START, term:build(), global_opts}
 
       local idx, err = self:_write_socket(token, query)
       if err then
@@ -535,11 +536,11 @@ r.connect = class(
       return cb(nil, cursor)
     end,
     _continue_query = function(self, token)
-      self:_write_socket(token, {2})
+      self:_write_socket(token, {proto.Query.CONTINUE})
     end,
     _end_query = function(self, token)
       self:_del_query(token)
-      self:_write_socket(token, {3})
+      self:_write_socket(token, {proto.Query.STOP})
     end,
     _write_socket = function(self, token, query)
       if not self.raw_socket then return nil, 'closed' end
