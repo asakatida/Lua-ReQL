@@ -1,4 +1,5 @@
 local class = require'rethinkdb.class'
+local errors = require'rethinkdb.errors'
 local proto = require'rethinkdb.protodef'
 
 --local DATUMTERM, ReQLOp
@@ -42,7 +43,7 @@ function m.init(r)
           connection = r._pool
         else
           if callback then
-            return callback(ReQLDriverError('First argument to `run` must be a connection.'))
+            return callback(errors.ReQLDriverError('First argument to `run` must be a connection.'))
           end
           return error('First argument to `run` must be a connection.')
         end

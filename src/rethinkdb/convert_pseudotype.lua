@@ -1,3 +1,5 @@
+local errors = require'rethinkdb.errors'
+
 function convert_pseudotype(obj, opts)
   if type(obj) == 'table' then
     for key, value in pairs(obj) do
@@ -10,7 +12,7 @@ function convert_pseudotype(obj, opts)
       local time_format = opts.time_format
       if 'native' == time_format or not time_format then
         if not (obj['epoch_time']) then
-          return error(ReQLDriverError('pseudo-type TIME ' .. obj .. ' table missing expected field `epoch_time`.'))
+          return error(errors.ReQLDriverError('pseudo-type TIME ' .. obj .. ' table missing expected field `epoch_time`.'))
         end
 
         -- We ignore the timezone field of the pseudo-type TIME table. JS dates do not support timezones.
@@ -21,7 +23,7 @@ function convert_pseudotype(obj, opts)
       elseif 'raw' == time_format then
         return obj
       else
-        return error(ReQLDriverError('Unknown time_format run option ' .. opts.time_format .. '.'))
+        return error(errors.ReQLDriverError('Unknown time_format run option ' .. opts.time_format .. '.'))
       end
     elseif 'GROUPED_DATA' == reql_type then
       local group_format = opts.group_format
@@ -40,19 +42,19 @@ function convert_pseudotype(obj, opts)
       elseif 'raw' == group_format then
         return obj
       else
-        return error(ReQLDriverError('Unknown group_format run option ' .. opts.group_format .. '.'))
+        return error(errors.ReQLDriverError('Unknown group_format run option ' .. opts.group_format .. '.'))
       end
     elseif 'BINARY' == reql_type then
       local binary_format = opts.binary_format
       if 'native' == binary_format or not binary_format then
         if not obj.data then
-          return error(ReQLDriverError('pseudo-type BINARY table missing expected field `data`.'))
+          return error(errors.ReQLDriverError('pseudo-type BINARY table missing expected field `data`.'))
         end
         return r._unb64(obj.data)
       elseif 'raw' == binary_format then
         return obj
       else
-        return error(ReQLDriverError('Unknown binary_format run option ' .. opts.binary_format .. '.'))
+        return error(errors.ReQLDriverError('Unknown binary_format run option ' .. opts.binary_format .. '.'))
       end
     else
       -- Regular table or unknown pseudo type

@@ -1,6 +1,7 @@
 local class = require'rethinkdb.class'
 local convert_pseudotype = require'rethinkdb.convert_pseudotype'
 local Cursor = require'rethinkdb.cursor'
+local errors = require'rethinkdb.errors'
 local proto = require'rethinkdb.protodef'
 
 -- r is both the main export table for the module
@@ -93,12 +94,6 @@ function r._socket()
   return r._lib_socket.tcp()
 end
 
--- local ReQLAuthError, ReQLAvailabilityError, ReQLClientError, ReQLCompileError
--- local ReQLDriverError, ReQLError, ReQLInternalError, ReQLNonExistenceError
--- local ReQLOpFailedError, ReQLOpIndeterminateError, ReQLQueryLogicError
--- local ReQLQueryPrinter, ReQLResourceLimitError, ReQLRuntimeError
--- local ReQLServerError, ReQLTimeoutError, ReQLUserError
-
 setmetatable(r, {
   __call = function(cls, val, nesting_depth)
     if nesting_depth == nil then
@@ -140,117 +135,6 @@ setmetatable(r, {
     return ast.DATUMTERM(val)
   end
 })
-
-ReQLError = class(
-  'ReQLError',
-  function(self, msg, term, frames)
-    self.msg = msg
-    self.message = function()
-      if self._message then return self._message end
-      self._message = self.__class.__name .. ' ' .. msg
-      if term then
-        self._message = self._message .. ' in:\n' .. ReQLQueryPrinter(term, frames):print_query()
-      end
-      return self._message
-    end
-  end
-)
-
-ReQLDriverError = class('ReQLDriverError', ReQLError, {})
-ReQLServerError = class('ReQLServerError', ReQLError, {})
-
-ReQLRuntimeError = class('ReQLRuntimeError', ReQLServerError, {})
-ReQLCompileError = class('ReQLCompileError', ReQLServerError, {})
-
-ReQLAuthError = class('ReQLDriverError', ReQLDriverError, {})
-
-ReQLClientError = class('ReQLClientError', ReQLServerError, {})
-
-ReQLAvailabilityError = class('ReQLRuntimeError', ReQLRuntimeError, {})
-ReQLInternalError = class('ReQLRuntimeError', ReQLRuntimeError, {})
-ReQLQueryLogicError = class('ReQLRuntimeError', ReQLRuntimeError, {})
-ReQLResourceLimitError = class('ReQLRuntimeError', ReQLRuntimeError, {})
-ReQLTimeoutError = class('ReQLRuntimeError', ReQLRuntimeError, {})
-ReQLUserError = class('ReQLRuntimeError', ReQLRuntimeError, {})
-
-ReQLOpFailedError = class('ReQLRuntimeError', ReQLAvailabilityError, {})
-ReQLOpIndeterminateError = class('ReQLRuntimeError', ReQLAvailabilityError, {})
-
-ReQLNonExistenceError = class('ReQLRuntimeError', ReQLQueryLogicError, {})
-
-ReQLQueryPrinter = class(
-  'ReQLQueryPrinter',
-  {
-    __init = function(self, term, frames)
-      self.term = term
-      self.frames = frames
-    end,
-    print_query = function(self)
-      local carrots
-      if next(self.frames) then
-        carrots = self:compose_carrots(self.term, self.frames)
-      else
-        carrots = {self:carrotify(self:compose_term(self.term))}
-      end
-      carrots = self:join_tree(carrots):gsub('[^%^]', '')
-      return self:join_tree(self:compose_term(self.term)) .. '\n' .. carrots
-    end,
-    compose_term = function(self, term)
-      if type(term) ~= 'table' then return '' .. term end
-      local args = {}
-      for i, arg in ipairs(term.args) do
-        args[i] = self:compose_term(arg)
-      end
-      local optargs = {}
-      for key, arg in pairs(term.optargs) do
-        optargs[key] = self:compose_term(arg)
-      end
-      return term:compose(args, optargs)
-    end,
-    compose_carrots = function(self, term, frames)
-      local frame = table.remove(frames, 1)
-      local args = {}
-      for i, arg in ipairs(term.args) do
-        if frame == (i - 1) then
-          args[i] = self:compose_carrots(arg, frames)
-        else
-          args[i] = self:compose_term(arg)
-        end
-      end
-      local optargs = {}
-      for key, arg in pairs(term.optargs) do
-        if frame == key then
-          optargs[key] = self:compose_carrots(arg, frames)
-        else
-          optargs[key] = self:compose_term(arg)
-        end
-      end
-      if frame then
-        return term:compose(args, optargs)
-      end
-      return self:carrotify(term:compose(args, optargs))
-    end,
-    carrot_marker = {},
-    carrotify = function(self, tree)
-      return {carrot_marker, tree}
-    end,
-    join_tree = function(self, tree)
-      local str = ''
-      for _, term in ipairs(tree) do
-        if type(term) == 'table' then
-          if #term == 2 and term[1] == self.carrot_marker then
-            str = str .. self:join_tree(term[2]):gsub('.', '^')
-          else
-            str = str .. self:join_tree(term)
-          end
-        else
-          str = str .. term
-        end
-      end
-      return str
-    end
-  }
-)
 
 r.connect = class(
   'Connection',
@@ -306,7 +190,7 @@ r.connect = class(
           buf, err, partial = self.raw_socket:receive(8)
           buf = buf or partial
           if not buf then
-            return cb(ReQLDriverError('Server dropped connection with message:  \'' .. status_str .. '\'\n' .. err))
+            return cb(errors.ReQLDriverError('Server dropped connection with message:  \'' .. status_str .. '\'\n' .. err))
           end
           self.buffer = self.buffer .. buf
           i, j = buf:find('\0')
@@ -317,11 +201,11 @@ r.connect = class(
               -- We're good, finish setting up the connection
               return cb(nil, self)
             end
-            return cb(ReQLDriverError('Server dropped connection with message: \'' .. status_str .. '\''))
+            return cb(errors.ReQLDriverError('Server dropped connection with message: \'' .. status_str .. '\''))
           end
         end
       end
-      return cb(ReQLDriverError('Could not connect to ' .. self.host .. ':' .. self.port .. '.\n' .. err))
+      return cb(errors.ReQLDriverError('Could not connect to ' .. self.host .. ':' .. self.port .. '.\n' .. err))
     end,
     DEFAULT_HOST = 'localhost',
     DEFAULT_PORT = 28015,
@@ -449,7 +333,7 @@ r.connect = class(
         return callback(err)
       end
       if not self:open() then
-        return cb(ReQLDriverError('Connection is closed.'))
+        return cb(errors.ReQLDriverError('Connection is closed.'))
       end
 
       -- Assign token
@@ -495,7 +379,7 @@ r.connect = class(
         return res
       end
       if not self:open() then
-        return cb(ReQLDriverError('Connection is closed.'))
+        return cb(errors.ReQLDriverError('Connection is closed.'))
       end
 
       -- Assign token
@@ -527,7 +411,7 @@ r.connect = class(
       if err then
         self:close({noreply_wait = false}, function(err)
           if err then return cb(err) end
-          return cb(ReQLDriverError('Connection is closed.'))
+          return cb(errors.ReQLDriverError('Connection is closed.'))
         end)
       end
       local cursor = Cursor(self, token, opts, term)
