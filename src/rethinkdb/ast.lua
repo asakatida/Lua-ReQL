@@ -37,7 +37,7 @@ function m.init(r)
       end
       -- else we suppose that we have run(connection[, options][, callback])
 
-      if not r.is_instance(connection, 'Connection', 'Pool') then
+      if not r.is_instance(connection, 'Connection', 'ConnInstance', 'Pool') then
         if r._pool then
           connection = r._pool
         else
