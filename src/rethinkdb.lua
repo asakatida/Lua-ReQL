@@ -549,7 +549,8 @@ r.Connection = class(
       self.host = host.host or self.DEFAULT_HOST
       self.port = host.port or self.DEFAULT_PORT
       self.db = host.db -- left nil if this is not set
-      self.auth_key = host.auth_key or self.DEFAULT_AUTH_KEY
+      self.auth_key = host.password or host.auth_key or self.DEFAULT_AUTH_KEY
+      self.user = host.user or self.DEFAULT_USER
       self.timeout = host.timeout or self.DEFAULT_TIMEOUT
       self.ssl_params = host.ssl
       if proto_version then
@@ -562,6 +563,7 @@ r.Connection = class(
       inst.port = self.port
       inst.db = self.db
       inst.auth_key = self.auth_key
+      inst.user = self.user
       inst.timeout = self.timeout
       inst.ssl_params = self.ssl_params
       inst.proto_version = self.proto_version
@@ -572,6 +574,7 @@ r.Connection = class(
     end,
     DEFAULT_HOST = 'localhost',
     DEFAULT_PORT = 28015,
+    DEFAULT_USER = 'admin',
     DEFAULT_AUTH_KEY = '',
     DEFAULT_TIMEOUT = 20, -- In seconds
     proto_version = proto_V1_0
