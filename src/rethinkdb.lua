@@ -139,23 +139,25 @@ setmetatable(r, {
 })
 
 function r.connect(host_or_callback, callback)
-  return r.Connection():connect(host_or_callback, callback)
+  local host = {}
+  if type(host_or_callback) == 'function' then
+    callback = host_or_callback
+  elseif type(host_or_callback) == 'string' then
+    host = {host = host_or_callback}
+  elseif host_or_callback then
+    host = host_or_callback
+  end
+  return r.Connection(host):connect(callback)
 end
 
-r.Connection = class(
-  'Connection',
+local ConnInstance = class(
+  'ConnInstance',
   {
-    connect = function(self, host_or_callback, callback)
+    __init = function(self, host)
+    end,
+    connect = function(self, callback)
       if self.raw_socket then
         self:close({noreply_wait = false})
-      end
-      local host = {}
-      if type(host_or_callback) == 'function' then
-        callback = host_or_callback
-      elseif type(host_or_callback) == 'string' then
-        host = {host = host_or_callback}
-      elseif host_or_callback then
-        host = host_or_callback
       end
       self.weight = 0
       self.host = host.host or self.DEFAULT_HOST
@@ -182,37 +184,7 @@ r.Connection = class(
       self.raw_socket:settimeout(self.timeout)
       local status, err = self.raw_socket:connect(self.host, self.port)
       if status then
-        if self.ssl_params then
-        end
         local buf, err, partial
-        -- Initialize connection with magic number to validate version
-        self.raw_socket:send(
-          '\32\45\12\64' ..
-          self.int_to_bytes(#(self.auth_key), 4) ..
-          self.auth_key ..
-          '\199\112\105\126'
-        )
-
-        -- Now we have to wait for a response from the server
-        -- acknowledging the connection
-        while 1 do
-          buf, err, partial = self.raw_socket:receive(8)
-          buf = buf or partial
-          if not buf then
-            return cb(errors.ReQLDriverError('Server dropped connection with message:  \'' .. status_str .. '\'\n' .. err))
-          end
-          self.buffer = self.buffer .. buf
-          i, j = buf:find('\0')
-          if i then
-            local status_str = self.buffer:sub(1, i - 1)
-            self.buffer = self.buffer:sub(i + 1)
-            if status_str == 'SUCCESS' then
-              -- We're good, finish setting up the connection
-              return cb(nil, self)
-            end
-            return cb(errors.ReQLDriverError('Server dropped connection with message: \'' .. status_str .. '\''))
-          end
-        end
       end
       return cb(errors.ReQLDriverError('Could not connect to ' .. self.host .. ':' .. self.port .. '.\n' .. err))
     end,
@@ -220,10 +192,6 @@ r.Connection = class(
       self.raw_socket = r._lib_ssl.wrap(self.raw_socket, self.ssl_params)
       self.raw_socket:dohandshake()
     end,
-    DEFAULT_HOST = 'localhost',
-    DEFAULT_PORT = 28015,
-    DEFAULT_AUTH_KEY = '',
-    DEFAULT_TIMEOUT = 20, -- In seconds
     _get_response = function(self, reqest_token)
       local response_length = 0
       local token = 0
@@ -433,11 +401,11 @@ r.Connection = class(
       return cb(nil, cursor)
     end,
     _continue_query = function(self, token)
-      self:_write_socket(token, {proto.Query.CONTINUE})
+      return self:_write_socket(token, {proto.Query.CONTINUE})
     end,
     _end_query = function(self, token)
       self:_del_query(token)
-      self:_write_socket(token, {proto.Query.STOP})
+      return self:_write_socket(token, {proto.Query.STOP})
     end,
     _write_socket = function(self, token, query)
       if not self.raw_socket then return nil, 'closed' end
@@ -469,6 +437,42 @@ r.Connection = class(
   }
 )
 
+r.Connection = class(
+  'Connection',
+  {
+    __init = function(self, host, proto_version)
+      self.host = host.host or self.DEFAULT_HOST
+      self.port = host.port or self.DEFAULT_PORT
+      self.db = host.db -- left nil if this is not set
+      self.auth_key = host.auth_key or self.DEFAULT_AUTH_KEY
+      self.timeout = host.timeout or self.DEFAULT_TIMEOUT
+      self.ssl_params = host.ssl
+      if proto_version then
+        self.proto_version = proto_version
+      end
+    end,
+    connect = function(self, callback)
+      local inst = ConnInstance()
+      inst.host = self.host
+      inst.port = self.port
+      inst.db = self.db
+      inst.auth_key = self.auth_key
+      inst.timeout = self.timeout
+      inst.ssl_params = self.ssl_params
+      inst.proto_version = self.proto_version
+      return inst.connect(callback)
+    end,
+    DEFAULT_HOST = 'localhost',
+    DEFAULT_PORT = 28015,
+    DEFAULT_AUTH_KEY = '',
+    DEFAULT_TIMEOUT = 20, -- In seconds
+    proto_version = proto_V1_0
+    use = function(self, db)
+      self.db = db
+    end
+  }
+)
+
 r.pool = class(
   'Pool',
   {
@@ -485,14 +489,14 @@ r.pool = class(
         return pool, err
       end
       self._open = false
-      return r.connect(host, function(err, conn)
+      self._builder = r.Connection(host)
+      return self._builder.connect(function(err, conn)
         if err then return cb(err) end
         self._open = true
         self.pool = {conn}
         self.size = host.size or 12
-        self.host = host
         for i=2, self.size do
-          table.insert(self.pool, (r.connect(host)))
+          table.insert(self.pool, (self._builder.connect()))
         end
         return cb(nil, self)
       end)
@@ -528,7 +532,7 @@ r.pool = class(
       end
       local good_conn
       for i=1, self.size do
-        if not self.pool[i] then self.pool[i] = r.connect(self.host) end
+        if not self.pool[i] then self.pool[i] = self._builder.connect() end
         local conn = self.pool[i]
         if not conn:open() then
           conn:reconnect()
