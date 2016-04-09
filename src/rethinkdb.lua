@@ -412,6 +412,42 @@ local ConnInstance = class(
         return self:_connect(callback)
       end)
     end,
+    server = function(self)
+      local cb = function(err, cur)
+        if cur then
+          return cur:next(function(err)
+            self.weight = 0
+            for token, cur in pairs(self.outstanding_callbacks) do
+              if cur.cursor then
+                self.weight = self.weight + 3
+              else
+                self.outstanding_callbacks[token] = nil
+              end
+            end
+            return callback(err)
+          end)
+        end
+        return callback(err)
+      end
+      if not self:open() then
+        return cb(errors.ReQLDriverError('Connection is closed.'))
+      end
+
+      -- Assign token
+      local token = self.next_token
+      self.next_token = self.next_token + 1
+
+      -- Save cursor
+      local cursor = Cursor(self, token, {})
+
+      -- Save cursor
+      self.outstanding_callbacks[token] = {cursor = cursor}
+
+      -- Construct query
+      self:_write_socket(token, {proto.Query.SERVER_INFO})
+
+      return cb(nil, cursor)
+    end
     use = function(self, db)
       self.db = db
     end,
