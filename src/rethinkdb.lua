@@ -150,6 +150,75 @@ function r.connect(host_or_callback, callback)
   return r.Connection(host):connect(callback)
 end
 
+function r.proto_V0_3(conn)
+  -- Initialize connection with magic number to validate version
+  conn.raw_socket:send(
+    '\62\232\117\95' ..
+    conn.int_to_bytes(#(conn.auth_key), 4) ..
+    conn.auth_key ..
+    '\199\112\105\126'
+  )
+
+  -- Now we have to wait for a response from the server
+  -- acknowledging the connection
+  while 1 do
+    buf, err, partial = conn.raw_socket:receive(8)
+    buf = buf or partial
+    if not buf then
+      return cb(errors.ReQLDriverError('Server dropped connection with message:  \'' .. status_str .. '\'\n' .. err))
+    end
+    conn.buffer = conn.buffer .. buf
+    i, j = buf:find('\0')
+    if i then
+      local status_str = conn.buffer:sub(1, i - 1)
+      conn.buffer = conn.buffer:sub(i + 1)
+      if status_str == 'SUCCESS' then
+        -- We're good, finish setting up the connection
+        return cb(nil, conn)
+      end
+      return cb(errors.ReQLDriverError('Server dropped connection with message: \'' .. status_str .. '\''))
+    end
+  end
+end
+
+function r.proto_V0_4(conn)
+  -- Initialize connection with magic number to validate version
+  conn.raw_socket:send(
+    '\32\45\12\64' ..
+    conn.int_to_bytes(#(conn.auth_key), 4) ..
+    conn.auth_key ..
+    '\199\112\105\126'
+  )
+
+  -- Now we have to wait for a response from the server
+  -- acknowledging the connection
+  while 1 do
+    buf, err, partial = conn.raw_socket:receive(8)
+    buf = buf or partial
+    if not buf then
+      return cb(errors.ReQLDriverError('Server dropped connection with message:  \'' .. status_str .. '\'\n' .. err))
+    end
+    conn.buffer = conn.buffer .. buf
+    i, j = buf:find('\0')
+    if i then
+      local status_str = conn.buffer:sub(1, i - 1)
+      conn.buffer = conn.buffer:sub(i + 1)
+      if status_str == 'SUCCESS' then
+        -- We're good, finish setting up the connection
+        return cb(nil, conn)
+      end
+      return cb(errors.ReQLDriverError('Server dropped connection with message: \'' .. status_str .. '\''))
+    end
+  end
+end
+
+function r.proto_V1_0(conn)
+  if conn.ssl_params then
+    conn.raw_socket = r._lib_ssl.wrap(conn.raw_socket, conn.ssl_params)
+    conn.raw_socket:dohandshake()
+  end
+end
+
 local ConnInstance = class(
   'ConnInstance',
   {
