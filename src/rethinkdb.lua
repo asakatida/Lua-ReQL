@@ -531,6 +531,9 @@ r.Connection = class(
       inst.proto_version = self.proto_version
       return inst.connect(callback)
     end,
+    _start = function(self, term, callback, opts)
+      return self:connect():_start(term, callback, opts)
+    end,
     DEFAULT_HOST = 'localhost',
     DEFAULT_PORT = 28015,
     DEFAULT_AUTH_KEY = '',
