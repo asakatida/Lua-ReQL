@@ -10,6 +10,8 @@ local r = {
   is_instance = require'rethinkdb.is_instance'
 }
 
+r._lib_ssl = require('ssl')
+
 local ast = require'rethinkdb.ast'.init(r)
 
 function r._logger(err)
@@ -154,6 +156,7 @@ r.connect = class(
       self.db = host.db -- left nil if this is not set
       self.auth_key = host.auth_key or self.DEFAULT_AUTH_KEY
       self.timeout = host.timeout or self.DEFAULT_TIMEOUT
+      self.ssl_params = host.ssl
       self.outstanding_callbacks = {}
       self.next_token = 1
       self.buffer = ''
@@ -175,6 +178,8 @@ r.connect = class(
       self.raw_socket:settimeout(self.timeout)
       local status, err = self.raw_socket:connect(self.host, self.port)
       if status then
+        if self.ssl_params then
+        end
         local buf, err, partial
         -- Initialize connection with magic number to validate version
         self.raw_socket:send(
@@ -206,6 +211,10 @@ r.connect = class(
         end
       end
       return cb(errors.ReQLDriverError('Could not connect to ' .. self.host .. ':' .. self.port .. '.\n' .. err))
+    end,
+    _wrap = function(self, callback)
+      self.raw_socket = r._lib_ssl.wrap(self.raw_socket, self.ssl_params)
+      self.raw_socket:dohandshake()
     end,
     DEFAULT_HOST = 'localhost',
     DEFAULT_PORT = 28015,
