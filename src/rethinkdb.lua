@@ -138,10 +138,14 @@ setmetatable(r, {
   end
 })
 
-r.connect = class(
+function r.connect(host_or_callback, callback)
+  return r.Connection():connect(host_or_callback, callback)
+end
+
+r.Connection = class(
   'Connection',
   {
-    __init = function(self, host_or_callback, callback)
+    connect = function(self, host_or_callback, callback)
       local host = {}
       if type(host_or_callback) == 'function' then
         callback = host_or_callback
