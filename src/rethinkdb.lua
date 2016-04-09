@@ -146,6 +146,9 @@ r.Connection = class(
   'Connection',
   {
     connect = function(self, host_or_callback, callback)
+      if self.raw_socket then
+        self:close({noreply_wait = false})
+      end
       local host = {}
       if type(host_or_callback) == 'function' then
         callback = host_or_callback
@@ -164,9 +167,6 @@ r.Connection = class(
       self.outstanding_callbacks = {}
       self.next_token = 1
       self.buffer = ''
-      if self.raw_socket then
-        self:close({noreply_wait = false})
-      end
       return self:_connect(callback)
     end,
     _connect = function(self, callback)
