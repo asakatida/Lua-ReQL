@@ -10,6 +10,7 @@ Rethinkdb driver in Lua
 - Luarocks
   - busted
   - luajson
+  - luasec
   - luasocket
 - RethinkDB
 
