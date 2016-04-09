@@ -3,7 +3,8 @@ return {
     V0_1 = 1063369270,
     V0_2 = 1915781601,
     V0_3 = 1601562686,
-    V0_4 = 1074539808
+    V0_4 = 1074539808,
+    V1_0 = 885177795
   },
 
   Protocol = {
@@ -37,7 +38,8 @@ return {
     NON_EXISTENCE = 3100000,
     OP_FAILED = 4100000,
     OP_INDETERMINATE = 4200000,
-    USER = 5000000
+    USER = 5000000,
+    PERMISSION_ERROR = 6000000
   },
 
   ResponseNote = {
@@ -102,6 +104,7 @@ return {
     BETWEEN = 182,
     REDUCE = 37,
     MAP = 38,
+    FOLD = 187,
     FILTER = 39,
     CONCAT_MAP = 40,
     ORDER_BY = 41,
@@ -138,6 +141,7 @@ return {
     RECONFIGURE = 176,
     REBALANCE = 179,
     SYNC = 138,
+    GRANT = 188,
     INDEX_CREATE = 75,
     INDEX_DROP = 76,
     INDEX_LIST = 77,
