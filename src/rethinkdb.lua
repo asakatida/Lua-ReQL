@@ -447,7 +447,7 @@ local ConnInstance = class(
       self:_write_socket(token, {proto.Query.SERVER_INFO})
 
       return cb(nil, cursor)
-    end
+    end,
     use = function(self, db)
       self.db = db
     end,
