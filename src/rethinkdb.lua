@@ -213,9 +213,34 @@ function r.proto_V0_4(conn)
 end
 
 function r.proto_V1_0(conn)
+  -- Initialize connection
   if conn.ssl_params then
     conn.raw_socket = r._lib_ssl.wrap(conn.raw_socket, conn.ssl_params)
     conn.raw_socket:dohandshake()
+  end
+  nonce = {}
+  for i=1,18 do
+    nonce[i] = math.random(1, 0xFF)
+  end
+  conn.raw_socket:send(
+    '\32\45\12\64'
+    '{"protocol_version":0,'
+    '"authentication_method":"SCRAM-SHA-256",'
+    '"authentication":'
+    '"n,,n=' .. conn.user ..
+    ',r=' .. r._b64(string.char(unpack(nonce)))
+    '"}\0'
+  )
+
+  -- Now we have to wait for a response from the server
+  -- acknowledging the connection
+  while 1 do
+    buf, err, partial = conn.raw_socket:receive()
+    buf = buf or partial
+    if not buf then
+      return 'Server dropped connection with message:  \'' .. conn.buffer .. '\'\n' .. err
+    end
+    conn.buffer = conn.buffer .. buf
   end
 end
 
