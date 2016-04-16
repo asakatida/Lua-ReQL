@@ -13,6 +13,7 @@ local r = {
 r._lib_ssl = require('ssl')
 
 local ast = require'rethinkdb.ast'.init(r)
+local expr = require'rethinkdb.expr'.init(r)
 
 function r._logger(err)
   if r.logger then
