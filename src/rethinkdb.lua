@@ -160,6 +160,8 @@ function r.proto_V0_3(conn)
     '\199\112\105\126'
   )
 
+  local buf, err, partial
+
   -- Now we have to wait for a response from the server
   -- acknowledging the connection
   while 1 do
@@ -191,6 +193,8 @@ function r.proto_V0_4(conn)
     '\199\112\105\126'
   )
 
+  local buf, err, partial
+
   -- Now we have to wait for a response from the server
   -- acknowledging the connection
   while 1 do
@@ -219,7 +223,7 @@ function r.proto_V1_0(conn)
     conn.raw_socket = r._lib_ssl.wrap(conn.raw_socket, conn.ssl_params)
     conn.raw_socket:dohandshake()
   end
-  nonce = {}
+  local nonce = {}
   for i=1,18 do
     nonce[i] = math.random(1, 0xFF)
   end
@@ -232,6 +236,8 @@ function r.proto_V1_0(conn)
     ',r=' .. r._b64(string.char(unpack(nonce)))
     '"}\0'
   )
+
+  local buf, err, partial
 
   -- Now we have to wait for a response from the server
   -- acknowledging the connection
