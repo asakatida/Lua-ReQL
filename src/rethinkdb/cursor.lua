@@ -1,5 +1,6 @@
 local errors = require'rethinkdb.errors'
 local proto = require'rethinkdb.protodef'
+local convert_pseudotype = require'rethinkdb.convert_pseudotype'
 
 return require('rethinkdb.class')(
   'Cursor',
