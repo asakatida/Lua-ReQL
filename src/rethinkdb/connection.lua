@@ -38,7 +38,7 @@ function m.init(r)
     end
 
     local factory = {
-      __name = 'Connection'
+      __name = 'Connection',
       connect = connect
     }
 
