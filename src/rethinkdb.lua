@@ -147,9 +147,9 @@ function r.connect(host_or_callback, callback)
   return r.Connection(host):connect(callback)
 end
 
-function r.proto_V0_3(conn)
+function r.proto_V0_3(conn, raw_socket)
   -- Initialize connection with magic number to validate version
-  conn.raw_socket:send(
+  raw_socket:send(
     '\62\232\117\95' ..
     conn.int_to_bytes(#(conn.auth_key), 4) ..
     conn.auth_key ..
@@ -157,32 +157,33 @@ function r.proto_V0_3(conn)
   )
 
   local buf, err, partial
+  local buffer = ''
 
   -- Now we have to wait for a response from the server
   -- acknowledging the connection
   while 1 do
-    buf, err, partial = conn.raw_socket:receive(8)
+    buf, err, partial = raw_socket:receive(8)
     buf = buf or partial
     if not buf then
-      return cb(errors.ReQLDriverError('Server dropped connection with message:  \'' .. status_str .. '\'\n' .. err))
+      return nil, buffer, err
     end
-    conn.buffer = conn.buffer .. buf
+    buffer = buffer .. buf
     i, j = buf:find('\0')
     if i then
-      local status_str = conn.buffer:sub(1, i - 1)
-      conn.buffer = conn.buffer:sub(i + 1)
+      local status_str = buffer:sub(1, i - 1)
+      buffer = buffer:sub(i + 1)
       if status_str == 'SUCCESS' then
         -- We're good, finish setting up the connection
-        return cb(nil, conn)
+        return raw_socket, buffer, err
       end
-      return cb(errors.ReQLDriverError('Server dropped connection with message: \'' .. status_str .. '\''))
+      return nil, buffer, err
     end
   end
 end
 
-function r.proto_V0_4(conn)
+function r.proto_V0_4(conn, raw_socket)
   -- Initialize connection with magic number to validate version
-  conn.raw_socket:send(
+  raw_socket:send(
     '\32\45\12\64' ..
     conn.int_to_bytes(#(conn.auth_key), 4) ..
     conn.auth_key ..
@@ -190,40 +191,41 @@ function r.proto_V0_4(conn)
   )
 
   local buf, err, partial
+  local buffer = ''
 
   -- Now we have to wait for a response from the server
   -- acknowledging the connection
   while 1 do
-    buf, err, partial = conn.raw_socket:receive(8)
+    buf, err, partial = raw_socket:receive(8)
     buf = buf or partial
     if not buf then
-      return cb(errors.ReQLDriverError('Server dropped connection with message:  \'' .. status_str .. '\'\n' .. err))
+      return nil, buffer, err
     end
-    conn.buffer = conn.buffer .. buf
+    buffer = buffer .. buf
     i, j = buf:find('\0')
     if i then
       local status_str = conn.buffer:sub(1, i - 1)
-      conn.buffer = conn.buffer:sub(i + 1)
+      buffer = buffer:sub(i + 1)
       if status_str == 'SUCCESS' then
         -- We're good, finish setting up the connection
-        return cb(nil, conn)
+        return raw_socket, buffer, err
       end
-      return cb(errors.ReQLDriverError('Server dropped connection with message: \'' .. status_str .. '\''))
+      return nil, buffer, err
     end
   end
 end
 
-function r.proto_V1_0(conn)
+function r.proto_V1_0(conn, raw_socket)
   -- Initialize connection
   if conn.ssl_params then
-    conn.raw_socket = r._lib_ssl.wrap(conn.raw_socket, conn.ssl_params)
-    conn.raw_socket:dohandshake()
+    raw_socket = r._lib_ssl.wrap(raw_socket, conn.ssl_params)
+    raw_socket:dohandshake()
   end
   local nonce = {}
   for i=1,18 do
-    nonce[i] = math.random(1, 0xFF)
+    nonce[i] = math.random(1, 0xFF)  -- TODO
   end
-  conn.raw_socket:send(
+  raw_socket:send(
     '\32\45\12\64'
     '{"protocol_version":0,'
     '"authentication_method":"SCRAM-SHA-256",'
@@ -234,16 +236,17 @@ function r.proto_V1_0(conn)
   )
 
   local buf, err, partial
+  local buffer = ''
 
   -- Now we have to wait for a response from the server
   -- acknowledging the connection
   while 1 do
-    buf, err, partial = conn.raw_socket:receive()
+    buf, err, partial = raw_socket:receive()
     buf = buf or partial
     if not buf then
-      return 'Server dropped connection with message:  \'' .. conn.buffer .. '\'\n' .. err
+      return nil, buffer, err
     end
-    conn.buffer = conn.buffer .. buf
+    buffer = buffer .. buf
   end
 end
 
