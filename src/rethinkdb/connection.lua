@@ -11,8 +11,6 @@ local DEFAULT_TIMEOUT = 20 -- In seconds
 function m.init(r)
   instance = instance.init(r)
 
-  local DEFAULT_PROTO_VERSION = r.proto_V1_0
-
   return function(host, proto_version)
 
     local port = host.port or self.DEFAULT_PORT
@@ -21,7 +19,7 @@ function m.init(r)
     local user = host.user or self.DEFAULT_USER
     local timeout = host.timeout or self.DEFAULT_TIMEOUT
     local ssl_params = host.ssl
-    local proto_version = proto_version or DEFAULT_PROTO_VERSION
+    local proto_version = proto_version or r.proto_V1_0
     host = host.host or self.DEFAULT_HOST
 
     function connect(callback)
