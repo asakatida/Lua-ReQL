@@ -1,8 +1,4 @@
-local class = require'rethinkdb.class'
-local convert_pseudotype = require'rethinkdb.convert_pseudotype'
-local Cursor = require'rethinkdb.cursor'
 local errors = require'rethinkdb.errors'
-local proto = require'rethinkdb.protodef'
 
 -- r is both the main export table for the module
 -- and a function that wraps a native Lua value in a ReQL datum
