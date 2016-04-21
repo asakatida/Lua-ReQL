@@ -151,7 +151,7 @@ setmetatable(r, {
   end
 })
 
-function r.proto_V0_3(conn, raw_socket)
+function r.proto_V0_3(raw_socket, auth_key)
   -- Initialize connection with magic number to validate version
   raw_socket:send(
     '\62\232\117\95' ..
@@ -185,7 +185,7 @@ function r.proto_V0_3(conn, raw_socket)
   end
 end
 
-function r.proto_V0_4(conn, raw_socket)
+function r.proto_V0_4(raw_socket, auth_key)
   -- Initialize connection with magic number to validate version
   raw_socket:send(
     '\32\45\12\64' ..
@@ -219,12 +219,8 @@ function r.proto_V0_4(conn, raw_socket)
   end
 end
 
-function r.proto_V1_0(conn, raw_socket)
+function r.proto_V1_0(raw_socket, auth_key, user)
   -- Initialize connection
-  if conn.ssl_params then
-    raw_socket = r._lib_ssl.wrap(raw_socket, conn.ssl_params)
-    raw_socket:dohandshake()
-  end
   local nonce = {}
   for i=1,18 do
     nonce[i] = math.random(1, 0xFF)  -- TODO
