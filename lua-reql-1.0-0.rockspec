@@ -19,11 +19,17 @@ build = {
   type = 'builtin',
   modules = {
     ['rethinkdb.ast'] = 'src/rethinkdb/ast.lua',
+    ['rethinkdb.bytes_to_int'] = 'src/rethinkdb/bytes_to_int.lua',
     ['rethinkdb.class'] = 'src/rethinkdb/class.lua',
+    ['rethinkdb.connection_instance'] = 'src/rethinkdb/connection_instance.lua',
+    ['rethinkdb.connection'] = 'src/rethinkdb/connection.lua',
     ['rethinkdb.convert_pseudotype'] = 'src/rethinkdb/convert_pseudotype.lua',
     ['rethinkdb.cursor'] = 'src/rethinkdb/cursor.lua',
     ['rethinkdb.errors'] = 'src/rethinkdb/errors.lua',
+    ['rethinkdb.expr'] = 'src/rethinkdb/expr.lua',
+    ['rethinkdb.int_to_bytes'] = 'src/rethinkdb/int_to_bytes.lua',
     ['rethinkdb.is_instance'] = 'src/rethinkdb/is_instance.lua',
+    ['rethinkdb.protodef'] = 'src/rethinkdb/protodef.lua',
     rethinkdb = 'src/rethinkdb.lua'
   }
 }
