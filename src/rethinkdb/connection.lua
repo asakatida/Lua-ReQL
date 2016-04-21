@@ -8,8 +8,8 @@ local DEFAULT_USER = 'admin'
 local DEFAULT_AUTH_KEY = ''
 local DEFAULT_TIMEOUT = 20 -- In seconds
 
-function m.init(r)
-  instance = instance.init(r)
+function m.init(r, _r)
+  instance = instance.init(r, _r)
 
   return function(host, proto_version)
 

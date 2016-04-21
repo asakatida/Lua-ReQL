@@ -1,15 +1,15 @@
 local m = {}
 
-function m.init(r)
+function m.init(r, _r)
   function expr(cls, val, nesting_depth)
     if nesting_depth == nil then
       nesting_depth = 20
     end
     if type(nesting_depth) ~= 'number' then
-      return r._logger('Second argument to `r(val, nesting_depth)` must be a number.')
+      return _r.logger('Second argument to `r(val, nesting_depth)` must be a number.')
     end
     if nesting_depth <= 0 then
-      return r._logger('Nesting depth limit exceeded')
+      return _r.logger('Nesting depth limit exceeded')
     end
     if r.is_instance(val, 'ReQLOp') and type(val.build) == 'function' then
       return val
@@ -30,12 +30,12 @@ function m.init(r)
     end
     if type(val) == 'userdata' then
       val = pcall(tostring, val)
-      r._logger('Found userdata inserting "' .. val .. '" into query')
+      _r.logger('Found userdata inserting "' .. val .. '" into query')
       return ast.DATUMTERM(val)
     end
     if type(val) == 'thread' then
       val = pcall(tostring, val)
-      r._logger('Cannot insert thread object into query ' .. val)
+      _r.logger('Cannot insert thread object into query ' .. val)
       return nil
     end
     return ast.DATUMTERM(val)

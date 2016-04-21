@@ -7,7 +7,7 @@ local ReQLOp
 local m = {}
 local ast = {}
 
-function m.init(r)
+function m.init(r, _r)
   function get_opts(...)
     local args = {...}
     local opt = {}
@@ -38,8 +38,8 @@ function m.init(r)
       -- else we suppose that we have run(connection[, options][, callback])
 
       if not r.is_instance(connection, 'Connection', 'ConnInstance', 'Pool') then
-        if r._pool then
-          connection = r._pool
+        if _r.pool then
+          connection = _r.pool
         else
           if callback then
             return callback(errors.ReQLDriverError('First argument to `run` must be a connection.'))
@@ -257,7 +257,7 @@ function m.init(r)
         local data = args[1]
         if r.is_instance(data, 'ReQLOp') then
         elseif type(data) == 'string' then
-          self.base64_data = r._b64(table.remove(args, 1))
+          self.base64_data = _r.b64(table.remove(args, 1))
         else
           return error('Parameter to `r.binary` must be a string or ReQL query.')
         end
@@ -437,20 +437,11 @@ function m.init(r)
           if self.data == nil then
             return 'nil'
           end
-          return r._encode(self.data)
+          return _r.encode(self.data)
         end,
         build = function(self)
           if self.data == nil then
-            if not r.json_parser then
-              r._lib_json = require('json')
-              r.json_parser = r._lib_json
-            end
-            if r.json_parser.null then
-              return r.json_parser.null
-            end
-            if r.json_parser.util then
-              return r.json_parser.util.null
-            end
+            return _r.encode()
           end
           return self.data
         end

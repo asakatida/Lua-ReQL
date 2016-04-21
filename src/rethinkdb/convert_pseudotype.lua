@@ -50,7 +50,7 @@ function convert_pseudotype(obj, opts)
         if not obj.data then
           return error(errors.ReQLDriverError('pseudo-type BINARY table missing expected field `data`.'))
         end
-        return r._unb64(obj.data)
+        return _r.unb64(obj.data)
       elseif 'raw' == binary_format then
         return obj
       else
