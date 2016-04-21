@@ -23,16 +23,9 @@ function m.init(r, _r)
     host = host.host or self.DEFAULT_HOST
 
     function connect(callback)
-      local inst = instance()
-      inst.host = host
-      inst.port = port
-      inst.db = db
-      inst.auth_key = auth_key
-      inst.user = user
-      inst.timeout = timeout
-      inst.ssl_params = ssl_params
-      inst.proto_version = proto_version
-      return inst.connect(callback)
+      return instance(
+        auth_key, db, host, port, proto_version, ssl_params, timeout, user
+        ).connect(callback)
     end
 
     local factory = {
