@@ -5,4 +5,4 @@ return function(str)
     n = n + t[k] * 2 ^ ((k - 1) * 8)
   end
   return n
-end,
+end
