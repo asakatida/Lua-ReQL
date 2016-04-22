@@ -6,14 +6,14 @@ git:
 
 env:
   matrix:
-    - LUA="lua 5.1" RDB_VER="_2.3.0~0"
-    - LUA="lua 5.2" RDB_VER="_2.3.0~0"
-    - LUA="lua 5.3" RDB_VER="_2.3.0~0"
-    - LUA="luajit 2.0" RDB_VER="_2.3.0~0"
-    - LUA="luajit 2.1" RDB_VER="_2.3.0~0"
+    - LUA="lua 5.1" RDB_VER="http://download.rethinkdb.com/apt/pool/precise/main/r/rethinkdb/rethinkdb_2.3.0~0precise_amd64.deb"
+    - LUA="lua 5.2" RDB_VER="http://download.rethinkdb.com/apt/pool/precise/main/r/rethinkdb/rethinkdb_2.3.0~0precise_amd64.deb"
+    - LUA="lua 5.3" RDB_VER="http://download.rethinkdb.com/apt/pool/precise/main/r/rethinkdb/rethinkdb_2.3.0~0precise_amd64.deb"
+    - LUA="luajit 2.0" RDB_VER="http://download.rethinkdb.com/apt/pool/precise/main/r/rethinkdb/rethinkdb_2.3.0~0precise_amd64.deb"
+    - LUA="luajit 2.1" RDB_VER="http://download.rethinkdb.com/apt/pool/precise/main/r/rethinkdb/rethinkdb_2.3.0~0precise_amd64.deb"
 
 before_install:
-  - wget http://download.rethinkdb.com/apt/pool/precise/main/r/rethinkdb/rethinkdb($RDB_VER)precise_amd64.deb
+  - wget $RDB_VER
   - ar x *.deb
   - tar xvzf data.tar.gz
   - pip install hererocks
