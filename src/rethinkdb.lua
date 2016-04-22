@@ -226,10 +226,10 @@ function r.proto_V1_0(raw_socket, auth_key, user)
     nonce[i] = math.random(1, 0xFF)  -- TODO
   end
   raw_socket:send(
-    '\32\45\12\64'
-    '{"protocol_version":0,'
-    '"authentication_method":"SCRAM-SHA-256",'
-    '"authentication":'
+    '\32\45\12\64' ..
+    '{"protocol_version":0,' ..
+    '"authentication_method":"SCRAM-SHA-256",'  ..
+    '"authentication":' ..
     '"n,,n=' .. conn.user ..
     ',r=' .. _r.b64(string.char(unpack(nonce))) ..
     '"}\0'
