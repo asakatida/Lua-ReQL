@@ -1,15 +1,21 @@
 language: python
 sudo: false
 
+git:
+  depth: 1
+
 env:
   matrix:
-    - LUA="lua 5.1"
-    - LUA="lua 5.2"
-    - LUA="lua 5.3"
-    - LUA="luajit 2.0"
-    - LUA="luajit 2.1"
+    - LUA="lua 5.1" RDB_VER="_2.3.0~0"
+    - LUA="lua 5.2" RDB_VER="_2.3.0~0"
+    - LUA="lua 5.3" RDB_VER="_2.3.0~0"
+    - LUA="luajit 2.0" RDB_VER="_2.3.0~0"
+    - LUA="luajit 2.1" RDB_VER="_2.3.0~0"
 
 before_install:
+  - wget http://download.rethinkdb.com/apt/pool/precise/main/r/rethinkdb/rethinkdb($RDB_VER)precise_amd64.deb
+  - ar x *.deb
+  - tar xvzf data.tar.gz
   - pip install hererocks
   - hererocks here -r^ --$LUA
   - export PATH=$PATH:$PWD/here/bin
@@ -17,6 +23,9 @@ before_install:
 
 install:
   - luarocks make
+
+before_script:
+  - ./usr/bin/rethinkdb --daemon
 
 script:
   - busted spec
