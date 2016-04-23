@@ -13,14 +13,14 @@ function m.init(r, _r)
 
   return function(host, proto_version)
 
-    local port = host.port or self.DEFAULT_PORT
+    local port = host.port or DEFAULT_PORT
     local db = host.db -- left nil if this is not set
-    local auth_key = host.password or host.auth_key or self.DEFAULT_AUTH_KEY
-    local user = host.user or self.DEFAULT_USER
-    local timeout = host.timeout or self.DEFAULT_TIMEOUT
+    local auth_key = host.password or host.auth_key or DEFAULT_AUTH_KEY
+    local user = host.user or DEFAULT_USER
+    local timeout = host.timeout or DEFAULT_TIMEOUT
     local ssl_params = host.ssl
     local proto_version = proto_version or r.proto_V1_0
-    host = host.host or self.DEFAULT_HOST
+    host = host.host or DEFAULT_HOST
 
     function connect(callback)
       return instance(
