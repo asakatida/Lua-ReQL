@@ -124,7 +124,7 @@ function m.init(r, _r)
 
       function wrapped_cb(err)
         if raw_socket then
-          if ngx == nil then
+          if ngx == nil and ssl_params == nil then
             raw_socket:shutdown()
           end
           raw_socket:close()
