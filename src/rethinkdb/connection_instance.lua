@@ -277,6 +277,8 @@ function m.init(r, _r)
         raw_socket = _r.socket()
         raw_socket:settimeout(timeout)
 
+        local status, err = raw_socket:connect(host, port)
+
         if ssl_params then
           raw_socket = _r.lib_ssl.wrap(raw_socket, ssl_params)
           local succ, msg
@@ -294,7 +296,6 @@ function m.init(r, _r)
 
         proto_version(raw_socket, auth_key, user)
 
-        local status, err = raw_socket:connect(host, port)
         if status then
           local buf, err, partial
         end
