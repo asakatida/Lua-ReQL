@@ -156,7 +156,7 @@ function m.init(r, _r)
               return _r.logger(err.message)
             end
           end
-          cur:close()
+          cur.close()
           return res
         end
         if not raw_socket then
@@ -207,7 +207,7 @@ function m.init(r, _r)
       noreply_wait = function(callback)
         local cb = function(err, cur)
           if cur then
-            return cur:next(function(err)
+            return cur.next(function(err)
               weight = 0
               for token, cur in pairs(outstanding_callbacks) do
                 if cur.cursor then

@@ -25,7 +25,7 @@ function r.connect(host_or_callback, callback)
   elseif host_or_callback then
     host = host_or_callback
   end
-  return r.Connection(host):connect(callback)
+  return r.Connection(host).connect(callback)
 end
 
 function _r.logger(err)

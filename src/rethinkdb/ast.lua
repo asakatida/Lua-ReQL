@@ -48,7 +48,7 @@ function m.init(r, _r)
         end
       end
 
-      return connection:_start(self, callback, options or {})
+      return connection._start(self, callback, options or {})
     end,
 
     add = function(...) return ast.ADD({}, ...) end,
