@@ -284,10 +284,10 @@ function m.init(r, _r)
           local succ, msg
           while not succ do
             succ, msg = raw_socket:dohandshake()
-            if msg == "wantread" then
-              socket.select({raw_socket}, nil)
+            if msg == "timeout" or msg == "wantread" then
+              _r.select({raw_socket}, nil)
             elseif msg == "wantwrite" then
-              socket.select(nil, {raw_socket})
+              _r.select(nil, {raw_socket})
             else
               -- other errors
             end
