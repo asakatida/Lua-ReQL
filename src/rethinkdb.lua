@@ -14,6 +14,7 @@ local ast = require'rethinkdb.ast'.init(r, _r)
 local expr = require'rethinkdb.expr'.init(r, _r)
 
 r.Connection = require'rethinkdb.connection'.init(r, _r)
+r.pool = require'rethinkdb.pool'.init(r, _r)
 
 function r.connect(host_or_callback, callback)
   local host = {}
@@ -249,81 +250,6 @@ function r.proto_V1_0(raw_socket, auth_key, user)
     buffer = buffer .. buf
   end
 end
-
-r.pool = class(
-  'Pool',
-  {
-    __init = function(self, host, callback)
-      local cb = function(err, pool)
-        if not _r.pool then
-          _r.pool = pool
-        end
-        if callback then
-          local res = callback(err, pool)
-          pool:close({noreply_wait = false})
-          return res
-        end
-        return pool, err
-      end
-      self._open = false
-      self._builder = r.Connection(host)
-      return self._builder.connect(function(err, conn)
-        if err then return cb(err) end
-        self._open = true
-        self.pool = {conn}
-        self.size = host.size or 12
-        for i=2, self.size do
-          table.insert(self.pool, (self._builder.connect()))
-        end
-        return cb(nil, self)
-      end)
-    end,
-    close = function(self, opts, callback)
-      local err
-      local cb = function(e)
-        if e then
-          err = e
-        end
-      end
-      for _, conn in pairs(self.pool) do
-        conn:close(opts, cb)
-      end
-      self._open = false
-      if callback then return callback(err) end
-    end,
-    open = function(self)
-      if not self._open then return false end
-      for _, conn in ipairs(self.pool) do
-        if conn:open() then return true end
-      end
-      self._open = false
-      return false
-    end,
-    _start = function(self, term, callback, opts)
-      local weight = math.huge
-      if opts.conn then
-        local good_conn = self.pool[opts.conn]
-        if good_conn then
-          return good_conn:_start(term, callback, opts)
-        end
-      end
-      local good_conn
-      for i=1, self.size do
-        if not self.pool[i] then self.pool[i] = self._builder.connect() end
-        local conn = self.pool[i]
-        if not conn:open() then
-          conn:reconnect()
-          self.pool[i] = conn
-        end
-        if conn.weight < weight then
-          good_conn = conn
-          weight = conn.weight
-        end
-      end
-      return good_conn:_start(term, callback, opts)
-    end
-  }
-)
 
 -- Export all names defined on r
 return r
