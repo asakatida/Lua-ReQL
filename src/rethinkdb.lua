@@ -111,6 +111,20 @@ function _r.socket()
   return r.socket()
 end
 
+function _r.select(...)
+  if r.select then
+    return r.select(...)
+  elseif not _r.lib_socket then
+    if ngx == nil then
+      _r.lib_socket = require('socket')
+    else
+      _r.lib_socket = ngx.socket
+    end
+  end
+  r.select = _r.lib_socket.select
+  return r.select(...)
+end
+
 setmetatable(r, {
   __call = function(cls, val, nesting_depth)
     if nesting_depth == nil then
