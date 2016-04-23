@@ -109,20 +109,18 @@ function m.init(r, _r)
 
     function close(opts_or_callback, callback)
       local opts = {}
-      local cb
       if callback then
         if type(opts_or_callback) ~= 'table' then
           return error('First argument to two-argument `close` must be a table.')
         end
         opts = opts_or_callback
-        cb = callback
       elseif type(opts_or_callback) == 'table' then
         opts = opts_or_callback
       elseif type(opts_or_callback) == 'function' then
-        cb = opts_or_callback
+        callback = opts_or_callback
       end
 
-      function wrapped_cb(err)
+      function cb(err)
         if raw_socket then
           if ngx == nil and ssl_params == nil then
             raw_socket:shutdown()
@@ -130,8 +128,8 @@ function m.init(r, _r)
           raw_socket:close()
           raw_socket = nil
         end
-        if cb then
-          return cb(err)
+        if callback then
+          return callback(err)
         end
         return nil, err
       end
@@ -139,9 +137,9 @@ function m.init(r, _r)
       local noreply_wait = (opts.noreply_wait ~= false) and raw_socket
 
       if noreply_wait then
-        return noreply_wait(wrapped_cb)
+        return noreply_wait(cb)
       end
-      return wrapped_cb()
+      return cb()
     end
 
     local instance = {
