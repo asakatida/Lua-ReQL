@@ -290,7 +290,6 @@ function m.init(r, _r)
               -- other errors
             end
           end
-          raw_socket:dohandshake()
         end
 
         proto_version(raw_socket, auth_key, user)
