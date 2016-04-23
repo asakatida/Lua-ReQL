@@ -22,7 +22,7 @@ describe('control', function()
     r.table(reql_table):delete():run(c)
   end)
 
-  function test(name, query, res)
+  local function test(name, query, res)
     it(name, function()
       assert.same(res, query:run(
         c, function(err, cur)
@@ -36,7 +36,7 @@ describe('control', function()
     end)
   end
 
-  function test_error(name, query, res)
+  local function test_error(name, query, res)
     it(name, function()
       assert.has_error(
         function()

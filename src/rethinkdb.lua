@@ -1,5 +1,5 @@
-local errors = require'rethinkdb.errors'
 local int_to_bytes = require'rethinkdb.int_to_bytes'
+local unpack = require 'rethinkdb.unpack'
 
 local _r = {
   lib_ssl = require'ssl'
@@ -11,8 +11,16 @@ local r = {
   is_instance = require'rethinkdb.is_instance'
 }
 
-local ast = require'rethinkdb.ast'.init(r, _r)
-local expr = require'rethinkdb.expr'.init(r, _r)
+local ast_methods = require'rethinkdb.ast'.init(_r)
+
+for name, meth in pairs(ast_methods) do
+  r[name] = meth
+end
+
+_r.expr = require'rethinkdb.expr'.init(_r)
+
+setmetatable(r, {__call = _r.expr})
+setmetatable(_r, {__call = _r.expr})
 
 r.Connection = require'rethinkdb.connection'.init(r, _r)
 r.pool = require'rethinkdb.pool'.init(r, _r)
@@ -125,48 +133,6 @@ function _r.select(...)
   return r.select(...)
 end
 
-setmetatable(r, {
-  __call = function(cls, val, nesting_depth)
-    if nesting_depth == nil then
-      nesting_depth = 20
-    end
-    if type(nesting_depth) ~= 'number' then
-      return _r.logger('Second argument to `r(val, nesting_depth)` must be a number.')
-    end
-    if nesting_depth <= 0 then
-      return _r.logger('Nesting depth limit exceeded')
-    end
-    if r.is_instance(val, 'ReQLOp') and type(val.build) == 'function' then
-      return val
-    end
-    if type(val) == 'function' then
-      return ast.FUNC({}, val)
-    end
-    if type(val) == 'table' then
-      local array = true
-      for k, v in pairs(val) do
-        if type(k) ~= 'number' then array = false end
-        val[k] = r(v, nesting_depth - 1)
-      end
-      if array then
-        return ast.MAKE_ARRAY({}, unpack(val))
-      end
-      return ast.MAKE_OBJ(val)
-    end
-    if type(val) == 'userdata' then
-      val = pcall(tostring, val)
-      _r.logger('Found userdata inserting "' .. val .. '" into query')
-      return ast.DATUMTERM(val)
-    end
-    if type(val) == 'thread' then
-      val = pcall(tostring, val)
-      _r.logger('Cannot insert thread object into query ' .. val)
-      return nil
-    end
-    return ast.DATUMTERM(val)
-  end
-})
-
 function r.proto_V0_3(raw_socket, auth_key)
   -- Initialize connection with magic number to validate version
   raw_socket:send(
@@ -185,18 +151,18 @@ function r.proto_V0_3(raw_socket, auth_key)
     buf, err, partial = raw_socket:receive(8)
     buf = buf or partial
     if not buf then
-      return nil, buffer, err
+      return nil, err
     end
     buffer = buffer .. buf
-    i, j = buf:find('\0')
+    local i, j = buf:find('\0')
     if i then
       local status_str = buffer:sub(1, i - 1)
       buffer = buffer:sub(i + 1)
       if status_str == 'SUCCESS' then
         -- We're good, finish setting up the connection
-        return raw_socket, buffer, err
+        return raw_socket, err
       end
-      return nil, buffer, err
+      return nil, err
     end
   end
 end
@@ -219,18 +185,18 @@ function r.proto_V0_4(raw_socket, auth_key)
     buf, err, partial = raw_socket:receive(8)
     buf = buf or partial
     if not buf then
-      return nil, buffer, err
+      return nil, err
     end
     buffer = buffer .. buf
-    i, j = buf:find('\0')
+    local i, j = buf:find('\0')
     if i then
       local status_str = buffer:sub(1, i - 1)
       buffer = buffer:sub(i + 1)
       if status_str == 'SUCCESS' then
         -- We're good, finish setting up the connection
-        return raw_socket, buffer, err
+        return raw_socket, err
       end
-      return nil, buffer, err
+      return nil, err
     end
   end
 end
@@ -260,9 +226,16 @@ function r.proto_V1_0(raw_socket, auth_key, user)
     buf, err, partial = raw_socket:receive()
     buf = buf or partial
     if not buf then
-      return nil, buffer, err
+      return nil, err
     end
     buffer = buffer .. buf
+    local i, j = buf:find('\0')
+    if i then
+      local status_str = buffer:sub(1, i - 1)
+      buffer = buffer:sub(i + 1)
+      print(status_str)
+      return nil, err
+    end
   end
 end
 

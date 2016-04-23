@@ -6,7 +6,7 @@ return function(del_query, end_query, get_response, token, opts, root)
   local responses = {}
   local _cb, end_flag, _type
 
-  run_cb = function(cb)
+  local run_cb = function(cb)
     local response = responses[1]
     -- Behavior varies considerably based on response type
     -- Error responses are not discarded, and the error will be sent to all future callbacks
@@ -81,7 +81,7 @@ return function(del_query, end_query, get_response, token, opts, root)
 
   function inst.to_array(callback)
     local arr = {}
-    return each(
+    return inst.each(
       function(row)
         table.insert(arr, row)
       end,

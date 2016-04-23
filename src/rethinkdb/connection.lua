@@ -9,20 +9,19 @@ local DEFAULT_AUTH_KEY = ''
 local DEFAULT_TIMEOUT = 20 -- In seconds
 
 function m.init(r, _r)
-  instance = instance.init(r, _r)
+  instance = instance.init(_r)
 
-  return function(host, proto_version)
-
+  return function(host, _proto_version)
     local port = host.port or DEFAULT_PORT
     local db = host.db -- left nil if this is not set
     local auth_key = host.password or host.auth_key or DEFAULT_AUTH_KEY
     local user = host.user or DEFAULT_USER
     local timeout = host.timeout or DEFAULT_TIMEOUT
     local ssl_params = host.ssl
-    local proto_version = proto_version or r.proto_V1_0
+    local proto_version = _proto_version or r.proto_V1_0
     host = host.host or DEFAULT_HOST
 
-    function connect(callback)
+    local function connect(callback)
       return instance(
         auth_key, db, host, port, proto_version, ssl_params, timeout, user
         ).connect(callback)

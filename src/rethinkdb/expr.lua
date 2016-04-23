@@ -1,7 +1,13 @@
+local ast = require'rethinkdb.ast'
+local is_instance = require'rethinkdb.is_instance'
+local unpack = require 'rethinkdb.unpack'
+
 local m = {}
 
-function m.init(r, _r)
-  function expr(cls, val, nesting_depth)
+function m.init(_r)
+  local ast_methods = ast.init(_r)
+
+  local function expr(r, val, nesting_depth)
     if nesting_depth == nil then
       nesting_depth = 20
     end
@@ -11,11 +17,11 @@ function m.init(r, _r)
     if nesting_depth <= 0 then
       return _r.logger('Nesting depth limit exceeded')
     end
-    if r.is_instance(val, 'ReQLOp') and type(val.build) == 'function' then
+    if is_instance(val, 'ReQLOp') and type(val.build) == 'function' then
       return val
     end
     if type(val) == 'function' then
-      return ast.FUNC({}, val)
+      return ast_methods.func({}, val)
     end
     if type(val) == 'table' then
       local array = true
@@ -24,24 +30,22 @@ function m.init(r, _r)
         val[k] = r(v, nesting_depth - 1)
       end
       if array then
-        return ast.MAKE_ARRAY({}, unpack(val))
+        return ast_methods.make_array({}, unpack(val))
       end
-      return ast.MAKE_OBJ(val)
+      return ast_methods.make_obj(val)
     end
     if type(val) == 'userdata' then
       val = pcall(tostring, val)
       _r.logger('Found userdata inserting "' .. val .. '" into query')
-      return ast.DATUMTERM(val)
+      return ast_methods.datum(val)
     end
     if type(val) == 'thread' then
       val = pcall(tostring, val)
       _r.logger('Cannot insert thread object into query ' .. val)
       return nil
     end
-    return ast.DATUMTERM(val)
+    return ast_methods.datum(val)
   end
-
-  setmetatable(r, {__call = expr})
 
   return expr
 end

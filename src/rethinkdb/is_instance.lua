@@ -1,4 +1,4 @@
-function is_instance(obj, cls, ...)
+local function is_instance(obj, cls, ...)
   if cls == nil then return false end
 
   if type(cls) == 'string' then

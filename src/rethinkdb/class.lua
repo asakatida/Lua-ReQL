@@ -1,4 +1,4 @@
-return function(name, parent, base)
+return function(_name, parent, base)
   local index, init
 
   if base == nil then
@@ -21,7 +21,7 @@ return function(name, parent, base)
   base.__index = base
 
   local _class_0 = setmetatable({
-    __name = name,
+    __name = _name,
     __init = init,
     __base = base,
     __parent = parent

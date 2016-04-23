@@ -26,7 +26,7 @@ describe('array limits', function()
     r.table(reql_table):delete():run(c)
   end)
 
-  function test(name, query, limit, res)
+  local function test(name, query, limit, res)
     it(name, function()
       assert.same(res, query:run(
         c, {array_limit = limit}, function(err, cur)
@@ -40,7 +40,7 @@ describe('array limits', function()
     end)
   end
 
-  function test_error(name, query, limit, res)
+  local function test_error(name, query, limit, res)
     it(name, function()
       assert.has_error(
         function()

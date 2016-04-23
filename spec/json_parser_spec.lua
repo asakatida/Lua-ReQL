@@ -29,7 +29,7 @@ if enable then
       r.table(reql_table):delete():run(c)
     end)
 
-    function test(name, query, res)
+    local function test(name, query, res)
       it(name, function()
         assert.equal(r.json_parser, dkjson)
         assert.same(res, query:run(

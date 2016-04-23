@@ -54,7 +54,7 @@ local ReQLQueryPrinter = class(
     end,
     carrot_marker = {},
     carrotify = function(self, tree)
-      return {carrot_marker, tree}
+      return {self.carrot_marker, tree}
     end,
     join_tree = function(self, tree)
       local str = ''
@@ -89,6 +89,8 @@ local ReQLError = class(
   end
 )
 
+local ReQLDriverError = class('ReQLDriverError', ReQLError, {})
+
 local ReQLServerError = class('ReQLServerError', ReQLError, {})
 
 local ReQLRuntimeError = class('ReQLRuntimeError', ReQLServerError, {})
@@ -97,7 +99,7 @@ local ReQLAvailabilityError = class('ReQLRuntimeError', ReQLRuntimeError, {})
 local ReQLQueryLogicError = class('ReQLRuntimeError', ReQLRuntimeError, {})
 
 return {
-  ReQLDriverError = class('ReQLDriverError', ReQLError, {}),
+  ReQLDriverError = ReQLDriverError,
 
   ReQLRuntimeError = ReQLRuntimeError,
   ReQLCompileError = class('ReQLCompileError', ReQLServerError, {}),

@@ -1,25 +1,27 @@
 local class = require'rethinkdb.class'
 local errors = require'rethinkdb.errors'
+local is_instance = require'rethinkdb.is_instance'
 local proto = require'rethinkdb.protodef'
+local unpack = require 'rethinkdb.unpack'
 
 local ReQLOp
 
 local m = {}
 local ast = {}
 
-function m.init(r, _r)
-  function get_opts(...)
+function m.init(_r)
+  local function get_opts(...)
     local args = {...}
     local opt = {}
     local pos_opt = args[#args]
-    if (type(pos_opt) == 'table') and (not r.is_instance(pos_opt, 'ReQLOp')) then
+    if (type(pos_opt) == 'table') and (not is_instance(pos_opt, 'ReQLOp')) then
       opt = pos_opt
       args[#args] = nil
     end
     return opt, unpack(args)
   end
 
-  ast_methods = {
+  local ast_methods = {
     run = function(self, connection, options, callback)
       -- Valid syntaxes are
       -- connection
@@ -37,7 +39,7 @@ function m.init(r, _r)
       end
       -- else we suppose that we have run(connection[, options][, callback])
 
-      if not r.is_instance(connection, 'Connection', 'ConnInstance', 'Pool') then
+      if not is_instance(connection, 'Connection', 'ConnInstance', 'Pool') then
         if _r.pool then
           connection = _r.pool
         else
@@ -228,7 +230,7 @@ function m.init(r, _r)
     zip = function(...) return ast.ZIP({}, ...) end
   }
 
-  class_methods = {
+  local class_methods = {
     __init = function(self, optargs, ...)
       local args = {...}
       optargs = optargs or {}
@@ -255,7 +257,7 @@ function m.init(r, _r)
         args = {arg_nums, func}
       elseif self.tt == proto.Term.BINARY then
         local data = args[1]
-        if r.is_instance(data, 'ReQLOp') then
+        if is_instance(data, 'ReQLOp') then
         elseif type(data) == 'string' then
           self.base64_data = _r.b64(table.remove(args, 1))
         else
@@ -273,10 +275,10 @@ function m.init(r, _r)
       self.args = {}
       self.optargs = {}
       for i, a in ipairs(args) do
-        self.args[i] = r(a)
+        self.args[i] = _r(a)
       end
       for k, v in pairs(optargs) do
-        self.optargs[k] = r(v)
+        self.optargs[k] = _r(v)
       end
     end,
     build = function(self)
@@ -297,7 +299,7 @@ function m.init(r, _r)
       for i, arg in ipairs(self.args) do
         args[i] = arg:build()
       end
-      res = {self.tt, args}
+      local res = {self.tt, args}
       if next(self.optargs) then
         local opts = {}
         for key, val in pairs(self.optargs) do
@@ -307,8 +309,8 @@ function m.init(r, _r)
       end
       return res
     end,
-    compose = function(self, args, optargs)
-      intsp = function(seq)
+    compose = function(self, args, _optargs)
+      local intsp = function(seq)
         local res = {}
         local sep = ''
         for _, v in ipairs(seq) do
@@ -324,7 +326,7 @@ function m.init(r, _r)
           '}'
         }
       end
-      kved = function(optargs)
+      local kved = function(optargs)
         local res = {'{'}
         local sep = ''
         for k, v in pairs(optargs) do
@@ -335,7 +337,7 @@ function m.init(r, _r)
         return res
       end
       if self.tt == proto.Term.MAKE_OBJ then
-        return kved(optargs)
+        return kved(_optargs)
       end
       if self.tt == proto.Term.VAR then
         return {'var_' .. args[1]}
@@ -372,11 +374,11 @@ function m.init(r, _r)
       if args and next(args) then
         table.insert(argrepr, intsp(args))
       end
-      if optargs and next(optargs) then
+      if _optargs and next(_optargs) then
         if next(argrepr) then
           table.insert(argrepr, ', ')
         end
-        table.insert(argrepr, kved(optargs))
+        table.insert(argrepr, kved(_optargs))
       end
       return {'r.' .. self.st .. '(', argrepr, ')'}
     end,
@@ -385,7 +387,6 @@ function m.init(r, _r)
 
   for name, meth in pairs(ast_methods) do
     class_methods[name] = meth
-    r[name] = meth
   end
 
   -- AST classes
@@ -413,12 +414,13 @@ function m.init(r, _r)
     end
   }
 
-  function build_ast(name, base)
+  local function build_ast(name, base)
     for k, v in pairs(meta) do
       base[k] = v
     end
     return class(name, ReQLOp, base)
   end
+
   ast = {
     DATUMTERM = build_ast(
       'DATUMTERM',
@@ -623,6 +625,9 @@ function m.init(r, _r)
     YEAR = build_ast('YEAR', {tt = 128, st = 'year'}),
     ZIP = build_ast('ZIP', {tt = 72, st = 'zip'}),
   }
-  return ast
+
+  ast_methods.datum = ast.DATUMTERM
+
+  return ast_methods
 end
 return m

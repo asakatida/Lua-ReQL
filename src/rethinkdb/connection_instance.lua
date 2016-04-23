@@ -6,7 +6,7 @@ local proto = require'rethinkdb.protodef'
 
 local m = {}
 
-function m.init(r, _r)
+function m.init(_r)
   return function(auth_key, db, host, port, proto_version, ssl_params, timeout, user)
     local raw_socket
     local outstanding_callbacks = {}
@@ -14,11 +14,11 @@ function m.init(r, _r)
     local next_token = 1
     local buffer = ''
 
-    function weight_for_feed()
+    local function weight_for_feed()
       weight = weight + 2
     end
 
-    function write_socket(token, query)
+    local function write_socket(token, query)
       if not raw_socket then return nil, 'closed' end
       local data = _r.encode(query)
       return raw_socket:send(
@@ -28,11 +28,11 @@ function m.init(r, _r)
       )
     end
 
-    function continue_query(token)
+    local function continue_query(token)
       return write_socket(token, {proto.Query.CONTINUE})
     end
 
-    function del_query(token)
+    local function del_query(token)
       -- This query is done, delete this cursor
       if not outstanding_callbacks[token] then return end
       if outstanding_callbacks[token].cursor then
@@ -44,25 +44,38 @@ function m.init(r, _r)
       outstanding_callbacks[token].cursor = nil
     end
 
-    function end_query(token)
+    local function end_query(token)
       del_query(token)
       return write_socket(token, {proto.Query.STOP})
     end
 
-    function process_response(response, token)
+    local function process_response(response, token)
       local cursor = outstanding_callbacks[token]
       if not cursor then
         -- Unexpected token
         return _r.logger('Unexpected token ' .. token .. '.')
       end
-      add_response = cursor.add_response
+      local add_response = cursor.add_response
       cursor = cursor.cursor
       if cursor then
         return add_response(weight_for_feed, response)
       end
     end
 
-    function get_response(reqest_token)
+    local instance = {
+      __name = 'ConnInstance',
+      open = function()
+        if raw_socket then
+          return true
+        end
+        return false
+      end,
+      use = function(_db)
+        db = _db
+      end
+    }
+
+    local function get_response(reqest_token)
       local response_length = 0
       local token = 0
       local buf, err, partial
@@ -73,8 +86,8 @@ function m.init(r, _r)
         )
         buf = buf or partial
         if (not buf) and err then
-          close({noreply_wait = false})
-          return _process_response(
+          instance.close({noreply_wait = false})
+          return process_response(
             {
               t = proto.Response.CLIENT_ERROR,
               r = {'connection returned: ' .. err},
@@ -90,7 +103,7 @@ function m.init(r, _r)
             buffer = string.sub(buffer, response_length + 1)
             response_length = 0
             continue_query(token)
-            _process_response(_r.decode(response_buffer), token)
+            process_response(_r.decode(response_buffer), token)
             if token == reqest_token then return end
           end
         else
@@ -103,11 +116,74 @@ function m.init(r, _r)
       end
     end
 
-    function make_cursor(token, opts, term)
-      return Cursor(del_query, end_query, get_response, token, opts or {}, term)
+    local function make_cursor(token, opts, term)
+      local cursor, add_response = Cursor(
+         del_query, end_query, get_response, token, opts or {}, term)
+
+      -- Save cursor
+
+      outstanding_callbacks[token] = {
+        cursor = cursor,
+        add_response = add_response
+      }
+
+      return cursor
     end
 
-    function close(opts_or_callback, callback)
+    function instance._start(term, callback, opts)
+      local cb = function(err, cur)
+        local res
+        if type(callback) == 'function' then
+          res = callback(err, cur)
+        else
+          if err then
+            return _r.logger(err.message)
+          end
+        end
+        cur.close()
+        return res
+      end
+      if not raw_socket then
+        return cb(errors.ReQLDriverError('Connection is closed.'))
+      end
+
+      -- Assign token
+      local token = next_token
+      next_token = next_token + 1
+      weight = weight + 1
+
+      -- Set global options
+      local global_opts = {}
+
+      for k, v in pairs(opts) do
+        global_opts[k] = _r(v):build()
+      end
+
+      if opts.db then
+        global_opts.db = _r(opts.db):db():build()
+      elseif db then
+        global_opts.db = _r(db):db():build()
+      end
+
+      if type(callback) ~= 'function' then
+        global_opts.noreply = true
+      end
+
+      -- Construct query
+      local query = {proto.Query.START, term:build(), global_opts}
+
+      local _, err = write_socket(token, query)
+
+      if err then
+        instance.close({noreply_wait = false}, function(_err)
+          return cb(_err or errors.ReQLDriverError('Connection is closed.'))
+        end)
+      end
+
+      return cb(nil, make_cursor(token, opts, term))
+    end
+
+    function instance.close(opts_or_callback, callback)
       local opts = {}
       if callback then
         if type(opts_or_callback) ~= 'table' then
@@ -120,7 +196,7 @@ function m.init(r, _r)
         callback = opts_or_callback
       end
 
-      function cb(err)
+      local function cb(err)
         if raw_socket then
           if ngx == nil and ssl_params == nil then
             raw_socket:shutdown()
@@ -142,138 +218,8 @@ function m.init(r, _r)
       return cb()
     end
 
-    local instance = {
-      __name = 'ConnInstance',
-      _start = function(term, callback, opts)
-        local cb = function(err, cur)
-          local res
-          if type(callback) == 'function' then
-            res = callback(err, cur)
-          else
-            if err then
-              return _r.logger(err.message)
-            end
-          end
-          cur.close()
-          return res
-        end
-        if not raw_socket then
-          return cb(errors.ReQLDriverError('Connection is closed.'))
-        end
-
-        -- Assign token
-        local token = next_token
-        next_token = next_token + 1
-        weight = weight + 1
-
-        -- Set global options
-        local global_opts = {}
-
-        for k, v in pairs(opts) do
-          global_opts[k] = r(v):build()
-        end
-
-        if opts.db then
-          global_opts.db = r.db(opts.db):build()
-        elseif db then
-          global_opts.db = r.db(db):build()
-        end
-
-        if type(callback) ~= 'function' then
-          global_opts.noreply = true
-        end
-
-        -- Construct query
-        local query = {proto.Query.START, term:build(), global_opts}
-
-        local idx, err = write_socket(token, query)
-        if err then
-          close({noreply_wait = false}, function(err)
-            if err then return cb(err) end
-            return cb(errors.ReQLDriverError('Connection is closed.'))
-          end)
-        end
-        local cursor, _add_response = make_cursor(token, opts, term)
-        -- Save cursor
-        outstanding_callbacks[token] = {
-          cursor = cursor,
-          add_response = _add_response
-        }
-        return cb(nil, cursor)
-      end,
-      close = close,
-      noreply_wait = function(callback)
-        local cb = function(err, cur)
-          if cur then
-            return cur.next(function(err)
-              weight = 0
-              for token, cur in pairs(outstanding_callbacks) do
-                if cur.cursor then
-                  weight = weight + 3
-                else
-                  outstanding_callbacks[token] = nil
-                end
-              end
-              return callback(err)
-            end)
-          end
-          return callback(err)
-        end
-        if not raw_socket then
-          return cb(errors.ReQLDriverError('Connection is closed.'))
-        end
-
-        -- Assign token
-        local token = next_token
-        next_token = next_token + 1
-
-        -- Save cursor
-        local cursor, _add_response = make_cursor(token)
-
-        -- Save cursor
-        outstanding_callbacks[token] = {cursor = cursor}
-
-        -- Construct query
-        write_socket(token, {proto.Query.NOREPLY_WAIT})
-
-        return cb(nil, cursor)
-      end,
-      open = function()
-        if raw_socket then
-          return true
-        end
-        return false
-      end,
-      server = function()
-        local cb = function(err, cur)
-          return callback(err)
-        end
-        if not raw_socket then
-          return cb(errors.ReQLDriverError('Connection is closed.'))
-        end
-
-        -- Assign token
-        local token = next_token
-        next_token = next_token + 1
-
-        -- Save cursor
-        local cursor, _add_response = make_cursor(token)
-
-        -- Save cursor
-        outstanding_callbacks[token] = {cursor = cursor}
-
-        -- Construct query
-        write_socket(token, {proto.Query.SERVER_INFO})
-
-        return cb(nil, cursor)
-      end,
-      use = function(_db)
-        db = _db
-      end
-    }
-
     function instance.connect(callback)
-      return close({noreply_wait = false}, function()
+      return instance.close({noreply_wait = false}, function()
         raw_socket = _r.socket()
         raw_socket:settimeout(timeout)
 
@@ -281,32 +227,63 @@ function m.init(r, _r)
 
         if ssl_params then
           raw_socket = _r.lib_ssl.wrap(raw_socket, ssl_params)
-          local succ, msg
-          while not succ do
-            succ, msg = raw_socket:dohandshake()
-            if msg == "timeout" or msg == "wantread" then
+          status = false
+          while not status do
+            status, err = raw_socket:dohandshake()
+            if err == "timeout" or err == "wantread" then
               _r.select({raw_socket}, nil)
-            elseif msg == "wantwrite" then
+            elseif err == "wantwrite" then
               _r.select(nil, {raw_socket})
             else
-              -- other errors
+              _r.logger(err)
             end
           end
         end
 
-        proto_version(raw_socket, auth_key, user)
+        raw_socket, buffer, err = proto_version(raw_socket, auth_key, user)
 
-        if status then
-          local buf, err, partial
-        end
-        local err = errors.ReQLDriverError('Could not connect to ' .. host .. ':' .. port .. '.\n' .. err)
+        err = errors.ReQLDriverError('Could not connect to ' .. host .. ':' .. port .. '.\n' .. err)
+
         if callback then
           local res = callback(err, instance)
-          close({noreply_wait = false})
+          instance.close({noreply_wait = false})
           return res
         end
         return instance, err
       end)
+    end
+
+    function instance.noreply_wait(callback)
+      local cb = function(_err, _cur)
+        if _cur then
+          return _cur.next(function(err)
+            weight = 0
+            for token, cur in pairs(outstanding_callbacks) do
+              if cur.cursor then
+                weight = weight + 3
+              else
+                outstanding_callbacks[token] = nil
+              end
+            end
+            return callback(err)
+          end)
+        end
+        return callback(_err)
+      end
+      if not raw_socket then
+        return cb(errors.ReQLDriverError('Connection is closed.'))
+      end
+
+      -- Assign token
+      local token = next_token
+      next_token = next_token + 1
+
+      local cursor = make_cursor(token)
+
+      -- Construct query
+      write_socket(token, {proto.Query.NOREPLY_WAIT})
+
+      return cb(nil, cursor)
     end
 
     function instance.reconnect(opts_or_callback, callback)
@@ -316,9 +293,28 @@ function m.init(r, _r)
       else
         callback = opts_or_callback
       end
-      return close(opts, function()
+      return instance.close(opts, function()
         return instance.connect(callback)
       end)
+    end
+
+    function instance.server()
+      local cb = function(err, cur)
+      end
+      if not raw_socket then
+        return cb(errors.ReQLDriverError('Connection is closed.'))
+      end
+
+      -- Assign token
+      local token = next_token
+      next_token = next_token + 1
+
+      local cursor = make_cursor(token)
+
+      -- Construct query
+      write_socket(token, {proto.Query.SERVER_INFO})
+
+      return cb(nil, cursor)
     end
 
     return instance

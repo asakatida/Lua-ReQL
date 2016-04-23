@@ -1,13 +1,13 @@
 local m = {}
 
 function m.init(r, _r)
-  return function(host, callback)
+  return function(host, _callback)
     local size
     local _open = false
     local pool = {}
     local builder = r.Connection(host)
 
-    function _start(term, callback, opts)
+    local function _start(term, callback, opts)
       local weight = math.huge
       if opts.conn then
         local good_conn = pool[opts.conn]
@@ -31,7 +31,7 @@ function m.init(r, _r)
       return good_conn._start(term, callback, opts)
     end
 
-    function close(opts, callback)
+    local function close(opts, callback)
       local err
       local cb = function(e)
         if e then
@@ -46,7 +46,7 @@ function m.init(r, _r)
       return err
     end
 
-    function open()
+    local function open()
       if not _open then return false end
       for _, conn in ipairs(pool) do
         if conn.open() then return true end
@@ -66,8 +66,8 @@ function m.init(r, _r)
       if not _r.pool then
         _r.pool = inst
       end
-      if callback then
-        local res = callback(err, inst)
+      if _callback then
+        local res = _callback(err, inst)
         close({noreply_wait = false})
         return res
       end
