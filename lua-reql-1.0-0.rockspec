@@ -29,6 +29,7 @@ build = {
     ['rethinkdb.expr'] = 'src/rethinkdb/expr.lua',
     ['rethinkdb.int_to_bytes'] = 'src/rethinkdb/int_to_bytes.lua',
     ['rethinkdb.is_instance'] = 'src/rethinkdb/is_instance.lua',
+    ['rethinkdb.pool'] = 'src/rethinkdb/pool.lua',
     ['rethinkdb.protodef'] = 'src/rethinkdb/protodef.lua',
     rethinkdb = 'src/rethinkdb.lua'
   }
