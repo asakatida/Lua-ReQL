@@ -232,7 +232,7 @@ function r.proto_V1_0(raw_socket, auth_key, user)
     '{"protocol_version":0,' ..
     '"authentication_method":"SCRAM-SHA-256",'  ..
     '"authentication":' ..
-    '"n,,n=' .. conn.user ..
+    '"n,,n=' .. user ..
     ',r=' .. _r.b64(string.char(unpack(nonce))) ..
     '"}\0'
   )
