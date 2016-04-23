@@ -1,14 +1,15 @@
 local errors = require'rethinkdb.errors'
 local int_to_bytes = require'rethinkdb.int_to_bytes'
 
+local _r = {
+  lib_ssl = require'ssl'
+}
+
 -- r is both the main export table for the module
 -- and a function that wraps a native Lua value in a ReQL datum
 local r = {
   is_instance = require'rethinkdb.is_instance'
 }
-local _r = {}
-
-_r.lib_ssl = require('ssl')
 
 local ast = require'rethinkdb.ast'.init(r, _r)
 local expr = require'rethinkdb.expr'.init(r, _r)
