@@ -13,19 +13,25 @@ env:
     - LUA="luajit 2.1" RDB_VER="http://download.rethinkdb.com/apt/pool/precise/main/r/rethinkdb/rethinkdb_2.3.0~0precise_amd64.deb"
 
 before_install:
-  - wget $RDB_VER
-  - ar x *.deb
-  - tar xvzf data.tar.gz
   - pip install hererocks
   - hererocks here -r^ --$LUA
   - export PATH=$PATH:$PWD/here/bin
   - luarocks install busted
+  - luarocks install luacheck
+  - luarocks install luacov
+  - luacheck src
 
 install:
   - luarocks make
 
 before_script:
+  - wget $RDB_VER
+  - ar x *.deb
+  - tar xvzf data.tar.gz
   - ./usr/bin/rethinkdb --daemon
 
 script:
-  - busted spec
+  - busted -c spec
+
+after_success:
+  - luacov
