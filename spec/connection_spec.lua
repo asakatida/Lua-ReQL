@@ -11,9 +11,9 @@ describe('connection', function()
   it('return conn', function()
     local conn = r.connect()
     assert.are_not.equal(conn, nil)
-    assert.are.equal(conn:open(), true)
-    conn:close()
-    assert.are.equal(conn:open(), false)
+    assert.are.equal(conn.open(), true)
+    conn.close()
+    assert.are.equal(conn.open(), false)
   end)
 
   it('basic_pool', function()
@@ -31,7 +31,7 @@ describe('connection', function()
     if err then error(err.message) end
 
     r.db_create(reql_db):run(c)
-    c:use(reql_db)
+    c.use(reql_db)
     r.table_create(reql_table):run(c)
 
     assert.has_error(
@@ -43,7 +43,7 @@ describe('connection', function()
       'ReQLDriverError Connection is closed.'
     )
 
-    c:reconnect(function(err, conn)
+    c.reconnect(function(err, conn)
       if err then error(err.message) end
       r.table(reql_table):delete():run(conn)
     end)

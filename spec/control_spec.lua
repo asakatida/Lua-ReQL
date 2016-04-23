@@ -14,7 +14,7 @@ describe('control', function()
     if err then error(err.message) end
 
     r.db_create(reql_db):run(c)
-    c:use(reql_db)
+    c.use(reql_db)
     r.table_create(reql_table):run(c)
   end)
 
@@ -27,7 +27,7 @@ describe('control', function()
       assert.same(res, query:run(
         c, function(err, cur)
           if err then error(err.message) end
-          return cur:to_array(function(err, arr)
+          return cur.to_array(function(err, arr)
             if err then error(err.message) end
             return arr
           end)
@@ -43,7 +43,7 @@ describe('control', function()
           query:run(
             c, function(err, cur)
               if err then error(err.message) end
-              cur:to_array(function(err, arr)
+              cur.to_array(function(err, arr)
                 if err then error(err.msg) end
                 error(arr)
               end)
@@ -128,7 +128,7 @@ describe('control', function()
     r.for_each({1, 2, 3}, function(row) return r.table(reql_table):insert({id = row}) end):run(
       c, function(err, cur)
         if err then error(err.message) end
-        cur:to_array(function(err, arr)
+        cur.to_array(function(err, arr)
           if err then error(err.message) end
         end)
       end
@@ -136,7 +136,7 @@ describe('control', function()
     assert.same(r.table(reql_table):count():run(
       c, function(err, cur)
         if err then error(err.message) end
-        return cur:to_array(function(err, arr)
+        return cur.to_array(function(err, arr)
           if err then error(err.message) end
           return arr
         end)
@@ -148,7 +148,7 @@ describe('control', function()
     r.for_each({1, 2, 3}, function(row) return r.table(reql_table):insert({id = row}) end):run(
       c, function(err, cur)
         if err then error(err.message) end
-        cur:to_array(function(err, arr)
+        cur.to_array(function(err, arr)
           if err then error(err.message) end
         end)
       end
@@ -156,7 +156,7 @@ describe('control', function()
     assert.same(r.for_each({1, 2, 3}, function(row) return r.table(reql_table):update({foo = row}) end):run(
       c, function(err, cur)
         if err then error(err.message) end
-        return cur:to_array(function(err, arr)
+        return cur.to_array(function(err, arr)
           if err then error(err.message) end
           return arr
         end)
@@ -168,7 +168,7 @@ describe('control', function()
     r.for_each({1, 2, 3}, function(row) return r.table(reql_table):insert({id = row}) end):run(
       c, function(err, cur)
         if err then error(err.message) end
-        cur:to_array(function(err, arr)
+        cur.to_array(function(err, arr)
           if err then error(err.message) end
         end)
       end
@@ -176,7 +176,7 @@ describe('control', function()
     r.for_each({1, 2, 3}, function(row) return r.table(reql_table):update({foo = row}) end):run(
       c, function(err, cur)
         if err then error(err.message) end
-        return cur:to_array(function(err, arr)
+        return cur.to_array(function(err, arr)
           if err then error(err.message) end
           return arr
         end)
@@ -185,7 +185,7 @@ describe('control', function()
     assert.same(r.for_each({1, 2, 3}, function(row) return {r.table(reql_table):insert({id = row}), r.table(reql_table):insert({id = row * 10})} end):run(
       c, function(err, cur)
         if err then error(err.message) end
-        return cur:to_array(function(err, arr)
+        return cur.to_array(function(err, arr)
           if err then error(err.message) end
           return arr
         end)
@@ -197,7 +197,7 @@ describe('control', function()
     r.for_each({1, 2, 3}, function(row) return r.table(reql_table):insert({id = row}) end):run(
       c, function(err, cur)
         if err then error(err.message) end
-        cur:to_array(function(err, arr)
+        cur.to_array(function(err, arr)
           if err then error(err.message) end
         end)
       end
@@ -205,7 +205,7 @@ describe('control', function()
     r.for_each({1, 2, 3}, function(row) return r.table(reql_table):update({foo = row}) end):run(
       c, function(err, cur)
         if err then error(err.message) end
-        return cur:to_array(function(err, arr)
+        return cur.to_array(function(err, arr)
           if err then error(err.message) end
           return arr
         end)
@@ -214,7 +214,7 @@ describe('control', function()
     r.for_each({1, 2, 3}, function(row) return {r.table(reql_table):insert({id = row}), r.table(reql_table):insert({id = row * 10})} end):run(
       c, function(err, cur)
         if err then error(err.message) end
-        return cur:to_array(function(err, arr)
+        return cur.to_array(function(err, arr)
           if err then error(err.message) end
           return arr
         end)
@@ -223,7 +223,7 @@ describe('control', function()
     assert.same(r.for_each({1, 2, 3}, function(row) return {r.table(reql_table):update({foo = row}), r.table(reql_table):update({bar = row})} end):run(
       c, function(err, cur)
         if err then error(err.message) end
-        return cur:to_array(function(err, arr)
+        return cur.to_array(function(err, arr)
           if err then error(err.message) end
           return arr
         end)

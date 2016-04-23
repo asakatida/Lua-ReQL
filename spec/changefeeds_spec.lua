@@ -13,7 +13,7 @@ describe('change feeds', function()
     if err then error(err.message) end
 
     r.db_create(reql_db):run(c)
-    c:use(reql_db)
+    c.use(reql_db)
     r.table_create(reql_table):run(c)
   end)
 
@@ -38,7 +38,7 @@ describe('change feeds', function()
           if err then error(err.message) end
         end)
         local res = {}
-        cur:each(function(row)
+        cur.each(function(row)
           table.insert(res, row.new_val.id)
         end, function(err)
           if err then error(err.message) end
@@ -64,7 +64,7 @@ describe('change feeds', function()
           if err then error(err.message) end
         end)
         local res = {}
-        cur:each(function(row)
+        cur.each(function(row)
           table.insert(res, row.new_val.id)
         end, function(err)
           if err then error(err.message) end

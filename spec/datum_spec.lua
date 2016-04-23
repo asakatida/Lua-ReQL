@@ -14,7 +14,7 @@ describe('datum', function()
     if err then error(err.message) end
 
     r.db_create(reql_db):run(c)
-    c:use(reql_db)
+    c.use(reql_db)
     r.table_create(reql_table):run(c)
   end)
 
@@ -27,7 +27,7 @@ describe('datum', function()
       assert.same(res, query:run(
         c, function(err, cur)
           if err then error(err.message) end
-          return cur:to_array(function(err, arr)
+          return cur.to_array(function(err, arr)
             if err then error(err.message) end
             return arr
           end)
@@ -43,7 +43,7 @@ describe('datum', function()
           query:run(
             c, function(err, cur)
               if err then error(err.message) end
-              cur:to_array(function(err, arr)
+              cur.to_array(function(err, arr)
                 if err then error(err.msg) end
                 error(arr)
               end)

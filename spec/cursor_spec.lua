@@ -13,7 +13,7 @@ describe('cursor', function()
     if err then error(err.message) end
 
     r.db_create(reql_db):run(c)
-    c:use(reql_db)
+    c.use(reql_db)
     r.table_create(reql_table):run(c)
   end)
 
@@ -54,7 +54,7 @@ describe('cursor', function()
       r.table(reql_table):run(
         c, function(err, cur)
           if err then error(err.message) end
-          return cur:to_array(function(err, arr)
+          return cur.to_array(function(err, arr)
             if err then error(err.message) end
             return #arr
           end)
@@ -68,7 +68,7 @@ describe('cursor', function()
       r.table(reql_table):run(
         c, function(err, cur)
           if err then error(err.message) end
-          cur:close(function(err) if err then error(err.message) end end)
+          cur.close(function(err) if err then error(err.message) end end)
         end
       )
     end)
