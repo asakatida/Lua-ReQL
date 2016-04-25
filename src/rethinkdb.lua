@@ -135,21 +135,20 @@ end
 
 function r.proto_V0_3(raw_socket, auth_key)
   -- Initialize connection with magic number to validate version
-  raw_socket:send(
-    '\62\232\117\95' ..
-    int_to_bytes(#(auth_key), 4) ..
-    auth_key ..
+  raw_socket.send(
+    '\62\232\117\95',
+    int_to_bytes(#(auth_key), 4),
+    auth_key,
     '\199\112\105\126'
   )
 
-  local buf, err, partial
+  local buf, err
   local buffer = ''
 
   -- Now we have to wait for a response from the server
   -- acknowledging the connection
   while 1 do
-    buf, err, partial = raw_socket:receive(8)
-    buf = buf or partial
+    buf, err = raw_socket.recv()
     if not buf then
       return nil, err
     end
@@ -169,21 +168,20 @@ end
 
 function r.proto_V0_4(raw_socket, auth_key)
   -- Initialize connection with magic number to validate version
-  raw_socket:send(
-    '\32\45\12\64' ..
-    int_to_bytes(#(auth_key), 4) ..
-    auth_key ..
+  raw_socket.send(
+    '\32\45\12\64',
+    int_to_bytes(#(auth_key), 4),
+    auth_key,
     '\199\112\105\126'
   )
 
-  local buf, err, partial
+  local buf, err
   local buffer = ''
 
   -- Now we have to wait for a response from the server
   -- acknowledging the connection
   while 1 do
-    buf, err, partial = raw_socket:receive(8)
-    buf = buf or partial
+    buf, err = raw_socket.recv()
     if not buf then
       return nil, err
     end
@@ -207,24 +205,20 @@ function r.proto_V1_0(raw_socket, auth_key, user)
   for i=1,18 do
     nonce[i] = math.random(1, 0xFF)  -- TODO
   end
-  raw_socket:send(
-    '\32\45\12\64' ..
-    '{"protocol_version":0,' ..
-    '"authentication_method":"SCRAM-SHA-256",'  ..
-    '"authentication":' ..
-    '"n,,n=' .. user ..
-    ',r=' .. _r.b64(string.char(unpack(nonce))) ..
-    '"}\0'
+  raw_socket.send(
+    '\32\45\12\64{"protocol_version":0,',
+    '"authentication_method":"SCRAM-SHA-256",',
+    '"authentication":"n,,n=', user,
+    ',r=', _r.b64(string.char(unpack(nonce))), '"}\0'
   )
 
-  local buf, err, partial
+  local buf, err
   local buffer = ''
 
   -- Now we have to wait for a response from the server
   -- acknowledging the connection
   while 1 do
-    buf, err, partial = raw_socket:receive()
-    buf = buf or partial
+    buf, err = raw_socket.recv()
     if not buf then
       return nil, err
     end

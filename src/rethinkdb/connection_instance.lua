@@ -3,12 +3,15 @@ local Cursor = require'rethinkdb.cursor'
 local errors = require'rethinkdb.errors'
 local int_to_bytes = require'rethinkdb.int_to_bytes'
 local proto = require'rethinkdb.protodef'
+local Socket = require'rethinkdb.socket'
 
 local m = {}
 
 function m.init(_r)
+  Socket = Socket.init(_r)
+
   return function(auth_key, db, host, port, proto_version, ssl_params, timeout, user)
-    local raw_socket
+    local raw_socket = Socket(host, port, ssl_params, timeout)
     local outstanding_callbacks = {}
     local weight = 0
     local next_token = 1
@@ -19,11 +22,10 @@ function m.init(_r)
     end
 
     local function write_socket(token, query)
-      if not raw_socket then return nil, 'closed' end
       local data = _r.encode(query)
-      return raw_socket:send(
-        int_to_bytes(token, 8) ..
-        int_to_bytes(#data, 4) ..
+      return raw_socket.send(
+        int_to_bytes(token, 8),
+        int_to_bytes(#data, 4),
         data
       )
     end
@@ -64,12 +66,7 @@ function m.init(_r)
 
     local instance = {
       __name = 'ConnInstance',
-      open = function()
-        if raw_socket then
-          return true
-        end
-        return false
-      end,
+      open = raw_socket.isOpen,
       use = function(_db)
         db = _db
       end
@@ -78,14 +75,10 @@ function m.init(_r)
     local function get_response(reqest_token)
       local response_length = 0
       local token = 0
-      local buf, err, partial
       -- Buffer data, execute return results if need be
       while true do
-        buf, err, partial = raw_socket:receive(
-          math.max(12, response_length)
-        )
-        buf = buf or partial
-        if (not buf) and err then
+        local buf, err = raw_socket.recv()
+        if err then
           instance.close({noreply_wait = false})
           return process_response(
             {
@@ -143,7 +136,7 @@ function m.init(_r)
         cur.close()
         return res
       end
-      if not raw_socket then
+      if not instance.open() then
         return cb(errors.ReQLDriverError('Connection is closed.'))
       end
 
@@ -160,7 +153,7 @@ function m.init(_r)
       end
 
       if opts.db then
-        global_opts.db = _r(opts.db):db():build()
+        global_opts.db = opts.db:db():build()
       elseif db then
         global_opts.db = _r(db):db():build()
       end
@@ -197,20 +190,14 @@ function m.init(_r)
       end
 
       local function cb(err)
-        if raw_socket then
-          if ngx == nil and ssl_params == nil then
-            raw_socket:shutdown()
-          end
-          raw_socket:close()
-          raw_socket = nil
-        end
+        raw_socket.close()
         if callback then
           return callback(err)
         end
         return nil, err
       end
 
-      local noreply_wait = (opts.noreply_wait ~= false) and raw_socket
+      local noreply_wait = (opts.noreply_wait ~= false) and instance.open()
 
       if noreply_wait then
         return noreply_wait(cb)
@@ -220,27 +207,11 @@ function m.init(_r)
 
     function instance.connect(callback)
       return instance.close({noreply_wait = false}, function()
-        raw_socket = _r.socket()
-        raw_socket:settimeout(timeout)
+        raw_socket.open()
 
-        local status, err = raw_socket:connect(host, port)
+        local err
 
-        if ssl_params then
-          raw_socket = _r.lib_ssl.wrap(raw_socket, ssl_params)
-          status = false
-          while not status do
-            status, err = raw_socket:dohandshake()
-            if err == "timeout" or err == "wantread" then
-              _r.select({raw_socket}, nil)
-            elseif err == "wantwrite" then
-              _r.select(nil, {raw_socket})
-            else
-              _r.logger(err)
-            end
-          end
-        end
-
-        raw_socket, buffer, err = proto_version(raw_socket, auth_key, user)
+        buffer, err = proto_version(raw_socket, auth_key, user)
 
         err = errors.ReQLDriverError('Could not connect to ' .. host .. ':' .. port .. '.\n' .. err)
 
@@ -270,7 +241,7 @@ function m.init(_r)
         end
         return callback(_err)
       end
-      if not raw_socket then
+      if not instance.open() then
         return cb(errors.ReQLDriverError('Connection is closed.'))
       end
 
@@ -299,10 +270,8 @@ function m.init(_r)
     end
 
     function instance.server()
-      local cb = function(err, cur)
-      end
-      if not raw_socket then
-        return cb(errors.ReQLDriverError('Connection is closed.'))
+      if not instance.open() then
+        return nil, errors.ReQLDriverError('Connection is closed.')
       end
 
       -- Assign token
@@ -314,7 +283,10 @@ function m.init(_r)
       -- Construct query
       write_socket(token, {proto.Query.SERVER_INFO})
 
-      return cb(nil, cursor)
+      return cursor.next(function(err, res)
+        if err then return nil, err end
+        return res
+      end)
     end
 
     return instance
