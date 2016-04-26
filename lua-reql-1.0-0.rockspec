@@ -20,7 +20,6 @@ build = {
   modules = {
     ['rethinkdb.ast'] = 'src/rethinkdb/ast.lua',
     ['rethinkdb.bytes_to_int'] = 'src/rethinkdb/bytes_to_int.lua',
-    ['rethinkdb.class'] = 'src/rethinkdb/class.lua',
     ['rethinkdb.connection_instance'] = 'src/rethinkdb/connection_instance.lua',
     ['rethinkdb.connection'] = 'src/rethinkdb/connection.lua',
     ['rethinkdb.convert_pseudotype'] = 'src/rethinkdb/convert_pseudotype.lua',

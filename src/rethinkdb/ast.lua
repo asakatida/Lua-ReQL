@@ -1,4 +1,3 @@
-local class = require'rethinkdb.class'
 local errors = require'rethinkdb.errors'
 local is_instance = require'rethinkdb.is_instance'
 local proto = require'rethinkdb.protodef'

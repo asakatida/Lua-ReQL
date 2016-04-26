@@ -1,5 +1,3 @@
-local class = require'rethinkdb.class'
-
 local ReQLQueryPrinter = class(
   'ReQLQueryPrinter',
   {
