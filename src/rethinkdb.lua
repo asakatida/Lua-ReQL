@@ -2,7 +2,7 @@ local int_to_bytes = require'rethinkdb.int_to_bytes'
 local unpack = require 'rethinkdb.unpack'
 
 local _r = {
-  lib_ssl = require'ssl'
+  lib_ssl = require('ssl')
 }
 
 -- r is both the main export table for the module
