@@ -6,6 +6,10 @@ local m = {}
 
 function m.init(_r)
   local meta_table = {}
+  
+  local function no_opts(...)
+    return {}, ...
+  end
 
   local function get_opts(...)
     local args = {...}
@@ -16,6 +20,10 @@ function m.init(_r)
       args[#args] = nil
     end
     return opt, unpack(args)
+  end
+
+  local function arity_1(arg0, opts)
+    return opts, arg0
   end
 
   local function arity_2(arg0, arg1, opts)
@@ -30,40 +38,44 @@ function m.init(_r)
 
   local arg_wrappers = {
     between = arity_3,
+    between_deprecated = arity_3,
+    changes = get_opts,
     circle = get_opts,
     delete = get_opts,
-    distance = arity_2,
+    distance = get_opts,
     distinct = get_opts,
+    during = get_opts,
     during = arity_3,
     eq_join = get_opts,
     filter = arity_2,
+    fold = get_opts,
     get_all = get_opts,
     get_intersecting = get_opts,
     get_nearest = get_opts,
-    grant = get_opts,
     group = get_opts,
-    http = get_opts,
+    http = arity_2,
     index_create = get_opts,
     index_rename = get_opts,
     insert = arity_2,
     iso8601 = get_opts,
     js = get_opts,
+    max = get_opts,
+    min = get_opts,
     order_by = get_opts,
     random = get_opts,
-    replace = get_opts,
+    reconfigure = arity_1,
+    reduce = get_opts,
+    replace = arity_2,
     slice = get_opts,
     table = get_opts,
     table_create = get_opts,
+    union = get_opts,
     update = arity_2
+    wait = arity_1
   }
 
   local function wrap_args(term_name, init)
-    local wrap = arg_wrappers[term_name]
-    if wrap == nil then
-      return function(...)
-        return init({}, ...)
-      end
-    end
+    local wrap = arg_wrappers[term_name] or no_opts
     local function new_init(...)
       return init(wrap(...))
     end
