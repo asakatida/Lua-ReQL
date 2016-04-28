@@ -6,6 +6,7 @@ function m.init(_r)
   return function(host, _callback)
     local size
     local _open = false
+    local key = 1
     local pool = {}
     local builder = Connection(host)
 
