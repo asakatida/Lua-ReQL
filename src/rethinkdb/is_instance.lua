@@ -12,7 +12,7 @@ local function is_instance(obj, cls, ...)
   end
 
   if type(obj) == 'table' then
-    local obj_cls = obj.__class
+    local obj_cls = obj
     while obj_cls do
       if obj_cls.__name == cls then
         return true
