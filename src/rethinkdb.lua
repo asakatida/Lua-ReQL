@@ -21,8 +21,8 @@ _r.expr = require'rethinkdb.expr'.init(_r)
 setmetatable(r, {__call = _r.expr})
 setmetatable(_r, {__call = _r.expr})
 
-r.Connection = require'rethinkdb.connection'.init(r, _r)
-r.pool = require'rethinkdb.pool'.init(r, _r)
+r.Connection = require'rethinkdb.connection'.init(_r)
+r.pool = require'rethinkdb.pool'.init(_r)
 
 function r.connect(host_or_callback, callback)
   local host = {}
@@ -55,7 +55,7 @@ function _r.unb64(data)
     _r.lib_mime = require('mime')
   end
   r.unb64 = _r.lib_mime.unb64
-  return _r.lib_mime.unb64(data)
+  return r.unb64(data)
 end
 
 function _r.b64(data)
@@ -65,7 +65,7 @@ function _r.b64(data)
     _r.lib_mime = require('mime')
   end
   r.b64 = _r.lib_mime.b64
-  return _r.lib_mime.b64(data)
+  return r.b64(data)
 end
 
 function _r.encode(data)
@@ -73,7 +73,7 @@ function _r.encode(data)
     return r.encode(data)
   elseif r.json_parser then
     r.encode = r.json_parser.encode
-    return r.json_parser.encode(data)
+    return r.encode(data)
   elseif not _r.lib_json then
     if ngx == nil then
       _r.lib_json = require('json')
@@ -81,9 +81,9 @@ function _r.encode(data)
       _r.lib_json = require('cjson')
     end
   end
-  r.encode = _r.lib_json.encode
   r.json_parser = _r.lib_json
-  return _r.lib_json.encode(data)
+  r.encode = _r.lib_json.encode
+  return r.encode(data)
 end
 
 function _r.decode(buffer)
@@ -91,7 +91,7 @@ function _r.decode(buffer)
     return r.decode(buffer)
   elseif r.json_parser then
     r.decode = r.json_parser.decode
-    return r.json_parser.decode(buffer)
+    return r.decode(buffer)
   elseif not _r.lib_json then
     if ngx == nil then
       _r.lib_json = require('json')
@@ -101,7 +101,7 @@ function _r.decode(buffer)
   end
   r.json_parser = _r.lib_json
   r.decode = _r.lib_json.decode
-  return _r.lib_json.decode(buffer)
+  return r.decode(buffer)
 end
 
 function _r.socket()
@@ -141,26 +141,23 @@ function r.proto_V0_3(raw_socket, auth_key)
     '\199\112\105\126'
   )
 
-  local buf, err
   local buffer = ''
 
   -- Now we have to wait for a response from the server
   -- acknowledging the connection
   while 1 do
-    buf, err = raw_socket.recv()
+    local buf, err = raw_socket.recv()
     if not buf then
       return nil, err
     end
     buffer = buffer .. buf
-    local i, j = buf:find('\0')
+    local i, _ = buf:find('\0')
     if i then
-      local status_str = buffer:sub(1, i - 1)
-      buffer = buffer:sub(i + 1)
-      if status_str == 'SUCCESS' then
+      if buffer == 'SUCCESS' then
         -- We're good, finish setting up the connection
-        return raw_socket, err
+        return raw_socket, nil
       end
-      return nil, err
+      return nil, buffer
     end
   end
 end
@@ -174,26 +171,23 @@ function r.proto_V0_4(raw_socket, auth_key)
     '\199\112\105\126'
   )
 
-  local buf, err
   local buffer = ''
 
   -- Now we have to wait for a response from the server
   -- acknowledging the connection
   while 1 do
-    buf, err = raw_socket.recv()
+    local buf, err = raw_socket.recv()
     if not buf then
       return nil, err
     end
     buffer = buffer .. buf
-    local i, j = buf:find('\0')
+    local i, _ = buf:find('\0')
     if i then
-      local status_str = buffer:sub(1, i - 1)
-      buffer = buffer:sub(i + 1)
-      if status_str == 'SUCCESS' then
+      if buffer == 'SUCCESS' then
         -- We're good, finish setting up the connection
-        return raw_socket, err
+        return raw_socket, nil
       end
-      return nil, err
+      return nil, buffer
     end
   end
 end
