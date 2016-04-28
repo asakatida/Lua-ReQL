@@ -1,11 +1,13 @@
 local m = {}
 
-function m.init(r, _r)
+function m.init(_r)
+  local Connection = require'rethinkdb.connection'.init(_r)
+
   return function(host, _callback)
     local size
     local _open = false
     local pool = {}
-    local builder = r.Connection(host)
+    local builder = Connection(host)
 
     local function _start(term, callback, opts)
       if opts.conn then
