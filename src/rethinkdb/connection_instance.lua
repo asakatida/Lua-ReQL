@@ -7,7 +7,7 @@ local proto = require'rethinkdb.protodef'
 local m = {}
 
 function m.init(_r)
-  Socket = Socket.init(_r)
+  local Socket = require'rethinkdb.socket'.init(_r)
 
   return function(auth_key, db, host, port, proto_version, ssl_params, timeout, user)
     local raw_socket = Socket(host, port, ssl_params, timeout)
