@@ -1,120 +1,124 @@
-local ReQLQueryPrinter = class(
-  'ReQLQueryPrinter',
-  {
-    __init = function(self, term, frames)
-      self.term = term
-      self.frames = frames
-    end,
-    print_query = function(self)
-      local carrots
-      if next(self.frames) then
-        carrots = self:compose_carrots(self.term, self.frames)
-      else
-        carrots = {self:carrotify(self:compose_term(self.term))}
-      end
-      carrots = self:join_tree(carrots):gsub('[^%^]', '')
-      return self:join_tree(self:compose_term(self.term)) .. '\n' .. carrots
-    end,
-    compose_term = function(self, term)
-      if type(term) ~= 'table' then return '' .. term end
-      local args = {}
-      for i, arg in ipairs(term.args) do
-        args[i] = self:compose_term(arg)
-      end
-      local optargs = {}
-      for key, arg in pairs(term.optargs) do
-        optargs[key] = self:compose_term(arg)
-      end
-      return term:compose(args, optargs)
-    end,
-    compose_carrots = function(self, term, frames)
-      local frame = table.remove(frames, 1)
-      local args = {}
-      for i, arg in ipairs(term.args) do
-        if frame == (i - 1) then
-          args[i] = self:compose_carrots(arg, frames)
-        else
-          args[i] = self:compose_term(arg)
-        end
-      end
-      local optargs = {}
-      for key, arg in pairs(term.optargs) do
-        if frame == key then
-          optargs[key] = self:compose_carrots(arg, frames)
-        else
-          optargs[key] = self:compose_term(arg)
-        end
-      end
-      if frame then
-        return term:compose(args, optargs)
-      end
-      return self:carrotify(term:compose(args, optargs))
-    end,
-    carrot_marker = {},
-    carrotify = function(self, tree)
-      return {self.carrot_marker, tree}
-    end,
-    join_tree = function(self, tree)
-      local str = ''
-      for _, term in ipairs(tree) do
-        if type(term) == 'table' then
-          if #term == 2 and term[1] == self.carrot_marker then
-            str = str .. self:join_tree(term[2]):gsub('.', '^')
-          else
-            str = str .. self:join_tree(term)
-          end
-        else
-          str = str .. term
-        end
-      end
-      return str
-    end
-  }
-)
+local carrot_marker = {}
 
-local ReQLError = class(
-  'ReQLError',
-  function(self, msg, term, frames)
-    self.msg = msg
-    self.message = function()
-      if self._message then return self._message end
-      self._message = self.__class.__name .. ' ' .. msg
-      if term then
-        self._message = self._message .. ' in:\n' .. ReQLQueryPrinter(term, frames):print_query()
-      end
-      return self._message
+local function carrotify(tree)
+  return {carrot_marker, tree}
+end
+
+local function compose_term(term)
+  if type(term) ~= 'table' then return '' .. term end
+  local args = {}
+  for i, arg in ipairs(term.args) do
+    args[i] = compose_term(arg)
+  end
+  local optargs = {}
+  for key, arg in pairs(term.optargs) do
+    optargs[key] = compose_term(arg)
+  end
+  return term:compose(args, optargs)
+end
+
+local function compose_carrots(term, frames)
+  local frame = table.remove(frames, 1)
+  local args = {}
+  for i, arg in ipairs(term.args) do
+    if frame == (i - 1) then
+      args[i] = compose_carrots(arg, frames)
+    else
+      args[i] = compose_term(arg)
     end
   end
-)
+  local optargs = {}
+  for key, arg in pairs(term.optargs) do
+    if frame == key then
+      optargs[key] = compose_carrots(arg, frames)
+    else
+      optargs[key] = compose_term(arg)
+    end
+  end
+  if frame then
+    return term:compose(args, optargs)
+  end
+  return carrotify(term:compose(args, optargs))
+end
 
-local ReQLDriverError = class('ReQLDriverError', ReQLError, {})
+local function join_tree(tree)
+  local str = ''
+  for _, term in ipairs(tree) do
+    if type(term) == 'table' then
+      if #term == 2 and term[1] == carrot_marker then
+        str = str .. join_tree(term[2]):gsub('.', '^')
+      else
+        str = str .. join_tree(term)
+      end
+    else
+      str = str .. term
+    end
+  end
+  return str
+end
 
-local ReQLServerError = class('ReQLServerError', ReQLError, {})
+local function print_query(term, frames)
+  local carrots
+  if next(frames) then
+    carrots = compose_carrots(term, frames)
+  else
+    carrots = {carrotify(compose_term(term))}
+  end
+  carrots = join_tree(carrots):gsub('[^%^]', '')
+  return join_tree(compose_term(term)) .. '\n' .. carrots
+end
 
-local ReQLRuntimeError = class('ReQLRuntimeError', ReQLServerError, {})
+local function new_error_type(name, parent)
+  local inst = {__name = name}
 
-local ReQLAvailabilityError = class('ReQLRuntimeError', ReQLRuntimeError, {})
-local ReQLQueryLogicError = class('ReQLRuntimeError', ReQLRuntimeError, {})
+  return function(msg, term, frames)
+    function inst.message()
+      local _message = name .. ' ' .. msg
+      if term then
+        _message = _message .. ' in:\n' .. print_query(term, frames)
+      end
+      function inst.message()
+        return _message
+      end
+      return _message
+    end
+
+    inst.__parent = parent
+    inst.msg = msg
+
+    return setmetatable(inst, {__index = inst.__parent})
+  end
+end
+
+local ReQLError = {__name = 'ReQLError'}
+
+local ReQLDriverError = new_error_type('ReQLDriverError', ReQLError)
+local ReQLServerError = new_error_type('ReQLServerError', ReQLError)()
+
+local ReQLRuntimeError = new_error_type('ReQLRuntimeError', ReQLServerError)
+
+local ReQLAvailabilityError = new_error_type('ReQLAvailabilityError', ReQLRuntimeError())
+local ReQLQueryLogicError = new_error_type('ReQLQueryLogicError', ReQLRuntimeError())
 
 return {
   ReQLDriverError = ReQLDriverError,
 
   ReQLRuntimeError = ReQLRuntimeError,
-  ReQLCompileError = class('ReQLCompileError', ReQLServerError, {}),
+  ReQLCompileError = new_error_type('ReQLCompileError', ReQLServerError),
 
-  ReQLAuthError = class('ReQLDriverError', ReQLDriverError, {}),
+  ReQLAuthError = new_error_type('ReQLAuthError', ReQLDriverError()),
 
-  ReQLClientError = class('ReQLClientError', ReQLServerError, {}),
+  ReQLClientError = new_error_type('ReQLClientError', ReQLServerError),
 
   ReQLAvailabilityError = ReQLAvailabilityError,
-  ReQLInternalError = class('ReQLRuntimeError', ReQLRuntimeError, {}),
+  ReQLInternalError = new_error_type('ReQLInternalError', ReQLRuntimeError()),
   ReQLQueryLogicError = ReQLQueryLogicError,
-  ReQLResourceLimitError = class('ReQLRuntimeError', ReQLRuntimeError, {}),
-  ReQLTimeoutError = class('ReQLRuntimeError', ReQLRuntimeError, {}),
-  ReQLUserError = class('ReQLRuntimeError', ReQLRuntimeError, {}),
+  ReQLResourceLimitError = new_error_type('ReQLResourceLimitError', ReQLRuntimeError()),
+  ReQLTimeoutError = new_error_type('ReQLTimeoutError', ReQLRuntimeError()),
+  ReQLUserError = new_error_type('ReQLUserError', ReQLRuntimeError()),
 
-  ReQLOpFailedError = class('ReQLRuntimeError', ReQLAvailabilityError, {}),
-  ReQLOpIndeterminateError = class('ReQLRuntimeError', ReQLAvailabilityError, {}),
+  ReQLOpFailedError = new_error_type('ReQLOpFailedError', ReQLAvailabilityError()),
+  ReQLOpIndeterminateError = new_error_type('ReQLOpIndeterminateError', ReQLAvailabilityError()),
 
-  ReQLNonExistenceError = class('ReQLRuntimeError', ReQLQueryLogicError, {})
+  ReQLNonExistenceError = new_error_type('ReQLNonExistenceError', ReQLQueryLogicError())
 }
