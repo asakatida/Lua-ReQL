@@ -25,7 +25,6 @@ build = {
     ['rethinkdb.convert_pseudotype'] = 'src/rethinkdb/convert_pseudotype.lua',
     ['rethinkdb.cursor'] = 'src/rethinkdb/cursor.lua',
     ['rethinkdb.errors'] = 'src/rethinkdb/errors.lua',
-    ['rethinkdb.expr'] = 'src/rethinkdb/expr.lua',
     ['rethinkdb.int_to_bytes'] = 'src/rethinkdb/int_to_bytes.lua',
     ['rethinkdb.is_instance'] = 'src/rethinkdb/is_instance.lua',
     ['rethinkdb.pool'] = 'src/rethinkdb/pool.lua',

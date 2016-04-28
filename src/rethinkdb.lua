@@ -10,16 +10,11 @@ local r = {
   is_instance = require'rethinkdb.is_instance'
 }
 
-local ast_methods = require'rethinkdb.ast'.init(_r)
+local meta_table, __call = require'rethinkdb.ast'.init(_r)
+local __index = meta_table.__index
 
-for name, meth in pairs(ast_methods) do
-  r[name] = meth
-end
-
-_r.expr = require'rethinkdb.expr'.init(_r)
-
-setmetatable(r, {__call = _r.expr})
-setmetatable(_r, {__call = _r.expr})
+setmetatable(r, {__call = __call, __index = __index})
+setmetatable(_r, {__call = __call, __index = __index})
 
 r.Connection = require'rethinkdb.connection'.init(_r)
 r.pool = require'rethinkdb.pool'.init(_r)
