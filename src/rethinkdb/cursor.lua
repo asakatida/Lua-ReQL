@@ -91,12 +91,11 @@ return function(del_query, end_query, get_response, token, opts, root)
     )
   end
 
-  return inst, function(update_weight, response)
+  return inst, function(response)
     local t = response.t
     if not _type then
       if response.n then
         _type = response.n
-        update_weight()
       else
         _type = 'finite'
       end

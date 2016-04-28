@@ -3,7 +3,6 @@ local Cursor = require'rethinkdb.cursor'
 local errors = require'rethinkdb.errors'
 local int_to_bytes = require'rethinkdb.int_to_bytes'
 local proto = require'rethinkdb.protodef'
-local Socket = require'rethinkdb.socket'
 
 local m = {}
 
@@ -13,13 +12,8 @@ function m.init(_r)
   return function(auth_key, db, host, port, proto_version, ssl_params, timeout, user)
     local raw_socket = Socket(host, port, ssl_params, timeout)
     local outstanding_callbacks = {}
-    local weight = 0
     local next_token = 1
     local buffer = ''
-
-    local function weight_for_feed()
-      weight = weight + 2
-    end
 
     local function write_socket(token, query)
       local data = _r.encode(query)
@@ -37,12 +31,6 @@ function m.init(_r)
     local function del_query(token)
       -- This query is done, delete this cursor
       if not outstanding_callbacks[token] then return end
-      if outstanding_callbacks[token].cursor then
-        if outstanding_callbacks[token].cursor.type ~= 'finite' then
-          weight = weight - 2
-        end
-        weight = weight - 1
-      end
       outstanding_callbacks[token].cursor = nil
     end
 
@@ -60,7 +48,7 @@ function m.init(_r)
       local add_response = cursor.add_response
       cursor = cursor.cursor
       if cursor then
-        return add_response(weight_for_feed, response)
+        return add_response(response)
       end
     end
 
@@ -143,7 +131,6 @@ function m.init(_r)
       -- Assign token
       local token = next_token
       next_token = next_token + 1
-      weight = weight + 1
 
       -- Set global options
       local global_opts = {}
@@ -228,14 +215,6 @@ function m.init(_r)
       local cb = function(_err, _cur)
         if _cur then
           return _cur.next(function(err)
-            weight = 0
-            for token, cur in pairs(outstanding_callbacks) do
-              if cur.cursor then
-                weight = weight + 3
-              else
-                outstanding_callbacks[token] = nil
-              end
-            end
             return callback(err)
           end)
         end

@@ -8,24 +8,27 @@ function m.init(r, _r)
     local builder = r.Connection(host)
 
     local function _start(term, callback, opts)
-      local weight = math.huge
       if opts.conn then
         local good_conn = pool[opts.conn]
         if good_conn then
           return good_conn._start(term, callback, opts)
         end
       end
-      local good_conn
+      local good_conn = pool[key]
+      if good_conn == nil then
+        key = 1
+        good_conn = next(pool)
+      end
+      if not good_conn.open() then
+        pool[key] = good_conn.connect()
+      end
+      key = key + 1
       for i=1, size do
         if not pool[i] then pool[i] = builder.connect() end
         local conn = pool[i]
         if not conn.open() then
           conn.connect()
           pool[i] = conn
-        end
-        if conn.weight < weight then
-          good_conn = conn
-          weight = conn.weight
         end
       end
       return good_conn._start(term, callback, opts)
