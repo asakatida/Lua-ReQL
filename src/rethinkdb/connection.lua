@@ -26,20 +26,16 @@ function m.init(_r)
         ).connect(callback)
     end
 
-    local factory = {
+    return {
       __name = 'Connection',
-      connect = connect
+      _start = function(...)
+        return connect()._start(...)
+      end,
+      connect = connect,
+      use = function(_db)
+        db = _db
+      end
     }
-
-    function factory._start(term, callback, opts)
-      return connect()._start(term, callback, opts)
-    end
-
-    function factory.use(_db)
-      db = _db
-    end
-
-    return factory
   end
 end
 
