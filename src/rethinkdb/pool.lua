@@ -85,7 +85,7 @@ function m.init(_r)
       _open = true
       table.insert(pool, conn)
       size = host.size or 12
-      for i=2, size do
+      for _=2, size do
         table.insert(pool, (builder.connect()))
       end
       return cb()
