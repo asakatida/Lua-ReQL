@@ -70,7 +70,7 @@ function m.init(_r)
     table = get_opts,
     table_create = get_opts,
     union = get_opts,
-    update = arity_2
+    update = arity_2,
     wait = arity_1
   }
 
