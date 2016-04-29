@@ -89,6 +89,31 @@ function m.init(_r)
         break
       end
     end
+
+    -- send the third client message
+    -- {
+    --   "authentication": "c=biws,r=<nonce><server_nonce>,p=<proof>"
+    -- }
+    raw_socket.send(_r.encode({
+    }), '\0')
+
+    -- wait for the third server challenge
+    -- this is always a json document
+    -- {
+    --   "success": <bool>,
+    --   "authentication": "v=<server_signature>"
+    -- }
+
+    while 1 do
+      local buf, err = raw_socket.recv()
+      if not buf then
+        return buffer, err
+      end
+      buffer = buffer .. buf
+      local i = buf:find('\0')
+      if i then
+      end
+    end
   end
 end
 
