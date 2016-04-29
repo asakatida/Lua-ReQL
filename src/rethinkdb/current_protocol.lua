@@ -1,4 +1,4 @@
-local unpack = require 'rethinkdb.unpack'
+local unpack = require'rethinkdb.unpack'
 
 local m = {}
 

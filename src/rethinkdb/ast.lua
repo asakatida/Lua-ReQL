@@ -1,12 +1,12 @@
 local errors = require'rethinkdb.errors'
 local proto = require'rethinkdb.protodef'
-local unpack = require 'rethinkdb.unpack'
+local unpack = require'rethinkdb.unpack'
 
 local m = {}
 
 function m.init(_r)
   local meta_table = {}
-  
+
   local function no_opts(...)
     return {}, ...
   end
