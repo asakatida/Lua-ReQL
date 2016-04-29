@@ -75,7 +75,7 @@ function m.init(_r)
         end
         if not response.success then
           if 10 <= response.error_code and response.error_code <= 20 then
-            return buffer, response.error
+            return buffer, response.error  -- TODO authentication error
           end
           return buffer, response.error
         end
@@ -112,6 +112,23 @@ function m.init(_r)
       buffer = buffer .. buf
       local i = buf:find('\0')
       if i then
+        local status_str = buffer:sub(1, i - 1)
+        buffer = buffer:sub(i + 1)
+        print(status_str)
+        local response = pcall(_r.decode, status_str)
+        if response == nil then
+          return buffer, status_str
+        end
+        if not response.success then
+          if 10 <= response.error_code and response.error_code <= 20 then
+            return buffer, response.error  -- TODO authentication error
+          end
+          return buffer, response.error
+        end
+
+        -- TODO verify server signature here
+
+        return buffer
       end
     end
   end
