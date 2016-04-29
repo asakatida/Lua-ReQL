@@ -51,7 +51,43 @@ function m.init(_r)
 
     -- wait for the second server challenge
     -- this is always a json document
+    -- {
+    --   "success": <bool>,
+    --   "authentication": "r=<nonce><server_nonce>,s=<salt>,i=<iteration>"
+    -- }
+    -- the authentication property will need to be retained
+    local authentication = {}
+
     while 1 do
+      local buf, err = raw_socket.recv()
+      if not buf then
+        return buffer, err
+      end
+      buffer = buffer .. buf
+      local i = buf:find('\0')
+      if i then
+        local status_str = buffer:sub(1, i - 1)
+        buffer = buffer:sub(i + 1)
+        print(status_str)
+        local response = pcall(_r.decode, status_str)
+        if response == nil then
+          return buffer, status_str
+        end
+        if not response.success then
+          if 10 <= response.error_code and response.error_code <= 20 then
+            return buffer, response.error
+          end
+          return buffer, response.error
+        end
+        response.authentication = response.authentication .. ','
+        for k, v in response.authentication:gmatch('([rsi])=(.-),') do
+          authentication[k] = v
+        end
+        if authentication.r:sub(1, #nonce) ~= nonce then
+          return buffer, 'Invalid nonce'
+        end
+        break
+      end
     end
   end
 end
