@@ -11,6 +11,7 @@ description = {
 }
 dependencies = {
   'lua >= 5.1',
+  'luacrypto',
   'luasocket ~> 3',
   'luasec',
   'luajson ~> 1',
