@@ -1,9 +1,11 @@
 local bit = require('bit')
 local bytes_to_int = require'rethinkdb.bytes_to_int'
-local evp = require('crypto.evp')
-local hmac = require('crypto.hmac')
+local crypto = require('crypto')
 local int_to_bytes = require'rethinkdb.int_to_bytes'
-local unpack = require'rethinkdb.unpack'
+
+local rand_bytes = crypto.rand_bytes
+local evp = crypto.evp
+local hmac = crypto.hmac
 
 local function __compare_digest(a, b)
   local left, result
@@ -59,12 +61,7 @@ local m = {}
 
 function m.init(_r)
   return function(raw_socket, auth_key, user)
-    -- Initialize connection
-    local nonce = {}
-    for i=1,18 do
-      nonce[i] = math.random(1, 0xFF)  -- TODO
-    end
-    nonce = _r.b64(string.char(unpack(nonce)))
+    local nonce = _r.b64(rand_bytes(18))
 
     local client_first_message_bare = 'n=' .. user .. ',r=' .. nonce
 
