@@ -7,36 +7,40 @@ function m.init(_r)
     local inst = {
       __name = 'Socket',
       close = function()
-        if raw_socket then
+        local socket = nil
+        raw_socket, socket = socket, raw_socket
+
+        if socket then
           if ngx == nil and ssl_params == nil then
-            raw_socket:shutdown()
+            socket:shutdown()
           end
-          raw_socket:close()
-          raw_socket = nil
+          socket:close()
         end
       end,
       isOpen = function()
         return raw_socket and true or false
       end,
       open = function()
-        raw_socket = _r.socket()
-        raw_socket:settimeout(timeout)
+        local socket = _r.socket()
+        socket:settimeout(timeout)
 
-        local status, err = raw_socket:connect(host, port)
+        local status, err = socket:connect(host, port)
 
         if ssl_params then
-          raw_socket = _r.lib_ssl.wrap(raw_socket, ssl_params)
+          socket = _r.lib_ssl.wrap(socket, ssl_params)
           status = false
           while not status do
-            status, err = raw_socket:dohandshake()
+            status, err = socket:dohandshake()
             if err == "timeout" or err == "wantread" then
-              _r.select({raw_socket}, nil)
+              _r.select({socket}, nil)
             elseif err == "wantwrite" then
-              _r.select(nil, {raw_socket})
+              _r.select(nil, {socket})
             else
               _r.logger(err)
             end
           end
+
+          raw_socket = socket
         end
       end,
       recv = function()
