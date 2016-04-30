@@ -26,6 +26,10 @@ function m.init(_r)
 
         local status, err = socket:connect(host, port)
 
+        if not status then
+          _r.logger(err)
+        end
+
         if ssl_params then
           socket = _r.lib_ssl.wrap(socket, ssl_params)
           status = false
@@ -46,6 +50,13 @@ function m.init(_r)
       recv = function()
         if not raw_socket then return nil, 'closed' end
         local buf, err, partial = raw_socket:receive()
+        if err == "timeout" or err == "wantread" then
+          _r.select({raw_socket}, nil)
+        elseif err == "wantwrite" then
+          _r.select(nil, {raw_socket})
+        else
+          _r.logger(err)
+        end
         return buf or partial
       end,
       send = function(...)
