@@ -35,9 +35,9 @@ function m.init(_r)
           status = false
           while not status do
             status, err = socket:dohandshake()
-            if err == "timeout" or err == "wantread" then
+            if err == 'timeout' or err == "'wantread'" then
               _r.select({socket}, nil)
-            elseif err == "wantwrite" then
+            elseif err == 'wantwrite' then
               _r.select(nil, {socket})
             else
               _r.logger(err)
@@ -50,9 +50,9 @@ function m.init(_r)
       recv = function()
         if not raw_socket then return nil, 'closed' end
         local buf, err, partial = raw_socket:receive()
-        if err == "timeout" or err == "wantread" then
+        if err == 'timeout' or err == "'wantread'" then
           _r.select({raw_socket}, nil)
-        elseif err == "wantwrite" then
+        elseif err == 'wantwrite' then
           _r.select(nil, {raw_socket})
         else
           _r.logger(err)
