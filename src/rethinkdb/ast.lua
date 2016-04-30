@@ -115,7 +115,7 @@ function m.init(_r)
     if tt == nil then
       return nil
     end
-    return function(__optargs, ...)
+    return wrap_args(function(__optargs, ...)
       local term = setmetatable({__name = 'ReQLOp', tt = tt, st = st}, meta_table)
       function term.build()
         if st == 'binary' and (not term.args[1]) then
@@ -289,15 +289,15 @@ function m.init(_r)
       elseif st == 'reduce' then
         args[#args] = _r.func({arity = 2}, args[#args])
       end
-      term.args = {}
+      term.args = {cls}
       term.optargs = {}
-      for i, a in ipairs(args) do
-        term.args[i] = _r(a)
+      for _, a in ipairs(args) do
+        table.insert(term.args, _r(a))
       end
       for k, v in pairs(__optargs) do
         term.optargs[k] = _r(v)
       end
-    end
+    end)
   end
 
   function meta_table.__call(...)

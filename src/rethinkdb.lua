@@ -11,7 +11,9 @@ local r = {
 }
 
 local meta_table, __call = require'rethinkdb.ast'.init(_r)
-local __index = meta_table.__index
+local function __index(_, st)
+  return meta_table.__index(nil, st)
+end
 
 setmetatable(r, {__call = __call, __index = __index})
 setmetatable(_r, {__call = __call, __index = __index})
