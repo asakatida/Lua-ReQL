@@ -8,7 +8,7 @@ function m.init(_r)
   local meta_table = {}
 
   local function no_opts(...)
-    return {}, ...
+    return {}, {...}
   end
 
   local function get_opts(...)
@@ -19,19 +19,19 @@ function m.init(_r)
       opt = pos_opt
       args[#args] = nil
     end
-    return opt, unpack(args)
+    return opt, args
   end
 
   local function arity_1(arg0, opts)
-    return opts, arg0
+    return opts, {arg0}
   end
 
   local function arity_2(arg0, arg1, opts)
-    return opts, arg0, arg1
+    return opts, {arg0, arg1}
   end
 
   local function arity_3(arg0, arg1, arg2, opts)
-    return opts, arg0, arg1, arg2
+    return opts, {arg0, arg1, arg2}
   end
 
   local next_var_id = 0
@@ -73,14 +73,6 @@ function m.init(_r)
     wait = arity_1
   }
 
-  local function wrap_args(term_name, init)
-    local wrap = arg_wrappers[term_name] or no_opts
-    local function new_init(...)
-      return init(wrap(...))
-    end
-    return new_init
-  end
-
   local function datum(val)
     if type(val) == 'number' then
       if math.abs(val) == math.huge or val ~= val then
@@ -114,7 +106,7 @@ function m.init(_r)
     if tt == nil then
       return nil
     end
-    return wrap_args(function(__optargs, ...)
+    return function(...)
       local term = setmetatable({__name = 'ReQLOp', tt = tt, st = st}, meta_table)
       function term.build()
         if st == 'binary' and (not term.args[1]) then
@@ -249,8 +241,8 @@ function m.init(_r)
         return {'r.' .. st .. '(', argrepr, ')'}
       end
 
-      local args = {...}
-      __optargs = __optargs or {}
+      local __optargs, args = (arg_wrappers[st] or no_opts)(...)
+
       if st == 'func' then
         local func = args[1]
         local anon_args = {}
@@ -296,7 +288,7 @@ function m.init(_r)
       for k, v in pairs(__optargs) do
         term.optargs[k] = _r(v)
       end
-    end)
+    end
   end
 
   function meta_table.__call(...)
