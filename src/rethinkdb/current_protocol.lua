@@ -3,7 +3,7 @@ local bytes_to_int = require'rethinkdb.bytes_to_int'
 local crypto = require('crypto')
 local int_to_bytes = require'rethinkdb.int_to_bytes'
 
-local rand_bytes = crypto.rand_bytes
+local rand_bytes = crypto.rand.bytes
 local evp = crypto.evp
 local hmac = crypto.hmac
 
