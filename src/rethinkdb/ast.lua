@@ -44,7 +44,6 @@ function m.init(_r)
     delete = get_opts,
     distance = get_opts,
     distinct = get_opts,
-    during = get_opts,
     during = arity_3,
     eq_join = get_opts,
     filter = arity_2,
