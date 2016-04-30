@@ -48,9 +48,9 @@ function m.init(_r)
         local buf, err, partial = raw_socket:receive()
         return buf or partial
       end,
-      send = function(buffer, ...)
+      send = function(...)
         if not raw_socket then return nil, 'closed' end
-        return raw_socket:send(buffer)
+        return raw_socket:send(table.concat({...}))
       end
     }
 
