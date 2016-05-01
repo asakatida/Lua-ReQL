@@ -15,26 +15,30 @@ if enable then
       c, err = r.connect()
       if err then error(err.message) end
 
-      r.db_create(reql_db):run(c)
+      r.db_create(reql_db).run(c)
       c.use(reql_db)
-      r.table_create(reql_table):run(c)
+      r.table_create(reql_table).run(c)
     end)
 
     before_each(function()
       r.json_parser = dkjson
+      r.decode = nil
+      r.encode = nil
     end)
 
     after_each(function()
       r.json_parser = nil
-      r.table(reql_table):delete():run(c)
+      r.decode = nil
+      r.encode = nil
+      r.table(reql_table).delete().run(c)
     end)
 
     local function test(name, query, res)
       it(name, function()
         assert.equal(r.json_parser, dkjson)
-        assert.same(res, query:run(
-          c, function(err, cur)
-            if err then error(err.message) end
+        assert.same(res, query.run(
+          c, function(_err, cur)
+            if _err then error(_err.message) end
             return cur.to_array(function(err, arr)
               if err then error(err.message) end
               return arr
@@ -48,9 +52,9 @@ if enable then
     test('branch num', r.branch(1, 'c', false), {'c'})
     test('branch true', r.branch(true, 1, 2), {1})
     test('do', r.do_(function() return 1 end), {1})
-    test('do add', r.do_(1, 2, function(x, y) return x:add(y) end), {3})
-    test('do append', r({0, 1, 2}):do_(function(v) return v:append(3) end), {{0, 1, 2, 3}})
-    test('do mul', r(1):do_(function(v) return v:mul(2) end), {2})
+    test('do add', r.do_(1, 2, function(x, y) return x.add(y) end), {3})
+    test('do append', r({0, 1, 2}).do_(function(v) return v.append(3) end), {{0, 1, 2, 3}})
+    test('do mul', r(1).do_(function(v) return v.mul(2) end), {2})
     test('do no func', r.do_(1), {1})
     test('js', r.js('1 + 1'), {2})
     test('js add add', r.js('1 + 1; 2 + 2'), {4})
@@ -65,6 +69,6 @@ if enable then
     test('filter constant str', r.filter({1, 2, 3}, 'foo'), {{1, 2, 3}})
     test('filter constant obj', r.filter({1, 2, 3}, {}), {{1, 2, 3}})
     test('filter false', r.filter({1, 2, 3}, false), {{}})
-    test('for each insert', r.for_each({1, 2, 3}, function(row) return r.table(reql_table):insert({id = row}) end), {{deleted = 0, replaced = 0, unchanged = 0, errors = 0, skipped = 0, inserted = 3}})
+    test('for each insert', r.for_each({1, 2, 3}, function(row) return r.table(reql_table).insert({id = row}) end), {{deleted = 0, replaced = 0, unchanged = 0, errors = 0, skipped = 0, inserted = 3}})
   end)
 end

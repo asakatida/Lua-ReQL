@@ -12,13 +12,13 @@ describe('cursor', function()
     c, err = r.connect()
     if err then error(err.message) end
 
-    r.db_create(reql_db):run(c)
+    r.db_create(reql_db).run(c)
     c.use(reql_db)
-    r.table_create(reql_table):run(c)
+    r.table_create(reql_table).run(c)
   end)
 
   after_each(function()
-    r.table(reql_table):delete():run(c)
+    r.table(reql_table).delete().run(c)
   end)
 
   before_each(function()
@@ -29,17 +29,17 @@ describe('cursor', function()
       table.insert(doc, i)
     end
     local document = {}
-    for i=0, num_rows, 1 do
+    for _=0, num_rows, 1 do
       table.insert(document, doc)
     end
 
-    r.db(reql_db):table(reql_table):insert(document):run(c)
+    r.db(reql_db).table(reql_table).insert(document).run(c)
   end)
 
   it('type', function()
     assert.are.equal(
       'Cursor',
-      r.table(reql_table):run(
+      r.table(reql_table).run(
         c, function(err, cur)
           if err then error(err.message) end
           return cur.__class.__name
@@ -51,9 +51,9 @@ describe('cursor', function()
   it('count', function()
     assert.are.equal(
       num_rows,
-      r.table(reql_table):run(
-        c, function(err, cur)
-          if err then error(err.message) end
+      r.table(reql_table).run(
+        c, function(_err, cur)
+          if _err then error(_err.message) end
           return cur.to_array(function(err, arr)
             if err then error(err.message) end
             return #arr
@@ -65,9 +65,9 @@ describe('cursor', function()
 
   it('close', function()
     assert.has_no.errors(function()
-      r.table(reql_table):run(
-        c, function(err, cur)
-          if err then error(err.message) end
+      r.table(reql_table).run(
+        c, function(_err, cur)
+          if _err then error(_err.message) end
           cur.close(function(err) if err then error(err.message) end end)
         end
       )

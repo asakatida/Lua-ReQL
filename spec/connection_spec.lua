@@ -27,17 +27,17 @@ describe('connection', function()
     local reql_db = 'connection'
     local reql_table = 'tests'
 
-    local c, err = r.connect()
-    if err then error(err.message) end
+    local c, _err = r.connect()
+    if _err then error(_err.message) end
 
-    r.db_create(reql_db):run(c)
+    r.db_create(reql_db).run(c)
     c.use(reql_db)
-    r.table_create(reql_table):run(c)
+    r.table_create(reql_table).run(c)
 
     assert.has_error(
       function()
         for _id=1,500000 do
-          r.table(reql_table):insert({id=_id}):run(c)
+          r.table(reql_table).insert({id=_id}).run(c)
         end
       end,
       'ReQLDriverError Connection is closed.'
@@ -45,7 +45,7 @@ describe('connection', function()
 
     c.reconnect(function(err, conn)
       if err then error(err.message) end
-      r.table(reql_table):delete():run(conn)
+      r.table(reql_table).delete().run(conn)
     end)
   end)
 end)

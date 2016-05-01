@@ -13,20 +13,20 @@ describe('control', function()
     c, err = r.connect()
     if err then error(err.message) end
 
-    r.db_create(reql_db):run(c)
+    r.db_create(reql_db).run(c)
     c.use(reql_db)
-    r.table_create(reql_table):run(c)
+    r.table_create(reql_table).run(c)
   end)
 
   after_each(function()
-    r.table(reql_table):delete():run(c)
+    r.table(reql_table).delete().run(c)
   end)
 
   local function test(name, query, res)
     it(name, function()
-      assert.same(res, query:run(
-        c, function(err, cur)
-          if err then error(err.message) end
+      assert.same(res, query.run(
+        c, function(_err, cur)
+          if _err then error(_err.message) end
           return cur.to_array(function(err, arr)
             if err then error(err.message) end
             return arr
@@ -40,9 +40,9 @@ describe('control', function()
     it(name, function()
       assert.has_error(
         function()
-          query:run(
-            c, function(err, cur)
-              if err then error(err.message) end
+          query.run(
+            c, function(_err, cur)
+              if _err then error(_err.message) end
               cur.to_array(function(err, arr)
                 if err then error(err.msg) end
                 error(arr)
@@ -55,33 +55,33 @@ describe('control', function()
   end
 
 --[[
-  test_error('branch db', r.db(reql_db):branch(1, 2), 'Expected type DATUM but found DATABASE:')
+  test_error('branch db', r.db(reql_db).branch(1, 2), 'Expected type DATUM but found DATABASE.')
 --]]
   test_error('branch error', r.branch(r.error_('a'), 1, 2), 'a')
   test('branch false', r.branch(false, 1, 2), {2})
-  test('branch nil', r():branch(1, 2), {2})
+  test('branch nil', r().branch(1, 2), {2})
   test('branch num', r.branch(1, 'c', false), {'c'})
 --[[
-  test_error('branch table', r.table(reql_table):branch(1, 2), 'Expected type DATUM but found TABLE:')
+  test_error('branch table', r.table(reql_table).branch(1, 2), 'Expected type DATUM but found TABLE.')
 --]]
   test('branch true', r.branch(true, 1, 2), {1})
   test('do', r.do_(function() return 1 end), {1})
-  test('do add', r.do_(1, 2, function(x, y) return x:add(y) end), {3})
-  test('do append', r({0, 1, 2}):do_(function(v) return v:append(3) end), {{0, 1, 2, 3}})
+  test('do add', r.do_(1, 2, function(x, y) return x.add(y) end), {3})
+  test('do append', r({0, 1, 2}).do_(function(v) return v.append(3) end), {{0, 1, 2, 3}})
 
   if string.match(_VERSION, '5.[23]') then
     test_error('do extra arg', r.do_(1, function(x, y) return x + y end), 'Expected function with 1 arguments but found function with 2 argument.')
     test_error('do missing arg', r.do_(1, 2, function(x) return x end), 'Expected function with 2 arguments but found function with 1 argument.')
   end
 
-  test('do mul', r(1):do_(function(v) return v:mul(2) end), {2})
+  test('do mul', r(1).do_(function(v) return v.mul(2) end), {2})
   test_error('do no args', r.do_(), 'Expected 1 or more arguments but found 0.')
   test('do no func', r.do_(1), {1})
 
   it('do no return', function()
     assert.has_error(
       function()
-        r.do_(1, function(x) end)
+        r.do_(1, function() end)
       end, 'Anonymous function returned `nil`. Did you forget a `return`?'
     )
   end)
@@ -89,14 +89,14 @@ describe('control', function()
   it('do return nil', function()
     assert.has_error(
       function()
-        r.do_(1, function(x) return nil end)
+        r.do_(1, function() return nil end)
       end, 'Anonymous function returned `nil`. Did you forget a `return`?'
     )
   end)
 
-  test_error('do str add num', r('abc'):do_(function(v) return v:add(3) end), 'Expected type STRING but found NUMBER.')
-  test_error('do str add str add num', r('abc'):do_(function(v) return v:add('def') end):add(3), 'Expected type STRING but found NUMBER.')
-  test_error('do str append', r('abc'):do_(function(v) return v:append(3) end), 'Expected type ARRAY but found STRING.')
+  test_error('do str add num', r('abc').do_(function(v) return v.add(3) end), 'Expected type STRING but found NUMBER.')
+  test_error('do str add str add num', r('abc').do_(function(v) return v.add('def') end).add(3), 'Expected type STRING but found NUMBER.')
+  test_error('do str append', r('abc').do_(function(v) return v.append(3) end), 'Expected type ARRAY but found STRING.')
   test_error('error', r.error_('Hello World'), 'Hello World')
   test('js', r.js('1 + 1'), {2})
   test('js add add', r.js('1 + 1; 2 + 2'), {4})
@@ -105,16 +105,16 @@ describe('control', function()
   test('do js function add str', r.do_('foo', r.js('(function(x) { return x + "bar"; })')), {'foobar'})
   test('do js no timeout', r.js('1 + 2', {timeout = 1.2}), {3})
   test_error('js function result', r.js('(function() { return 1; })'), 'Query result must be of type DATUM, GROUPED_DATA, or STREAM (got FUNCTION).')
-  test_error('js function no wrap', r.js('function() { return 1; }'), 'SyntaxError: Unexpected token (')
+  test_error('js function no wrap', r.js('function() { return 1; }'), 'SyntaxError. Unexpected token (')
   test('do js function missing arg', r.do_(1, 2, r.js('(function(a) { return a; })')), {1})
   test('do js function extra arg', r.do_(1, 2, r.js('(function(a, b, c) { return a; })')), {1})
-  test_error('do js function return undefined', r.do_(1, 2, r.js('(function(a, b, c) { return c; })')), 'Cannot convert javascript `undefined` to ql::datum_t.')
+  test_error('do js function return undefined', r.do_(1, 2, r.js('(function(a, b, c) { return c; })')), 'Cannot convert javascript `undefined` to ql..datum_t.')
   test('filter js', r.filter({1, 2, 3}, r.js('(function(a) { return a >= 2; })')), {{2, 3}})
   test('map js', r.map({1, 2, 3}, r.js('(function(a) { return a + 1; })')), {{2, 3, 4}})
 --[[
   test_error('map js constant', r.map({1, 2, 3}, r.js('1')), 'Expected type FUNCTION but found DATUM.')
 --]]
-  test_error('filter js undefined', r.filter({1, 2, 3}, r.js('(function(a) {})')), 'Cannot convert javascript `undefined` to ql::datum_t.')
+  test_error('filter js undefined', r.filter({1, 2, 3}, r.js('(function(a) {})')), 'Cannot convert javascript `undefined` to ql..datum_t.')
 --[[
   test_error('map constant', r.map({1, 2, 3}, 1), 'Expected type FUNCTION but found DATUM.')
 --]]
@@ -122,20 +122,21 @@ describe('control', function()
   test('filter constant obj', r.filter({1, 2, 3}, {}), {{1, 2, 3}})
   test('filter nil', r.filter({1, 2, 3}, r()), {{}})
   test('filter false', r.filter({1, 2, 3}, false), {{}})
-  test('for each insert', r.for_each({1, 2, 3}, function(row) return r.table(reql_table):insert({id = row}) end), {{deleted = 0, replaced = 0, unchanged = 0, errors = 0, skipped = 0, inserted = 3}})
+  test('for each insert', r.for_each({1, 2, 3}, function(row) return r.table(reql_table).insert({id = row}) end), {{deleted = 0, replaced = 0, unchanged = 0, errors = 0, skipped = 0, inserted = 3}})
 
   it('count for each insert', function()
-    r.for_each({1, 2, 3}, function(row) return r.table(reql_table):insert({id = row}) end):run(
-      c, function(err, cur)
-        if err then error(err.message) end
-        cur.to_array(function(err, arr)
+    r.for_each({1, 2, 3}, function(row) return r.table(reql_table).insert({id = row}) end).run(
+      c, function(_err, cur)
+        if _err then error(_err.message) end
+        return cur.to_array(function(err, arr)
           if err then error(err.message) end
+          return arr
         end)
       end
     )
-    assert.same(r.table(reql_table):count():run(
-      c, function(err, cur)
-        if err then error(err.message) end
+    assert.same(r.table(reql_table).count().run(
+      c, function(_err, cur)
+        if _err then error(_err.message) end
         return cur.to_array(function(err, arr)
           if err then error(err.message) end
           return arr
@@ -145,17 +146,18 @@ describe('control', function()
   end)
 
   it('for each update', function()
-    r.for_each({1, 2, 3}, function(row) return r.table(reql_table):insert({id = row}) end):run(
-      c, function(err, cur)
-        if err then error(err.message) end
-        cur.to_array(function(err, arr)
+    r.for_each({1, 2, 3}, function(row) return r.table(reql_table).insert({id = row}) end).run(
+      c, function(_err, cur)
+        if _err then error(_err.message) end
+        return cur.to_array(function(err, arr)
           if err then error(err.message) end
+          return arr
         end)
       end
     )
-    assert.same(r.for_each({1, 2, 3}, function(row) return r.table(reql_table):update({foo = row}) end):run(
-      c, function(err, cur)
-        if err then error(err.message) end
+    assert.same(r.for_each({1, 2, 3}, function(row) return r.table(reql_table).update({foo = row}) end).run(
+      c, function(_err, cur)
+        if _err then error(_err.message) end
         return cur.to_array(function(err, arr)
           if err then error(err.message) end
           return arr
@@ -165,64 +167,66 @@ describe('control', function()
   end)
 
   it('for each insert with duplicates', function()
-    r.for_each({1, 2, 3}, function(row) return r.table(reql_table):insert({id = row}) end):run(
-      c, function(err, cur)
-        if err then error(err.message) end
-        cur.to_array(function(err, arr)
-          if err then error(err.message) end
-        end)
-      end
-    )
-    r.for_each({1, 2, 3}, function(row) return r.table(reql_table):update({foo = row}) end):run(
-      c, function(err, cur)
-        if err then error(err.message) end
+    r.for_each({1, 2, 3}, function(row) return r.table(reql_table).insert({id = row}) end).run(
+      c, function(_err, cur)
+        if _err then error(_err.message) end
         return cur.to_array(function(err, arr)
           if err then error(err.message) end
           return arr
         end)
       end
     )
-    assert.same(r.for_each({1, 2, 3}, function(row) return {r.table(reql_table):insert({id = row}), r.table(reql_table):insert({id = row * 10})} end):run(
-      c, function(err, cur)
-        if err then error(err.message) end
+    r.for_each({1, 2, 3}, function(row) return r.table(reql_table).update({foo = row}) end).run(
+      c, function(_err, cur)
+        if _err then error(_err.message) end
         return cur.to_array(function(err, arr)
           if err then error(err.message) end
           return arr
         end)
       end
-    ), {{first_error = 'Duplicate primary key `id`:\n{\n\t"foo":\t3,\n\t"id":\t1\n}\n{\n\t"id":\t1\n}', deleted = 0, replaced = 0, unchanged = 0, errors = 3, skipped = 0, inserted = 3}})
+    )
+    assert.same(r.for_each({1, 2, 3}, function(row) return {r.table(reql_table).insert({id = row}), r.table(reql_table).insert({id = row * 10})} end).run(
+      c, function(_err, cur)
+        if _err then error(_err.message) end
+        return cur.to_array(function(err, arr)
+          if err then error(err.message) end
+          return arr
+        end)
+      end
+    ), {{first_error = 'Duplicate primary key `id`.\n{\n\t"foo".\t3,\n\t"id".\t1\n}\n{\n\t"id".\t1\n}', deleted = 0, replaced = 0, unchanged = 0, errors = 3, skipped = 0, inserted = 3}})
   end)
 
   it('for each update many', function()
-    r.for_each({1, 2, 3}, function(row) return r.table(reql_table):insert({id = row}) end):run(
-      c, function(err, cur)
-        if err then error(err.message) end
-        cur.to_array(function(err, arr)
-          if err then error(err.message) end
-        end)
-      end
-    )
-    r.for_each({1, 2, 3}, function(row) return r.table(reql_table):update({foo = row}) end):run(
-      c, function(err, cur)
-        if err then error(err.message) end
+    r.for_each({1, 2, 3}, function(row) return r.table(reql_table).insert({id = row}) end).run(
+      c, function(_err, cur)
+        if _err then error(_err.message) end
         return cur.to_array(function(err, arr)
           if err then error(err.message) end
           return arr
         end)
       end
     )
-    r.for_each({1, 2, 3}, function(row) return {r.table(reql_table):insert({id = row}), r.table(reql_table):insert({id = row * 10})} end):run(
-      c, function(err, cur)
-        if err then error(err.message) end
+    r.for_each({1, 2, 3}, function(row) return r.table(reql_table).update({foo = row}) end).run(
+      c, function(_err, cur)
+        if _err then error(_err.message) end
         return cur.to_array(function(err, arr)
           if err then error(err.message) end
           return arr
         end)
       end
     )
-    assert.same(r.for_each({1, 2, 3}, function(row) return {r.table(reql_table):update({foo = row}), r.table(reql_table):update({bar = row})} end):run(
-      c, function(err, cur)
-        if err then error(err.message) end
+    r.for_each({1, 2, 3}, function(row) return {r.table(reql_table).insert({id = row}), r.table(reql_table).insert({id = row * 10})} end).run(
+      c, function(_err, cur)
+        if _err then error(_err.message) end
+        return cur.to_array(function(err, arr)
+          if err then error(err.message) end
+          return arr
+        end)
+      end
+    )
+    assert.same(r.for_each({1, 2, 3}, function(row) return {r.table(reql_table).update({foo = row}), r.table(reql_table).update({bar = row})} end).run(
+      c, function(_err, cur)
+        if _err then error(_err.message) end
         return cur.to_array(function(err, arr)
           if err then error(err.message) end
           return arr
