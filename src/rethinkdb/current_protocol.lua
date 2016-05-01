@@ -30,8 +30,6 @@ end
 local pbkdf2_cache = {}
 
 local function __pbkdf2_hmac(hash_name, password, salt, iterations)
-  assert(hash_name == 'sha256', hash_name)
-
   local cache_string = password .. ',' .. salt .. ',' .. iterations
 
   if pbkdf2_cache[cache_string] then
@@ -39,7 +37,7 @@ local function __pbkdf2_hmac(hash_name, password, salt, iterations)
   end
 
   local function digest(msg)
-    local mac = hmac.new('sha256', password)
+    local mac = hmac.new(hash_name, password)
     local mac_copy = mac:clone()
     mac_copy:update(msg)
     return mac_copy:digest(nil, true)
@@ -83,14 +81,13 @@ function m.init(_r)
         return nil, err
       end
       buffer = buffer .. buf
-      local i, _ = buf:find('\0')
+      local i, _ = string.find(buf, '\0')
       if i then
-        local status_str = buffer:sub(1, i - 1)
-        buffer = buffer:sub(i + 1)
-        print(status_str)
-        local response = pcall(_r.decode, status_str)
+        local status_str = string.sub(buffer, 1, i - 1)
+        buffer = string.sub(buffer, i + 1)
+        local error, response = pcall(_r.decode, status_str)
         if response == nil then
-          return nil, status_str
+          return status_str, error
         end
         break
       end
@@ -120,14 +117,13 @@ function m.init(_r)
         return buffer, err
       end
       buffer = buffer .. buf
-      local i = buf:find('\0')
+      local i, _ = string.find(buf, '\0')
       if i then
-        local status_str = buffer:sub(1, i - 1)
-        buffer = buffer:sub(i + 1)
-        print(status_str)
-        local response = pcall(_r.decode, status_str)
+        local status_str = string.sub(buffer, 1, i - 1)
+        buffer = string.sub(buffer, i + 1)
+        local error, response = pcall(_r.decode, status_str)
         if response == nil then
-          return buffer, status_str
+          return status_str, error
         end
         if not response.success then
           if 10 <= response.error_code and response.error_code <= 20 then
@@ -137,10 +133,10 @@ function m.init(_r)
         end
         server_first_message = response.authentication
         local response_authentication = server_first_message .. ','
-        for k, v in response_authentication:gmatch('([rsi])=(.-),') do
+        for k, v in string.gmatch(response_authentication, '([rsi])=(.-),') do
           authentication[k] = v
         end
-        if authentication.r:sub(1, #nonce) ~= nonce then
+        if string.sub(authentication.r, 1, #nonce) ~= nonce then
           return buffer, 'Invalid nonce'
         end
         break
@@ -202,14 +198,13 @@ function m.init(_r)
         return buffer, err
       end
       buffer = buffer .. buf
-      local i = buf:find('\0')
+      local i, _ = string.find(buf, '\0')
       if i then
-        local status_str = buffer:sub(1, i - 1)
-        buffer = buffer:sub(i + 1)
-        print(status_str)
-        local response = pcall(_r.decode, status_str)
+        local status_str = string.sub(buffer, 1, i - 1)
+        buffer = string.sub(buffer, i + 1)
+        local error, response = pcall(_r.decode, status_str)
         if response == nil then
-          return buffer, status_str
+          return status_str, error
         end
         if not response.success then
           if 10 <= response.error_code and response.error_code <= 20 then

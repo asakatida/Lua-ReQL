@@ -56,9 +56,11 @@ function m.init(_r)
       __name = 'ConnInstance',
       open = raw_socket.isOpen,
       use = function(_db)
-        db = _db
+        db = _r(_db).db().build()
       end
     }
+
+    instance.use(db)
 
     local function get_response(reqest_token)
       local response_length = 0
@@ -79,7 +81,7 @@ function m.init(_r)
         end
         buffer = buffer .. buf
         if response_length > 0 then
-          if #(buffer) >= response_length then
+          if #buffer >= response_length then
             local response_buffer = string.sub(buffer, 1, response_length)
             buffer = string.sub(buffer, response_length + 1)
             response_length = 0
@@ -88,10 +90,10 @@ function m.init(_r)
             if token == reqest_token then return end
           end
         else
-          if #(buffer) >= 12 then
-            token = bytes_to_int(buffer:sub(1, 8))
-            response_length = bytes_to_int(buffer:sub(9, 12))
-            buffer = buffer:sub(13)
+          if #buffer >= 12 then
+            token = bytes_to_int(string.sub(buffer, 1, 8))
+            response_length = bytes_to_int(string.sub(buffer, 9, 12))
+            buffer = string.sub(buffer, 13)
           end
         end
       end
@@ -136,13 +138,13 @@ function m.init(_r)
       local global_opts = {}
 
       for k, v in pairs(opts) do
-        global_opts[k] = _r(v):build()
+        global_opts[k] = _r(v).build()
       end
 
       if opts.db then
-        global_opts.db = opts.db:db():build()
+        global_opts.db = opts.db.db().build()
       elseif db then
-        global_opts.db = _r(db):db():build()
+        global_opts.db = db
       end
 
       if type(callback) ~= 'function' then
@@ -150,7 +152,7 @@ function m.init(_r)
       end
 
       -- Construct query
-      local query = {proto.Query.START, term:build(), global_opts}
+      local query = {proto.Query.START, term.build(), global_opts}
 
       local _, err = write_socket(token, query)
 

@@ -148,7 +148,7 @@ function r.proto_V0_3(raw_socket, auth_key)
       return nil, err
     end
     buffer = buffer .. buf
-    local i, _ = buf:find('\0')
+    local i, _ = string.find(buf, '\0')
     if i then
       if buffer == 'SUCCESS' then
         -- We're good, finish setting up the connection
@@ -178,7 +178,7 @@ function r.proto_V0_4(raw_socket, auth_key)
       return nil, err
     end
     buffer = buffer .. buf
-    local i, _ = buf:find('\0')
+    local i, _ = string.find(buf, '\0')
     if i then
       if buffer == 'SUCCESS' then
         -- We're good, finish setting up the connection

@@ -14,7 +14,7 @@ local function compose_term(term)
   for key, arg in pairs(term.optargs) do
     optargs[key] = compose_term(arg)
   end
-  return term:compose(args, optargs)
+  return term.compose(args, optargs)
 end
 
 local function compose_carrots(term, frames)
@@ -36,9 +36,9 @@ local function compose_carrots(term, frames)
     end
   end
   if frame then
-    return term:compose(args, optargs)
+    return term.compose(args, optargs)
   end
-  return carrotify(term:compose(args, optargs))
+  return carrotify(term.compose(args, optargs))
 end
 
 local function join_tree(tree)
@@ -46,7 +46,7 @@ local function join_tree(tree)
   for _, term in ipairs(tree) do
     if type(term) == 'table' then
       if #term == 2 and term[1] == carrot_marker then
-        str = str .. join_tree(term[2]):gsub('.', '^')
+        str = str .. string.gsub(join_tree(term[2]), '.', '^')
       else
         str = str .. join_tree(term)
       end
@@ -64,14 +64,14 @@ local function print_query(term, frames)
   else
     carrots = {carrotify(compose_term(term))}
   end
-  carrots = join_tree(carrots):gsub('[^%^]', '')
+  carrots = string.gsub(join_tree(carrots), '[^%^]', '')
   return join_tree(compose_term(term)) .. '\n' .. carrots
 end
 
 local function new_error_type(name, parent)
-  local inst = {__name = name}
-
   return function(msg, term, frames)
+    local inst = {__name = name}
+
     function inst.message()
       local _message = name .. ' ' .. msg
       if term then

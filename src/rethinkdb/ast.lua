@@ -106,8 +106,12 @@ function m.init(_r)
     if tt == nil then
       return nil
     end
+
     return function(...)
+      local __optargs, args = (arg_wrappers[st] or no_opts)(...)
+
       local term = setmetatable({__name = 'ReQLOp', tt = tt, st = st}, meta_table)
+
       function term.build()
         if st == 'binary' and (not term.args[1]) then
           return {
@@ -118,24 +122,25 @@ function m.init(_r)
         if st == 'make_obj' then
           local res = {}
           for key, val in pairs(term.optargs) do
-            res[key] = val:build()
+            res[key] = val.build()
           end
           return res
         end
-        local args = {}
+        local _args = {}
         for i, arg in ipairs(term.args) do
-          args[i] = arg:build()
+          _args[i] = arg.build()
         end
-        local res = {tt, args}
+        local res = {tt, _args}
         if next(term.optargs) then
           local opts = {}
           for key, val in pairs(term.optargs) do
-            opts[key] = val:build()
+            opts[key] = val.build()
           end
           table.insert(res, opts)
         end
         return res
       end
+
       function term.run(connection, options, callback)
         -- Valid syntaxes are
         -- connection
@@ -167,7 +172,7 @@ function m.init(_r)
         return connection._start(term, callback, options or {})
       end
 
-      function term.compose(args, _optargs)
+      function term.compose(_args, _optargs)
         local intsp = function(seq)
           local res = {}
           local sep = ''
@@ -180,7 +185,7 @@ function m.init(_r)
         if st == 'make_array' then
           return {
             '{',
-            intsp(args),
+            intsp(_args),
             '}'
           }
         end
@@ -188,7 +193,7 @@ function m.init(_r)
           local res = {'{'}
           local sep = ''
           for k, v in pairs(optargs) do
-            table.insert(res, {sep, k, ': ', v})
+            table.insert(res, {sep, k, ' = ', v})
             sep = ', '
           end
           table.insert(res, '}')
@@ -198,13 +203,13 @@ function m.init(_r)
           return kved(_optargs)
         end
         if st == 'var' then
-          return {'var_' .. args[1]}
+          return {'var_' .. _args[1]}
         end
         if st == 'binary' and not term.args[1] then
           return 'r.binary(<data>)'
         end
         if st == 'bracket' then
-          return {args[1], '(', args[2], ')'}
+          return {_args[1], '(', _args[2], ')'}
         end
         if st == 'func' then
           return {
@@ -216,21 +221,21 @@ function m.init(_r)
               end
               return _accum_0
             end)()),
-            ') return ', args[2], ' end'
+            ') return ', _args[2], ' end'
           }
         end
         if st == 'do_' then
-          local func = table.remove(args, 1)
+          local func = table.remove(_args, 1)
           if func then
-            table.insert(args, func)
+            table.insert(_args, func)
           end
         end
         if not term.args then
           return {'r.' .. st .. '()'}
         end
         local argrepr = {}
-        if args and next(args) then
-          table.insert(argrepr, intsp(args))
+        if _args and next(_args) then
+          table.insert(argrepr, intsp(_args))
         end
         if _optargs and next(_optargs) then
           if next(argrepr) then
@@ -240,8 +245,6 @@ function m.init(_r)
         end
         return {'r.' .. st .. '(', argrepr, ')'}
       end
-
-      local __optargs, args = (arg_wrappers[st] or no_opts)(...)
 
       if st == 'func' then
         local func = args[1]
