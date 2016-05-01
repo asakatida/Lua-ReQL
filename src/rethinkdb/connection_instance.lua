@@ -60,7 +60,7 @@ function m.init(_r)
       end
     }
 
-    instance.use(db)
+    if db then instance.use(db) end
 
     local function get_response(reqest_token)
       local response_length = 0
