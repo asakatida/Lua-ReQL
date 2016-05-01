@@ -31,7 +31,7 @@ before_script:
   - ./usr/bin/rethinkdb --daemon
 
 script:
-  - busted -c spec
+  - busted
 
 after_success:
   - luacov
