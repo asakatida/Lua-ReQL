@@ -52,7 +52,7 @@ function m.init(_r)
       end
     end
 
-    local instance = {
+    local inst = {
       __name = 'ConnInstance',
       open = raw_socket.isOpen,
       use = function(_db)
@@ -60,7 +60,7 @@ function m.init(_r)
       end
     }
 
-    if db then instance.use(db) end
+    if db then inst.use(db) end
 
     local function get_response(reqest_token)
       local response_length = 0
@@ -69,7 +69,7 @@ function m.init(_r)
       while true do
         local buf, err = raw_socket.recv()
         if err then
-          instance.close({noreply_wait = false})
+          inst.close({noreply_wait = false})
           return process_response(
             {
               t = proto.Response.CLIENT_ERROR,
@@ -113,7 +113,7 @@ function m.init(_r)
       return cursor
     end
 
-    function instance._start(term, callback, opts)
+    function inst._start(term, callback, opts)
       local cb = function(err, cur)
         local res
         if type(callback) == 'function' then
@@ -126,7 +126,7 @@ function m.init(_r)
         cur.close()
         return res
       end
-      if not instance.open() then
+      if not inst.open() then
         return cb(errors.ReQLDriverError('Connection is closed.'))
       end
 
@@ -157,7 +157,7 @@ function m.init(_r)
       local _, err = write_socket(token, query)
 
       if err then
-        instance.close({noreply_wait = false}, function(_err)
+        inst.close({noreply_wait = false}, function(_err)
           return cb(_err or errors.ReQLDriverError('Connection is closed.'))
         end)
       end
@@ -165,7 +165,7 @@ function m.init(_r)
       return cb(nil, make_cursor(token, opts, term))
     end
 
-    function instance.close(opts_or_callback, callback)
+    function inst.close(opts_or_callback, callback)
       local opts = {}
       if callback then
         if type(opts_or_callback) ~= 'table' then
@@ -186,7 +186,7 @@ function m.init(_r)
         return nil, err
       end
 
-      local noreply_wait = (opts.noreply_wait ~= false) and instance.open()
+      local noreply_wait = (opts.noreply_wait ~= false) and inst.open()
 
       if noreply_wait then
         return noreply_wait(cb)
@@ -194,8 +194,8 @@ function m.init(_r)
       return cb()
     end
 
-    function instance.connect(callback)
-      return instance.close({noreply_wait = false}, function()
+    function inst.connect(callback)
+      return inst.close({noreply_wait = false}, function()
         raw_socket.open()
 
         local err
@@ -205,15 +205,15 @@ function m.init(_r)
         err = errors.ReQLDriverError('Could not connect to ' .. host .. ':' .. port .. '.\n' .. err)
 
         if callback then
-          local res = callback(err, instance)
-          instance.close({noreply_wait = false})
+          local res = callback(err, inst)
+          inst.close({noreply_wait = false})
           return res
         end
-        return instance, err
+        return inst, err
       end)
     end
 
-    function instance.noreply_wait(callback)
+    function inst.noreply_wait(callback)
       local cb = function(_err, _cur)
         if _cur then
           return _cur.next(function(err)
@@ -222,7 +222,7 @@ function m.init(_r)
         end
         return callback(_err)
       end
-      if not instance.open() then
+      if not inst.open() then
         return cb(errors.ReQLDriverError('Connection is closed.'))
       end
 
@@ -238,20 +238,20 @@ function m.init(_r)
       return cb(nil, cursor)
     end
 
-    function instance.reconnect(opts_or_callback, callback)
+    function inst.reconnect(opts_or_callback, callback)
       local opts = {}
       if callback or not type(opts_or_callback) == 'function' then
         opts = opts_or_callback
       else
         callback = opts_or_callback
       end
-      return instance.close(opts, function()
-        return instance.connect(callback)
+      return inst.close(opts, function()
+        return inst.connect(callback)
       end)
     end
 
-    function instance.server()
-      if not instance.open() then
+    function inst.server()
+      if not inst.open() then
         return nil, errors.ReQLDriverError('Connection is closed.')
       end
 
@@ -270,7 +270,7 @@ function m.init(_r)
       end)
     end
 
-    return instance
+    return inst
   end
 end
 

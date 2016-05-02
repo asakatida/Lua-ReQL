@@ -110,30 +110,30 @@ function m.init(_r)
     return function(...)
       local __optargs, args = (arg_wrappers[st] or no_opts)(...)
 
-      local term = setmetatable({__name = 'ReQLOp', tt = tt, st = st}, meta_table)
+      local inst = setmetatable({__name = 'ReQLOp', tt = tt, st = st}, meta_table)
 
-      function term.build()
-        if st == 'binary' and (not term.args[1]) then
+      function inst.build()
+        if st == 'binary' and (not inst.args[1]) then
           return {
             ['$reql_type$'] = 'BINARY',
-            data = term.base64_data
+            data = inst.base64_data
           }
         end
         if st == 'make_obj' then
           local res = {}
-          for key, val in pairs(term.optargs) do
+          for key, val in pairs(inst.optargs) do
             res[key] = val.build()
           end
           return res
         end
         local _args = {}
-        for i, arg in ipairs(term.args) do
+        for i, arg in ipairs(inst.args) do
           _args[i] = arg.build()
         end
         local res = {tt, _args}
-        if next(term.optargs) then
+        if next(inst.optargs) then
           local opts = {}
-          for key, val in pairs(term.optargs) do
+          for key, val in pairs(inst.optargs) do
             opts[key] = val.build()
           end
           table.insert(res, opts)
@@ -141,7 +141,7 @@ function m.init(_r)
         return res
       end
 
-      function term.run(connection, options, callback)
+      function inst.run(connection, options, callback)
         -- Valid syntaxes are
         -- connection
         -- connection, callback
@@ -169,10 +169,10 @@ function m.init(_r)
           end
         end
 
-        return connection._start(term, callback, options or {})
+        return connection._start(inst, callback, options or {})
       end
 
-      function term.compose(_args, _optargs)
+      function inst.compose(_args, _optargs)
         local intsp = function(seq)
           local res = {}
           local sep = ''
@@ -205,7 +205,7 @@ function m.init(_r)
         if st == 'var' then
           return {'var_' .. _args[1]}
         end
-        if st == 'binary' and not term.args[1] then
+        if st == 'binary' and not inst.args[1] then
           return 'r.binary(<data>)'
         end
         if st == 'bracket' then
@@ -216,7 +216,7 @@ function m.init(_r)
             'function(',
             intsp((function()
               local _accum_0 = {}
-              for i, v in ipairs(term.args[1]) do
+              for i, v in ipairs(inst.args[1]) do
                 _accum_0[i] = 'var_' .. v
               end
               return _accum_0
@@ -230,7 +230,7 @@ function m.init(_r)
             table.insert(_args, func)
           end
         end
-        if not term.args then
+        if not inst.args then
           return {'r.' .. st .. '()'}
         end
         local argrepr = {}
@@ -270,7 +270,7 @@ function m.init(_r)
       elseif st == 'binary' then
         local data = args[1]
         if type(data) == 'string' then
-          term.base64_data = _r.b64(table.remove(args, 1))
+          inst.base64_data = _r.b64(table.remove(args, 1))
         elseif getmetatable(data) ~= meta_table then
           return error('Parameter to `r.binary` must be a string or ReQL query.')
         end
@@ -283,13 +283,13 @@ function m.init(_r)
       elseif st == 'reduce' then
         args[#args] = _r.func({arity = 2}, args[#args])
       end
-      term.args = {cls}
-      term.optargs = {}
+      inst.args = {cls}
+      inst.optargs = {}
       for _, a in ipairs(args) do
-        table.insert(term.args, _r(a))
+        table.insert(inst.args, _r(a))
       end
       for k, v in pairs(__optargs) do
-        term.optargs[k] = _r(v)
+        inst.optargs[k] = _r(v)
       end
     end
   end
