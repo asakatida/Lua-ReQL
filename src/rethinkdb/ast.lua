@@ -76,7 +76,7 @@ function m.init(_r)
   local function datum(val)
     if type(val) == 'number' then
       if math.abs(val) == math.huge or val ~= val then
-        return error('Illegal non-finite number `' .. val .. '`.')
+        return _r.logger('Illegal non-finite number `' .. val .. '`.')
       end
     end
     return setmetatable({
@@ -151,7 +151,7 @@ function m.init(_r)
         -- Handle run(connection, callback)
         if type(options) == 'function' then
           if callback ~= nil then
-            return error('Second argument to `run` cannot be a function if a third argument is provided.')
+            return _r.logger('Second argument to `run` cannot be a function if a third argument is provided.')
           end
           callback = options
           options = {}
@@ -165,7 +165,7 @@ function m.init(_r)
             if callback then
               return callback(errors.ReQLDriverError('First argument to `run` must be a connection.'))
             end
-            return error('First argument to `run` must be a connection.')
+            return _r.logger('First argument to `run` must be a connection.')
           end
         end
 
@@ -263,7 +263,7 @@ function m.init(_r)
         end
         func = func(unpack(anon_args))
         if func == nil then
-          return error('Anonymous function returned `nil`. Did you forget a `return`?')
+          return _r.logger('Anonymous function returned `nil`. Did you forget a `return`?')
         end
         __optargs.arity = nil
         args = {arg_nums, func}
@@ -272,7 +272,7 @@ function m.init(_r)
         if type(data) == 'string' then
           inst.base64_data = _r.b64(table.remove(args, 1))
         elseif getmetatable(data) ~= meta_table then
-          return error('Parameter to `r.binary` must be a string or ReQL query.')
+          return _r.logger('Parameter to `r.binary` must be a string or ReQL query.')
         end
       elseif st == 'funcall' then
         local func = table.remove(args)
@@ -326,7 +326,7 @@ function m.init(_r)
       return _r.logger('Second argument to `r(val, nesting_depth)` must be a number.')
     end
     if nesting_depth <= 0 then
-      return _r.logger('Nesting depth limit exceeded')
+      return _r.logger('Nesting depth limit exceeded', val)
     end
     if getmetatable(val) == meta_table then
       return val
@@ -347,13 +347,11 @@ function m.init(_r)
     end
     if type(val) == 'userdata' then
       val = pcall(tostring, val)
-      _r.logger('Found userdata inserting "' .. val .. '" into query')
-      return _r.datum(val)
+      return _r.logger('Found userdata inserting "' .. val .. '" into query', val)
     end
     if type(val) == 'thread' then
       val = pcall(tostring, val)
-      _r.logger('Cannot insert thread object into query ' .. val)
-      return nil
+      return _r.logger('Cannot insert thread object into query ' .. val, val)
     end
     return _r.datum(val)
   end

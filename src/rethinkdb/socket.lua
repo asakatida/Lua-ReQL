@@ -27,7 +27,7 @@ function m.init(_r)
         local status, err = socket:connect(host, port)
 
         if not status then
-          _r.logger(err)
+          return _r.logger(err)
         end
 
         if ssl_params then
@@ -40,7 +40,7 @@ function m.init(_r)
             elseif err == 'wantwrite' then
               _r.select(nil, {socket})
             else
-              _r.logger(err)
+              return _r.logger(err)
             end
           end
 
@@ -55,7 +55,7 @@ function m.init(_r)
         elseif err == 'wantwrite' then
           _r.select(nil, {raw_socket})
         else
-          _r.logger(err)
+          return _r.logger(err)
         end
         return buf or partial
       end,

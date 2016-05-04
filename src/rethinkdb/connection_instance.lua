@@ -120,7 +120,7 @@ function m.init(_r)
           res = callback(err, cur)
         else
           if err then
-            return _r.logger(err.message)
+            return _r.logger(err.message())
           end
         end
         cur.close()
@@ -169,7 +169,7 @@ function m.init(_r)
       local opts = {}
       if callback then
         if type(opts_or_callback) ~= 'table' then
-          return error('First argument to two-argument `close` must be a table.')
+          return _r.logger('First argument to two-argument `close` must be a table.')
         end
         opts = opts_or_callback
       elseif type(opts_or_callback) == 'table' then
