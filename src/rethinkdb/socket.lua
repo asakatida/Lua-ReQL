@@ -4,6 +4,42 @@ function m.init(_r)
   return function(host, port, ssl_params, timeout)
     local raw_socket
 
+    local function suppress_read_error(socket, err)
+      if err == 'closed' then
+        raw_socket = nil
+      elseif err == 'timeout' or err == 'wantread' then
+        local recvt, _, sel_err = _r.select({socket}, nil, timeout)
+        if sel_err == 'timeout' or not recvt[socket] then
+          return err
+        end
+      elseif err == 'wantwrite' then
+        local _, sendt, sel_err = _r.select(nil, {socket}, timeout)
+        if sel_err == 'timeout' or not sendt[socket] then
+          return err
+        end
+      else
+        return err
+      end
+    end
+
+    local function suppress_write_error(socket, err)
+      if err == 'closed' then
+        raw_socket = nil
+      elseif err == 'wantread' then
+        local recvt, _, sel_err = _r.select({socket}, nil, timeout)
+        if sel_err == 'timeout' or not recvt[socket] then
+          return err
+        end
+      elseif err == 'timeout' or err == 'wantwrite' then
+        local _, sendt, sel_err = _r.select(nil, {socket}, timeout)
+        if sel_err == 'timeout' or not sendt[socket] then
+          return err
+        end
+      else
+        return err
+      end
+    end
+
     local inst = {
       __name = 'Socket',
       close = function()
@@ -22,12 +58,12 @@ function m.init(_r)
       end,
       open = function()
         local socket = _r.socket()
-        socket:settimeout(timeout)
+        socket:settimeout(0)
 
         local status, err = socket:connect(host, port)
 
-        if not status then
-          return _r.logger(err)
+        if not status and suppress_write_error(socket, err) then
+          return nil, _r.logger(err)
         end
 
         if ssl_params then
@@ -35,12 +71,8 @@ function m.init(_r)
           status = false
           while not status do
             status, err = socket:dohandshake()
-            if err == 'timeout' or err == "'wantread'" then
-              _r.select({socket}, nil)
-            elseif err == 'wantwrite' then
-              _r.select(nil, {socket})
-            else
-              return _r.logger(err)
+            if suppress_read_error(socket, err) then
+              return nil, _r.logger(err)
             end
           end
 
@@ -49,19 +81,26 @@ function m.init(_r)
       end,
       recv = function()
         if not raw_socket then return nil, 'closed' end
-        local buf, err, partial = raw_socket:receive()
-        if err == 'timeout' or err == "'wantread'" then
-          _r.select({raw_socket}, nil)
-        elseif err == 'wantwrite' then
-          _r.select(nil, {raw_socket})
-        else
-          return _r.logger(err)
+        local buf, err, partial = raw_socket:receive('*a')
+        if buf then
+          return buf
         end
-        return buf or partial
+        if suppress_read_error(raw_socket, err) then
+          return nil, _r.logger(err)
+        end
+        return partial or ''
       end,
       send = function(...)
         if not raw_socket then return nil, 'closed' end
-        return raw_socket:send(table.concat({...}))
+        local data = table.concat{...}
+        local idx, err, err_idx = raw_socket:send(data)
+        if idx == #data then
+          return idx
+        end
+        if suppress_write_error(raw_socket, err) then
+          return nil, _r.logger(err)
+        end
+        return err_idx
       end
     }
 
