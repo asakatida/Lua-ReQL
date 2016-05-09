@@ -3,7 +3,7 @@
 Rethinkdb driver in Lua
 
 ## Installing
-- luarocks install lua-reql
+- `luarocks install lua-reql`
 
 ## Dev Dependencies
 - Lua >= 5.1
@@ -14,9 +14,9 @@ Rethinkdb driver in Lua
 - RethinkDB
 
 ## Testing
-- luacheck .
-- busted -c
-- luacov
+- `luacheck .`
+- `busted -c`
+- `luacov`
 
 ## Installing from source
-- luarocks make
+- `luarocks make`
