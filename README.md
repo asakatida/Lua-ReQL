@@ -9,13 +9,14 @@ Rethinkdb driver in Lua
 - Lua >= 5.1
 - Luarocks
   - busted
-  - luajson
-  - luasec
-  - luasocket
+  - luacheck
+  - luacov
 - RethinkDB
 
 ## Testing
-- busted
+- luacheck .
+- busted -c
+- luacov
 
 ## Installing from source
 - luarocks make
