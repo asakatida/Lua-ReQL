@@ -61,11 +61,19 @@ function m.init(_r)
       return false
     end
 
+    local function use(db)
+      for i=1, size do
+        local conn = pool[i]
+        if conn then conn.use(db) end
+      end
+    end
+
     local inst = {
       __name = 'Pool',
       _start = _start,
       close = close,
-      open = open
+      open = open,
+      use = use
     }
 
     local cb = function(err)

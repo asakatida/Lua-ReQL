@@ -29,10 +29,10 @@ build = {
     ['rethinkdb.cursor'] = 'src/rethinkdb/cursor.lua',
     ['rethinkdb.errors'] = 'src/rethinkdb/errors.lua',
     ['rethinkdb.int_to_bytes'] = 'src/rethinkdb/int_to_bytes.lua',
-    ['rethinkdb.is_instance'] = 'src/rethinkdb/is_instance.lua',
     ['rethinkdb.pool'] = 'src/rethinkdb/pool.lua',
     ['rethinkdb.protodef'] = 'src/rethinkdb/protodef.lua',
     ['rethinkdb.socket'] = 'src/rethinkdb/socket.lua',
+    ['rethinkdb.type'] = 'src/rethinkdb/type.lua',
     ['rethinkdb.unpack'] = 'src/rethinkdb/unpack.lua',
     rethinkdb = 'src/rethinkdb.lua'
   }
