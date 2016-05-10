@@ -8,7 +8,7 @@ local _r = {
 -- r is both the main export table for the module
 -- and a function that wraps a native Lua value in a ReQL datum
 local r = {
-  is_instance = require'rethinkdb.is_instance',
+  type = require'rethinkdb.type',
   version = v'1.0.0'
 }
 
