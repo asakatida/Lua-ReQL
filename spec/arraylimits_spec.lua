@@ -15,7 +15,7 @@ describe('array limits', function()
     local err
 
     c, err = r.connect()
-    if err then error(err.message) end
+    if err then error(err.message()) end
 
     r.db_create(reql_db).run(c)
     c.use(reql_db)
@@ -30,9 +30,9 @@ describe('array limits', function()
     it(name, function()
       assert.same(res, query.run(
         c, {array_limit = limit}, function(_err, cur)
-          if _err then error(_err.message) end
+          if _err then error(_err.message()) end
           return cur.to_array(function(err, arr)
-            if err then error(err.message) end
+            if err then error(err.message()) end
             return arr
           end)
         end
@@ -46,7 +46,7 @@ describe('array limits', function()
         function()
           query.run(
             c, {array_limit = limit}, function(_err, cur)
-              if _err then error(_err.message) end
+              if _err then error(_err.message()) end
               cur.to_array(function(err, arr)
                 if err then error(err.msg) end
                 error(arr)
@@ -65,9 +65,9 @@ describe('array limits', function()
   it('huge read', function()
     r.table(reql_table).insert({id = 0, array = huge_l.append(1)}).run(
       c, {array_limit = 100001}, function(_err, cur)
-        if _err then error(_err.message) end
+        if _err then error(_err.message()) end
         return cur.to_array(function(err, arr)
-          if err then error(err.message) end
+          if err then error(err.message()) end
           return arr
         end)
       end
@@ -75,9 +75,9 @@ describe('array limits', function()
     assert.same(
       r.table(reql_table).get(0).run(
         c, {array_limit = 100001}, function(_err, cur)
-          if _err then error(_err.message) end
+          if _err then error(_err.message()) end
           return cur.to_array(function(err, arr)
-            if err then error(err.message) end
+            if err then error(err.message()) end
             return arr
           end)
         end
@@ -98,9 +98,9 @@ describe('array limits', function()
       {id = 1, array = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}}
     ).run(
       c, function(_err, cur)
-        if _err then error(_err.message) end
+        if _err then error(_err.message()) end
         return cur.to_array(function(err, arr)
-          if err then error(err.message) end
+          if err then error(err.message()) end
           return arr
         end)
       end
@@ -108,9 +108,9 @@ describe('array limits', function()
     assert.same(
       r.table(reql_table).get(1).run(
         c, {array_limit = 4}, function(_err, cur)
-          if _err then error(_err.message) end
+          if _err then error(_err.message()) end
           return cur.to_array(function(err, arr)
-            if err then error(err.message) end
+            if err then error(err.message()) end
             return arr
           end)
         end

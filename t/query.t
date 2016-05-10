@@ -29,7 +29,7 @@ __DATA__
   
         r.connect(function(err, c)
           if err then 
-            error(err.message)
+            error(err.message())
           end
           
           assert(c, 'Connection failed')
@@ -48,17 +48,17 @@ __DATA__
             -- insert doc
             r.table(reql_table):insert(document):run(c, function(err)
               if err then 
-                error(err.message)
+                error(err.message())
               end
               
               r.table(reql_table):run(c, function(err, cur)
                 if err then 
-                  error(err.message)
+                  error(err.message())
                 end
 
                 cur:to_array(function(err, arr)
                   if err then 
-                    error(err.message)
+                    error(err.message())
                   end
 
                   assert(#arr == 1, 'Wrong array length')

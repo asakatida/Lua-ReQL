@@ -22,7 +22,7 @@ __DATA__
   
         r.connect(function(err, c)
           if err then
-            error(err.message)
+            error(err.message())
           end
           
           assert(c)

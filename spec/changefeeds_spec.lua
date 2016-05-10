@@ -10,7 +10,7 @@ describe('change feeds', function()
     local err
 
     c, err = r.connect()
-    if err then error(err.message) end
+    if err then error(err.message()) end
 
     r.db_create(reql_db).run(c)
     c.use(reql_db)
@@ -31,17 +31,17 @@ describe('change feeds', function()
   it('all', function()
     local res = r.table(reql_table).changes().limit(4).run(
       c, function(_err, cur)
-        if _err then error(_err.message) end
+        if _err then error(_err.message()) end
         r.table(reql_table).insert(
           {{id = 7}, {id = 8}, {id = 9}, {id = 10}}
         ).run(c, function(err)
-          if err then error(err.message) end
+          if err then error(err.message()) end
         end)
         local res = {}
         cur.each(function(row)
           table.insert(res, row.new_val.id)
         end, function(err)
-          if err then error(err.message) end
+          if err then error(err.message()) end
         end)
         return res
       end
@@ -57,17 +57,17 @@ describe('change feeds', function()
       end
     ).limit(2).run(
       c, function(_err, cur)
-        if _err then error(_err.message) end
+        if _err then error(_err.message()) end
         r.table(reql_table).insert(
           {{id = 7}, {id = 8}, {id = 9}, {id = 10}}
         ).run(c, function(err)
-          if err then error(err.message) end
+          if err then error(err.message()) end
         end)
         local res = {}
         cur.each(function(row)
           table.insert(res, row.new_val.id)
         end, function(err)
-          if err then error(err.message) end
+          if err then error(err.message()) end
         end)
         return res
       end
