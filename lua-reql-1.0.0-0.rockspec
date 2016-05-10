@@ -2,7 +2,7 @@ package = 'Lua-ReQL'
 version = '1.0.0-0'
 source = {
   url = 'git://github.com/grandquista/Lua-ReQL',
-  tag = 'v1.0.0',
+  branch = 'v1.0.0',
 }
 description = {
   summary = 'A Lua driver for RethinkDB.',
