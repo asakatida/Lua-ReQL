@@ -11,7 +11,7 @@ describe('control', function()
     local err
 
     c, err = r.connect()
-    if err then error(err.message) end
+    if err then error(err.message()) end
 
     r.db_create(reql_db).run(c)
     c.use(reql_db)
@@ -26,9 +26,9 @@ describe('control', function()
     it(name, function()
       assert.same(res, query.run(
         c, function(_err, cur)
-          if _err then error(_err.message) end
+          if _err then error(_err.message()) end
           return cur.to_array(function(err, arr)
-            if err then error(err.message) end
+            if err then error(err.message()) end
             return arr
           end)
         end
@@ -42,7 +42,7 @@ describe('control', function()
         function()
           query.run(
             c, function(_err, cur)
-              if _err then error(_err.message) end
+              if _err then error(_err.message()) end
               cur.to_array(function(err, arr)
                 if err then error(err.msg) end
                 error(arr)
@@ -127,18 +127,18 @@ describe('control', function()
   it('count for each insert', function()
     r.for_each({1, 2, 3}, function(row) return r.table(reql_table).insert({id = row}) end).run(
       c, function(_err, cur)
-        if _err then error(_err.message) end
+        if _err then error(_err.message()) end
         return cur.to_array(function(err, arr)
-          if err then error(err.message) end
+          if err then error(err.message()) end
           return arr
         end)
       end
     )
     assert.same(r.table(reql_table).count().run(
       c, function(_err, cur)
-        if _err then error(_err.message) end
+        if _err then error(_err.message()) end
         return cur.to_array(function(err, arr)
-          if err then error(err.message) end
+          if err then error(err.message()) end
           return arr
         end)
       end
@@ -148,18 +148,18 @@ describe('control', function()
   it('for each update', function()
     r.for_each({1, 2, 3}, function(row) return r.table(reql_table).insert({id = row}) end).run(
       c, function(_err, cur)
-        if _err then error(_err.message) end
+        if _err then error(_err.message()) end
         return cur.to_array(function(err, arr)
-          if err then error(err.message) end
+          if err then error(err.message()) end
           return arr
         end)
       end
     )
     assert.same(r.for_each({1, 2, 3}, function(row) return r.table(reql_table).update({foo = row}) end).run(
       c, function(_err, cur)
-        if _err then error(_err.message) end
+        if _err then error(_err.message()) end
         return cur.to_array(function(err, arr)
-          if err then error(err.message) end
+          if err then error(err.message()) end
           return arr
         end)
       end
@@ -169,27 +169,27 @@ describe('control', function()
   it('for each insert with duplicates', function()
     r.for_each({1, 2, 3}, function(row) return r.table(reql_table).insert({id = row}) end).run(
       c, function(_err, cur)
-        if _err then error(_err.message) end
+        if _err then error(_err.message()) end
         return cur.to_array(function(err, arr)
-          if err then error(err.message) end
+          if err then error(err.message()) end
           return arr
         end)
       end
     )
     r.for_each({1, 2, 3}, function(row) return r.table(reql_table).update({foo = row}) end).run(
       c, function(_err, cur)
-        if _err then error(_err.message) end
+        if _err then error(_err.message()) end
         return cur.to_array(function(err, arr)
-          if err then error(err.message) end
+          if err then error(err.message()) end
           return arr
         end)
       end
     )
     assert.same(r.for_each({1, 2, 3}, function(row) return {r.table(reql_table).insert({id = row}), r.table(reql_table).insert({id = row * 10})} end).run(
       c, function(_err, cur)
-        if _err then error(_err.message) end
+        if _err then error(_err.message()) end
         return cur.to_array(function(err, arr)
-          if err then error(err.message) end
+          if err then error(err.message()) end
           return arr
         end)
       end
@@ -199,36 +199,36 @@ describe('control', function()
   it('for each update many', function()
     r.for_each({1, 2, 3}, function(row) return r.table(reql_table).insert({id = row}) end).run(
       c, function(_err, cur)
-        if _err then error(_err.message) end
+        if _err then error(_err.message()) end
         return cur.to_array(function(err, arr)
-          if err then error(err.message) end
+          if err then error(err.message()) end
           return arr
         end)
       end
     )
     r.for_each({1, 2, 3}, function(row) return r.table(reql_table).update({foo = row}) end).run(
       c, function(_err, cur)
-        if _err then error(_err.message) end
+        if _err then error(_err.message()) end
         return cur.to_array(function(err, arr)
-          if err then error(err.message) end
+          if err then error(err.message()) end
           return arr
         end)
       end
     )
     r.for_each({1, 2, 3}, function(row) return {r.table(reql_table).insert({id = row}), r.table(reql_table).insert({id = row * 10})} end).run(
       c, function(_err, cur)
-        if _err then error(_err.message) end
+        if _err then error(_err.message()) end
         return cur.to_array(function(err, arr)
-          if err then error(err.message) end
+          if err then error(err.message()) end
           return arr
         end)
       end
     )
     assert.same(r.for_each({1, 2, 3}, function(row) return {r.table(reql_table).update({foo = row}), r.table(reql_table).update({bar = row})} end).run(
       c, function(_err, cur)
-        if _err then error(_err.message) end
+        if _err then error(_err.message()) end
         return cur.to_array(function(err, arr)
-          if err then error(err.message) end
+          if err then error(err.message()) end
           return arr
         end)
       end

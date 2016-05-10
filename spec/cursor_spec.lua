@@ -10,7 +10,7 @@ describe('cursor', function()
     local err
 
     c, err = r.connect()
-    if err then error(err.message) end
+    if err then error(err.message()) end
 
     r.db_create(reql_db).run(c)
     c.use(reql_db)
@@ -41,7 +41,7 @@ describe('cursor', function()
       'Cursor',
       r.table(reql_table).run(
         c, function(err, cur)
-          if err then error(err.message) end
+          if err then error(err.message()) end
           return cur.__class.__name
         end
       )
@@ -53,9 +53,9 @@ describe('cursor', function()
       num_rows,
       r.table(reql_table).run(
         c, function(_err, cur)
-          if _err then error(_err.message) end
+          if _err then error(_err.message()) end
           return cur.to_array(function(err, arr)
-            if err then error(err.message) end
+            if err then error(err.message()) end
             return #arr
           end)
         end
@@ -67,8 +67,8 @@ describe('cursor', function()
     assert.has_no.errors(function()
       r.table(reql_table).run(
         c, function(_err, cur)
-          if _err then error(_err.message) end
-          cur.close(function(err) if err then error(err.message) end end)
+          if _err then error(_err.message()) end
+          cur.close(function(err) if err then error(err.message()) end end)
         end
       )
     end)

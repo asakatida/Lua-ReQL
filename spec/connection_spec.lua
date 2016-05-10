@@ -3,7 +3,7 @@ local r = require('rethinkdb')
 describe('connection', function()
   it('basic', function()
     r.connect(function(err, c)
-      if err then error(err.message) end
+      if err then error(err.message()) end
       assert.are_not.equal(c, nil)
     end)
   end)
@@ -18,7 +18,7 @@ describe('connection', function()
 
   it('basic_pool', function()
     r.pool({}, function(err, p)
-      if err then error(err.message) end
+      if err then error(err.message()) end
       assert.are_not.equal(p, nil)
     end)
   end)
@@ -28,7 +28,7 @@ describe('connection', function()
     local reql_table = 'tests'
 
     local c, _err = r.connect()
-    if _err then error(_err.message) end
+    if _err then error(_err.message()) end
 
     r.db_create(reql_db).run(c)
     c.use(reql_db)
@@ -44,7 +44,7 @@ describe('connection', function()
     )
 
     c.reconnect(function(err, conn)
-      if err then error(err.message) end
+      if err then error(err.message()) end
       r.table(reql_table).delete().run(conn)
     end)
   end)

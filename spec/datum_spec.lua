@@ -11,7 +11,7 @@ describe('datum', function()
     local err
 
     c, err = r.connect()
-    if err then error(err.message) end
+    if err then error(err.message()) end
 
     r.db_create(reql_db).run(c)
     c.use(reql_db)
@@ -26,9 +26,9 @@ describe('datum', function()
     it(name, function()
       assert.same(res, query.run(
         c, function(_err, cur)
-          if _err then error(_err.message) end
+          if _err then error(_err.message()) end
           return cur.to_array(function(err, arr)
-            if err then error(err.message) end
+            if err then error(err.message()) end
             return arr
           end)
         end
