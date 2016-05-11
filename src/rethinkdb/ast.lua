@@ -80,7 +80,6 @@ function m.init(_r)
       end
     end
     return setmetatable({
-      __name = 'ReQLOp',
       args = {},
       build = function()
         if val == nil then
@@ -110,7 +109,7 @@ function m.init(_r)
     return function(...)
       local __optargs, args = (arg_wrappers[st] or no_opts)(...)
 
-      local inst = setmetatable({__name = 'ReQLOp', tt = tt, st = st}, meta_table)
+      local inst = setmetatable({tt = tt, st = st}, meta_table)
 
       function inst.build()
         if st == 'binary' and (not inst.args[1]) then

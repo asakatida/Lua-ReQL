@@ -41,7 +41,6 @@ function m.init(_r)
     end
 
     local inst = {
-      __name = 'Socket',
       close = function()
         local socket = nil
         raw_socket, socket = socket, raw_socket

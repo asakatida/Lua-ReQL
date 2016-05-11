@@ -27,7 +27,6 @@ function m.init(_r)
     end
 
     return {
-      __name = 'Connection',
       _start = function(...)
         return connect()._start(...)
       end,
