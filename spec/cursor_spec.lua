@@ -38,11 +38,11 @@ describe('cursor', function()
 
   it('type', function()
     assert.are.equal(
-      'Cursor',
+      'cursor',
       r.table(reql_table).run(
         c, function(err, cur)
           if err then error(err.message()) end
-          return cur.__class.__name
+          return r.type(cur)
         end
       )
     )

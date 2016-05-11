@@ -53,7 +53,6 @@ function m.init(_r)
     end
 
     local inst = {
-      __name = 'ConnInstance',
       open = raw_socket.isOpen,
       use = function(_db)
         db = _r(_db).db().build()

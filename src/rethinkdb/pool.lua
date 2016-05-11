@@ -69,7 +69,6 @@ function m.init(_r)
     end
 
     local inst = {
-      __name = 'Pool',
       _start = _start,
       close = close,
       open = open,

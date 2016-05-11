@@ -38,7 +38,6 @@ return function(del_query, end_query, get_response, token, opts, root)
   end
 
   local inst = {
-    __name = 'Cursor',
     set = function(cb)
       _cb = cb
     end
