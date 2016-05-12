@@ -62,38 +62,23 @@ function m.init(_r)
     if db then inst.use(db) end
 
     local function get_response(reqest_token)
-      local response_length = 0
-      local token = 0
       -- Buffer data, execute return results if need be
       while true do
         local buf, err = raw_socket.recv()
         if err then
           inst.close({noreply_wait = false})
-          return process_response(
-            {
-              t = proto.Response.CLIENT_ERROR,
-              r = {'connection returned: ' .. err},
-              b = {}
-            },
-            reqest_token
-          )
+          return _r.logger('connection returned: ' .. err)
         end
         buffer = buffer .. buf
-        if response_length > 0 then
-          if #buffer >= response_length then
-            local response_buffer = string.sub(buffer, 1, response_length)
-            buffer = string.sub(buffer, response_length + 1)
-            response_length = 0
-            continue_query(token)
-            process_response(_r.decode(response_buffer), token)
-            if token == reqest_token then return end
-          end
-        else
-          if #buffer >= 12 then
-            token = bytes_to_int(string.sub(buffer, 1, 8))
-            response_length = bytes_to_int(string.sub(buffer, 9, 12))
-            buffer = string.sub(buffer, 13)
-          end
+        if #buffer >= 12 then
+          local token = bytes_to_int(string.sub(buffer, 1, 8))
+          local response_length = bytes_to_int(string.sub(buffer, 9, 12))
+          local query_slice = string.sub(buffer, 13)
+          local response_buffer = string.sub(query_slice, 1, response_length)
+          continue_query(token)
+          process_response(_r.decode(response_buffer), token)
+          buffer = string.sub(query_slice, response_length + 1)
+          if token == reqest_token then return end
         end
       end
     end
