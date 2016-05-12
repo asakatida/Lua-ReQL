@@ -1,1 +1,1 @@
-return unpack or table.unpack
+return _G.unpack or table.unpack
