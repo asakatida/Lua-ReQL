@@ -31,7 +31,8 @@ before_script:
   - ./usr/bin/rethinkdb --daemon
 
 script:
-  - busted
+  - busted -t sanity
+  - busted -c
 
 after_success:
   - luacov
