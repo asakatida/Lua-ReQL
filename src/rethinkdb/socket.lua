@@ -62,7 +62,7 @@ function m.init(_r)
         local status, err = socket:connect(host, port)
 
         if not status and suppress_write_error(socket, err) then
-          return nil, _r.logger(err)
+          return _r.logger(err)
         end
 
         if ssl_params then
@@ -71,7 +71,7 @@ function m.init(_r)
           while not status do
             status, err = socket:dohandshake()
             if suppress_read_error(socket, err) then
-              return nil, _r.logger(err)
+              return _r.logger(err)
             end
           end
 

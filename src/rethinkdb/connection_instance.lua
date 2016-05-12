@@ -195,20 +195,33 @@ function m.init(_r)
 
     function inst.connect(callback)
       return inst.close({noreply_wait = false}, function()
-        raw_socket.open()
+        local function error_(err)
+          err = errors.ReQLDriverError(
+            'Could not connect to ' .. host .. ':' .. port .. '.\n' .. err)
+          if callback then
+            return callback(err)
+          end
+          return nil, err
+        end
 
-        local err
+        local err = raw_socket.open()
+
+        if err then
+          return error_(err)
+        end
 
         buffer, err = proto_version(raw_socket, auth_key, user)
 
-        err = errors.ReQLDriverError('Could not connect to ' .. host .. ':' .. port .. '.\n' .. err)
+        if err then
+          return error_(err)
+        end
 
         if callback then
-          local res = callback(err, inst)
+          local res = callback(nil, inst)
           inst.close({noreply_wait = false})
           return res
         end
-        return inst, err
+        return inst
       end)
     end
 
