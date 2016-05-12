@@ -5,6 +5,8 @@ insulate('safety net', function()
       local client = assert(socket.tcp())
 
       assert(client:connect('localhost', 28015))
+
+      assert(require('rethinkdb'))
     end)
   end)
 end)
