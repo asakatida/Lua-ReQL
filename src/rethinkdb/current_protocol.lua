@@ -71,26 +71,36 @@ function m.init(_r)
 
     local buffer = ''
 
+    local function get_message()
+      local i = nil
+      while not i do
+        local buf, err = raw_socket.recv()
+        if not buf then
+          return nil, err
+        end
+        buffer = buffer .. buf
+        i = (string.find(buffer, '\0'))
+      end
+
+      local message = string.sub(buffer, 1, i - 1)
+      buffer = string.sub(buffer, i + 1)
+      local success, response, err = pcall(_r.decode, message)
+
+      if not success or type(response) ~= 'table' then
+        return nil, err
+      end
+
+      return response
+    end
+
     -- Now we have to wait for a response from the server
     -- acknowledging the connection
     -- this will be a null terminated json document on success
     -- or a null terminated error string on failure
-    while 1 do
-      local buf, err = raw_socket.recv()
-      if not buf then
-        return nil, err
-      end
-      buffer = buffer .. buf
-      local i, _ = string.find(buf, '\0')
-      if i then
-        local status_str = string.sub(buffer, 1, i - 1)
-        buffer = string.sub(buffer, i + 1)
-        local error, response = pcall(_r.decode, status_str)
-        if response == nil then
-          return status_str, error
-        end
-        break
-      end
+    local response, err = get_message()
+
+    if not response then
+      return nil, err
     end
 
     -- when protocol versions are updated this is where we send the following
@@ -111,36 +121,25 @@ function m.init(_r)
     local authentication = {}
     local server_first_message
 
-    while 1 do
-      local buf, err = raw_socket.recv()
-      if not buf then
-        return buffer, err
+    response, err = get_message()
+
+    if not response then
+      return nil, err
+    end
+
+    if not response.success then
+      if 10 <= response.error_code and response.error_code <= 20 then
+        return nil, response.error  -- TODO authentication error
       end
-      buffer = buffer .. buf
-      local i, _ = string.find(buf, '\0')
-      if i then
-        local status_str = string.sub(buffer, 1, i - 1)
-        buffer = string.sub(buffer, i + 1)
-        local error, response = pcall(_r.decode, status_str)
-        if response == nil then
-          return status_str, error
-        end
-        if not response.success then
-          if 10 <= response.error_code and response.error_code <= 20 then
-            return buffer, response.error  -- TODO authentication error
-          end
-          return buffer, response.error
-        end
-        server_first_message = response.authentication
-        local response_authentication = server_first_message .. ','
-        for k, v in string.gmatch(response_authentication, '([rsi])=(.-),') do
-          authentication[k] = v
-        end
-        if string.sub(authentication.r, 1, #nonce) ~= nonce then
-          return buffer, 'Invalid nonce'
-        end
-        break
-      end
+      return nil, response.error
+    end
+    server_first_message = response.authentication
+    local response_authentication = server_first_message .. ','
+    for k, v in string.gmatch(response_authentication, '([rsi])=(.-),') do
+      authentication[k] = v
+    end
+    if string.sub(authentication.r, 1, #nonce) ~= nonce then
+      return nil, 'Invalid nonce'
     end
 
     local client_final_message_without_proof = 'c=biws,r=' .. authentication.r
@@ -191,35 +190,24 @@ function m.init(_r)
     --   "success": <bool>,
     --   "authentication": "v=<server_signature>"
     -- }
+    response, err = get_message()
 
-    while 1 do
-      local buf, err = raw_socket.recv()
-      if not buf then
-        return buffer, err
-      end
-      buffer = buffer .. buf
-      local i, _ = string.find(buf, '\0')
-      if i then
-        local status_str = string.sub(buffer, 1, i - 1)
-        buffer = string.sub(buffer, i + 1)
-        local error, response = pcall(_r.decode, status_str)
-        if response == nil then
-          return status_str, error
-        end
-        if not response.success then
-          if 10 <= response.error_code and response.error_code <= 20 then
-            return buffer, response.error  -- TODO authentication error
-          end
-          return buffer, response.error
-        end
-
-        if not __compare_digest(response.v, server_signature) then
-          return buffer, response
-        end
-
-        return buffer
-      end
+    if not response then
+      return nil, err
     end
+
+    if not response.success then
+      if 10 <= response.error_code and response.error_code <= 20 then
+        return nil, response.error  -- TODO authentication error
+      end
+      return nil, response.error
+    end
+
+    if not __compare_digest(response.v, server_signature) then
+      return nil, response
+    end
+
+    return buffer
   end
 end
 

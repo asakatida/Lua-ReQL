@@ -150,11 +150,11 @@ function r.proto_V0_3(raw_socket, auth_key)
       return nil, err
     end
     buffer = buffer .. buf
-    local i, _ = string.find(buf, '\0')
+    local i, _ = string.find(buffer, '\0')
     if i then
       if buffer == 'SUCCESS' then
         -- We're good, finish setting up the connection
-        return raw_socket, nil
+        return ''
       end
       return nil, buffer
     end
@@ -180,11 +180,11 @@ function r.proto_V0_4(raw_socket, auth_key)
       return nil, err
     end
     buffer = buffer .. buf
-    local i, _ = string.find(buf, '\0')
+    local i, _ = string.find(buffer, '\0')
     if i then
       if buffer == 'SUCCESS' then
         -- We're good, finish setting up the connection
-        return raw_socket, nil
+        return ''
       end
       return nil, buffer
     end
