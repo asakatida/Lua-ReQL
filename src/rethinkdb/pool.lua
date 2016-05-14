@@ -79,7 +79,7 @@ return function(host, _callback)
     end]]
     if _callback then
       local res = _callback(err, inst)
-      close({noreply_wait = false})
+      close{noreply_wait = false}
       return res
     end
     return inst, err
