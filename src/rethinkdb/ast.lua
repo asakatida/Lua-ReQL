@@ -342,6 +342,10 @@ function meta_table.__call(term, ...)
   return term.bracket(...)
 end
 
+function meta_table.__len(term)
+  return term.count()
+end
+
 function meta_table.__add(term, ...)
   return term.add(...)
 end
