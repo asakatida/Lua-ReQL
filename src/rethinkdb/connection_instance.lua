@@ -53,7 +53,7 @@ return function(r, auth_key, db, host, port, proto_version, ssl_params, timeout,
   local inst = {
     open = raw_socket.isOpen,
     use = function(_db)
-      db = _r(_db).db().build()
+      db = r.db(_db).build()
     end
   }
 
@@ -120,7 +120,7 @@ return function(r, auth_key, db, host, port, proto_version, ssl_params, timeout,
     local global_opts = {}
 
     for k, v in pairs(opts) do
-      global_opts[k] = _r(v).build()
+      global_opts[k] = r(v).build()
     end
 
     if opts.db then
