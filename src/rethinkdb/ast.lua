@@ -303,7 +303,7 @@ function meta_table.__index(cls, st)
       end
       for _=1, __optargs.arity or 1 do
         table.insert(arg_nums, next_var_id)
-        table.insert(anon_args, _r.var({}, next_var_id))
+        table.insert(anon_args, r.var({}, next_var_id))
         next_var_id = next_var_id + 1
       end
       func = func(unpack(anon_args))
@@ -322,11 +322,11 @@ function meta_table.__index(cls, st)
     elseif st == 'funcall' then
       local func = table.remove(args)
       if type(func) == 'function' then
-        func = _r.func({arity = #args}, func)
+        func = r.func({arity = #args}, func)
       end
       table.insert(args, 1, func)
     elseif st == 'reduce' then
-      args[#args] = _r.func({arity = 2}, args[#args])
+      args[#args] = r.func({arity = 2}, args[#args])
     end
 
     inst.args = {cls}
