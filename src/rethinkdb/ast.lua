@@ -328,14 +328,19 @@ function meta_table.__index(cls, st)
     elseif st == 'reduce' then
       args[#args] = _r.func({arity = 2}, args[#args])
     end
+
     inst.args = {cls}
     inst.optargs = {}
+
     for _, a in ipairs(args) do
       table.insert(inst.args, r(a))
     end
+
     for k, v in pairs(__optargs) do
       inst.optargs[k] = r(v)
     end
+
+    return inst
   end
 end
 
