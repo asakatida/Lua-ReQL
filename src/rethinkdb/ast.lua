@@ -1,10 +1,9 @@
+local _r = require'rethinkdb.utilities'
+
 local errors = require'rethinkdb.errors'
 local proto = require'rethinkdb.protodef'
 local unpack = require'rethinkdb.unpack'
 
-local m = {}
-
-function m.init(_r)
   local meta_table = {}
 
   local function no_opts(...)
@@ -23,15 +22,15 @@ function m.init(_r)
   end
 
   local function arity_1(arg0, opts)
-    return opts, {arg0}
+    return opts or {}, {arg0}
   end
 
   local function arity_2(arg0, arg1, opts)
-    return opts, {arg0, arg1}
+    return opts or {}, {arg0, arg1}
   end
 
   local function arity_3(arg0, arg1, arg2, opts)
-    return opts, {arg0, arg1, arg2}
+    return opts or {}, {arg0, arg1, arg2}
   end
 
   local next_var_id = 0
@@ -76,14 +75,14 @@ function m.init(_r)
   local function datum(val)
     if type(val) == 'number' then
       if math.abs(val) == math.huge or val ~= val then
-        return _r.logger('Illegal non-finite number `' .. val .. '`.')
+        return _r.logger(r, 'Illegal non-finite number `' .. val .. '`.')
       end
     end
     return setmetatable({
       args = {},
       build = function()
         if val == nil then
-          return _r.encode()
+          return _r.encode(r)
         end
         return val
       end,
@@ -91,7 +90,7 @@ function m.init(_r)
         if val == nil then
           return 'nil'
         end
-        return _r.encode(val)
+        return _r.encode(r, val)
       end,
       optargs = {},
       tt = proto.Term.datum,
@@ -150,7 +149,7 @@ function m.init(_r)
         -- Handle run(connection, callback)
         if type(options) == 'function' then
           if callback ~= nil then
-            return _r.logger('Second argument to `run` cannot be a function if a third argument is provided.')
+            return _r.logger(r, 'Second argument to `run` cannot be a function if a third argument is provided.')
           end
           callback = options
           options = {}
@@ -164,7 +163,7 @@ function m.init(_r)
             if callback then
               return callback(errors.ReQLDriverError('First argument to `run` must be a connection.'))
             end
-            return _r.logger('First argument to `run` must be a connection.')
+            return _r.logger(r, 'First argument to `run` must be a connection.')
           end
         end
 
@@ -262,16 +261,16 @@ function m.init(_r)
         end
         func = func(unpack(anon_args))
         if func == nil then
-          return _r.logger('Anonymous function returned `nil`. Did you forget a `return`?')
+          return _r.logger(r, 'Anonymous function returned `nil`. Did you forget a `return`?')
         end
         __optargs.arity = nil
         args = {arg_nums, func}
       elseif st == 'binary' then
         local data = args[1]
         if type(data) == 'string' then
-          inst.base64_data = _r.b64(table.remove(args, 1))
+          inst.base64_data = _r.b64(r, table.remove(args, 1))
         elseif getmetatable(data) ~= meta_table then
-          return _r.logger('Parameter to `r.binary` must be a string or ReQL query.')
+          return _r.logger(r, 'Parameter to `r.binary` must be a string or ReQL query.')
         end
       elseif st == 'funcall' then
         local func = table.remove(args)
@@ -285,53 +284,55 @@ function m.init(_r)
       inst.args = {cls}
       inst.optargs = {}
       for _, a in ipairs(args) do
-        table.insert(inst.args, _r(a))
+        table.insert(inst.args, r(a))
       end
       for k, v in pairs(__optargs) do
-        inst.optargs[k] = _r(v)
+        inst.optargs[k] = r(v)
       end
     end
   end
 
-  function meta_table.__call(...)
-    return _r.bracket(...)
+  function meta_table.__call(term, ...)
+    return term.bracket(...)
   end
 
-  function meta_table.__add(...)
-    return _r.add(...)
+  function meta_table.__add(term, ...)
+    return term.add(...)
   end
 
-  function meta_table.__mul(...)
-    return _r.mul(...)
+  function meta_table.__mul(term, ...)
+    return term.mul(...)
   end
 
-  function meta_table.__mod(...)
-    return _r.mod(...)
+  function meta_table.__mod(term, ...)
+    return term.mod(...)
   end
 
-  function meta_table.__sub(...)
-    return _r.sub(...)
+  function meta_table.__sub(term, ...)
+    return term.sub(...)
   end
 
-  function meta_table.__div(...)
-    return _r.div(...)
+  function meta_table.__div(term, ...)
+    return term.div(...)
   end
 
-  local function expr(r, val, nesting_depth)
+  local r_meta_table = {}
+
+  function r_meta_table.__call(r, val, nesting_depth)
     if nesting_depth == nil then
       nesting_depth = 20
     end
     if type(nesting_depth) ~= 'number' then
-      return _r.logger('Second argument to `r(val, nesting_depth)` must be a number.')
+      return _r.logger(r, 'Second argument to `r(val, nesting_depth)` must be a number.')
     end
     if nesting_depth <= 0 then
-      return _r.logger('Nesting depth limit exceeded', val)
+      return _r.logger(r, 'Nesting depth limit exceeded', val)
     end
     if getmetatable(val) == meta_table then
       return val
     end
     if type(val) == 'function' then
-      return _r.func(val)
+      return r.func(val)
     end
     if type(val) == 'table' then
       local array = true
@@ -340,21 +341,25 @@ function m.init(_r)
         val[k] = r(v, nesting_depth - 1)
       end
       if array then
-        return _r.make_array(unpack(val))
+        return r.make_array(unpack(val))
       end
-      return _r.make_obj(val)
+      return r.make_obj(val)
     end
     if type(val) == 'userdata' then
       val = pcall(tostring, val)
-      return _r.logger('Found userdata inserting "' .. val .. '" into query', val)
+      return _r.logger(r, 'Found userdata inserting "' .. val .. '" into query', val)
     end
     if type(val) == 'thread' then
       val = pcall(tostring, val)
-      return _r.logger('Cannot insert thread object into query ' .. val, val)
+      return _r.logger(r, 'Cannot insert thread object into query ' .. val, val)
     end
-    return _r.datum(val)
+    return r.datum(val)
   end
 
-  return meta_table, expr
+function r_meta_table.__index(_, st)
+  return meta_table.__index(nil, st)
 end
-return m
+
+local r = {}
+
+return setmetatable(r, r_meta_table)

@@ -1,19 +1,20 @@
-local m = {}
+local _r = require'rethinkdb.utilities'
 
-function m.init(_r)
-  return function(host, port, ssl_params, timeout)
+local ssl = require('ssl')
+
+  return function(r, host, port, ssl_params, timeout)
     local raw_socket
 
     local function suppress_read_error(socket, err)
       if err == 'closed' then
         raw_socket = nil
       elseif err == 'timeout' or err == 'wantread' then
-        local recvt, _, sel_err = _r.select({socket}, nil, timeout)
+        local recvt, _, sel_err = _r.select(r, {socket}, nil, timeout)
         if sel_err == 'timeout' or not recvt[socket] then
           return err
         end
       elseif err == 'wantwrite' then
-        local _, sendt, sel_err = _r.select(nil, {socket}, timeout)
+        local _, sendt, sel_err = _r.select(r, nil, {socket}, timeout)
         if sel_err == 'timeout' or not sendt[socket] then
           return err
         end
@@ -26,12 +27,12 @@ function m.init(_r)
       if err == 'closed' then
         raw_socket = nil
       elseif err == 'wantread' then
-        local recvt, _, sel_err = _r.select({socket}, nil, timeout)
+        local recvt, _, sel_err = _r.select(r, {socket}, nil, timeout)
         if sel_err == 'timeout' or not recvt[socket] then
           return err
         end
       elseif err == 'timeout' or err == 'wantwrite' then
-        local _, sendt, sel_err = _r.select(nil, {socket}, timeout)
+        local _, sendt, sel_err = _r.select(r, nil, {socket}, timeout)
         if sel_err == 'timeout' or not sendt[socket] then
           return err
         end
@@ -56,22 +57,22 @@ function m.init(_r)
         return raw_socket and true or false
       end,
       open = function()
-        local socket = _r.socket()
+        local socket = _r.socket(r)
         socket:settimeout(0)
 
         local status, err = socket:connect(host, port)
 
         if not status and suppress_write_error(socket, err) then
-          return _r.logger(err)
+          return _r.logger(r, err)
         end
 
         if ssl_params then
-          socket = _r.lib_ssl.wrap(socket, ssl_params)
+          socket = ssl.wrap(socket, ssl_params)
           status = false
           while not status do
             status, err = socket:dohandshake()
             if suppress_read_error(socket, err) then
-              return _r.logger(err)
+              return _r.logger(r, err)
             end
           end
 
@@ -85,7 +86,7 @@ function m.init(_r)
           return buf
         end
         if suppress_read_error(raw_socket, err) then
-          return nil, _r.logger(err)
+          return nil, _r.logger(r, err)
         end
         return partial or ''
       end,
@@ -97,7 +98,7 @@ function m.init(_r)
           return idx
         end
         if suppress_write_error(raw_socket, err) then
-          return nil, _r.logger(err)
+          return nil, _r.logger(r, err)
         end
         return err_idx
       end
@@ -105,6 +106,3 @@ function m.init(_r)
 
     return inst
   end
-end
-
-return m

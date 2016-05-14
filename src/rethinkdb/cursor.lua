@@ -2,7 +2,7 @@ local errors = require'rethinkdb.errors'
 local proto = require'rethinkdb.protodef'
 local convert_pseudotype = require'rethinkdb.convert_pseudotype'
 
-return function(del_query, end_query, get_response, token, opts, root)
+return function(r, del_query, end_query, get_response, token, opts, root)
   local responses = {}
   local _cb, end_flag, _type
 
@@ -13,7 +13,7 @@ return function(del_query, end_query, get_response, token, opts, root)
     local t = response.t
     if t == proto.Response.SUCCESS_ATOM or t == proto.Response.SUCCESS_PARTIAL or t == proto.Response.SUCCESS_SEQUENCE then
       local err
-      local status, row = pcall(convert_pseudotype, response.r[1], opts)
+      local status, row = pcall(convert_pseudotype, r, response.r[1], opts)
       if not status then
         err = row
         row = response.r[1]

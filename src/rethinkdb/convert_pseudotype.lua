@@ -1,12 +1,11 @@
+local _r = require'rethinkdb.utilities'
+
 local errors = require'rethinkdb.errors'
 
-local m = {}
-
-function m.init(_r)
-  local function convert_pseudotype(obj, opts)
+  local function convert_pseudotype(r, obj, opts)
     if type(obj) == 'table' then
       for key, value in pairs(obj) do
-        obj[key] = convert_pseudotype(value, opts)
+        obj[key] = convert_pseudotype(r, value, opts)
       end
       -- An R_OBJECT may be a regular table or a 'pseudo-type' so we need a
       -- second layer of type switching here on the obfuscated field '$reql_type$'
@@ -15,7 +14,7 @@ function m.init(_r)
         local time_format = opts.time_format
         if 'native' == time_format or not time_format then
           if not (obj['epoch_time']) then
-            return _r.logger(errors.ReQLDriverError('pseudo-type TIME ' .. obj .. ' table missing expected field `epoch_time`.'))
+            return _r.logger(r, errors.ReQLDriverError('pseudo-type TIME ' .. obj .. ' table missing expected field `epoch_time`.'))
           end
 
           -- We ignore the timezone field of the pseudo-type TIME table. JS dates do not support timezones.
@@ -26,7 +25,7 @@ function m.init(_r)
         elseif 'raw' == time_format then
           return obj
         else
-          return _r.logger(errors.ReQLDriverError('Unknown time_format run option ' .. opts.time_format .. '.'))
+          return _r.logger(r, errors.ReQLDriverError('Unknown time_format run option ' .. opts.time_format .. '.'))
         end
       elseif 'GROUPED_DATA' == reql_type then
         local group_format = opts.group_format
@@ -45,19 +44,19 @@ function m.init(_r)
         elseif 'raw' == group_format then
           return obj
         else
-          return _r.logger(errors.ReQLDriverError('Unknown group_format run option ' .. opts.group_format .. '.'))
+          return _r.logger(r, errors.ReQLDriverError('Unknown group_format run option ' .. opts.group_format .. '.'))
         end
       elseif 'BINARY' == reql_type then
         local binary_format = opts.binary_format
         if 'native' == binary_format or not binary_format then
           if not obj.data then
-            return _r.logger(errors.ReQLDriverError('pseudo-type BINARY table missing expected field `data`.'))
+            return _r.logger(r, errors.ReQLDriverError('pseudo-type BINARY table missing expected field `data`.'))
           end
-          return _r.unb64(obj.data)
+          return _r.unb64(r, obj.data)
         elseif 'raw' == binary_format then
           return obj
         else
-          return _r.logger(errors.ReQLDriverError('Unknown binary_format run option ' .. opts.binary_format .. '.'))
+          return _r.logger(r, errors.ReQLDriverError('Unknown binary_format run option ' .. opts.binary_format .. '.'))
         end
       else
         -- Regular table or unknown pseudo type
@@ -68,6 +67,3 @@ function m.init(_r)
   end
 
   return convert_pseudotype
-end
-
-return m

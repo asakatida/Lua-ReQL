@@ -1,7 +1,6 @@
-local m = {}
+local _r = require'rethinkdb.utilities'
 
-function m.init(_r)
-  local Connection = require'rethinkdb.connection'.init(_r)
+local Connection = require'rethinkdb.connection'
 
   return function(host, _callback)
     local size
@@ -98,6 +97,3 @@ function m.init(_r)
       return cb()
     end)
   end
-end
-
-return m
