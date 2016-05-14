@@ -55,7 +55,7 @@ return {
     make_array = 2,
     make_obj = 3,
     var = 10,
-    javascript = 11,
+    js = 11,
     uuid = 169,
     http = 153,
     error_ = 12,
