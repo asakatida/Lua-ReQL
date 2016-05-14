@@ -1,5 +1,3 @@
-local _r = require'rethinkdb.utilities'
-
 local Connection = require'rethinkdb.connection'
 
 return function(host, _callback)
@@ -75,9 +73,10 @@ return function(host, _callback)
   }
 
   local cb = function(err)
-    if not _r.pool then
-      _r.pool = inst
-    end
+    --[[ TODO
+    if not r.pool then
+      r.pool = inst
+    end]]
     if _callback then
       local res = _callback(err, inst)
       close({noreply_wait = false})
