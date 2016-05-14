@@ -203,14 +203,15 @@ function meta_table.__index(cls, st)
       -- else we suppose that we have run(connection[, options][, callback])
 
       if connection == nil then
-        if _r.pool then
-          connection = _r.pool
-        else
+        --[[ TODO
+        if r.pool then
+          connection = r.pool
+        else]]
           if callback then
             return callback(errors.ReQLDriverError('First argument to `run` must be a connection.'))
           end
           return _r.logger(r, 'First argument to `run` must be a connection.')
-        end
+        --end
       end
 
       return connection._start(inst, callback, options or {})
