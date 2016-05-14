@@ -1,9 +1,9 @@
-local r = require('rethinkdb')
-
 describe('cursor', function()
-  local reql_db, reql_table, c, num_rows
+  local r, reql_db, reql_table, c, num_rows
 
   setup(function()
+    r = require('rethinkdb')
+
     reql_db = 'cursor'
     reql_table = 'tests'
 
@@ -34,6 +34,10 @@ describe('cursor', function()
     end
 
     r.db(reql_db).table(reql_table).insert(document).run(c)
+  end)
+
+  teardown(function()
+    r = nil
   end)
 
   it('type', function()

@@ -1,9 +1,9 @@
-local r = require('rethinkdb')
-
 describe('change feeds', function()
-  local reql_db, reql_table, c
+  local r, reql_db, reql_table, c
 
   setup(function()
+    r = require('rethinkdb')
+
     reql_db = 'changefeeds'
     reql_table = 'watched'
 
@@ -18,14 +18,18 @@ describe('change feeds', function()
   end)
 
   before_each(function()
-    r.table(reql_table).insert({
+    r.table(reql_table).insert{
       {id = 1}, {id = 2}, {id = 3},
       {id = 4}, {id = 5}, {id = 6}
-    }).run(c)
+    }.run(c)
   end)
 
   after_each(function()
     r.table(reql_table).delete().run(c)
+  end)
+
+  teardown(function()
+    r = nil
   end)
 
   it('all', function()
