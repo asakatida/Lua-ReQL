@@ -64,7 +64,7 @@ return function(r, auth_key, db, host, port, proto_version, ssl_params, timeout,
     while true do
       local buf, err = raw_socket.recv()
       if err then
-        inst.close({noreply_wait = false})
+        inst.close{noreply_wait = false}
         return _r.logger(r, 'connection returned: ' .. err)
       end
       buffer = buffer .. buf
@@ -201,7 +201,7 @@ return function(r, auth_key, db, host, port, proto_version, ssl_params, timeout,
 
       if callback then
         local res = callback(nil, inst)
-        inst.close({noreply_wait = false})
+        inst.close{noreply_wait = false}
         return res
       end
       return inst
