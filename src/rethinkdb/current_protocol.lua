@@ -1,3 +1,5 @@
+local _r = require'rethinkdb.utilities'
+
 local bit = require('bit')
 local bytes_to_int = require'rethinkdb.bytes_to_int'
 local crypto = require('crypto')
@@ -55,11 +57,8 @@ local function __pbkdf2_hmac(hash_name, password, salt, iterations)
   return u
 end
 
-local m = {}
-
-function m.init(_r)
   return function(raw_socket, auth_key, user)
-    local nonce = _r.b64(rand_bytes(18))
+    local nonce = _r.b64({}, rand_bytes(18))
 
     local client_first_message_bare = 'n=' .. user .. ',r=' .. nonce
 
@@ -84,7 +83,7 @@ function m.init(_r)
 
       local message = string.sub(buffer, 1, i - 1)
       buffer = string.sub(buffer, i + 1)
-      local success, response, err = pcall(_r.decode, message)
+      local success, response, err = pcall(_r.decode, {}, message)
 
       if not success or type(response) ~= 'table' then
         return nil, err
@@ -144,7 +143,7 @@ function m.init(_r)
 
     local client_final_message_without_proof = 'c=biws,r=' .. authentication.r
 
-    local salt = _r.unb64(authentication.s)
+    local salt = _r.unb64({}, authentication.s)
 
     -- SaltedPassword := Hi(Normalize(password), salt, i)
     local salted_password = __pbkdf2_hmac('sha256', auth_key, salt, authentication.i)
@@ -178,10 +177,10 @@ function m.init(_r)
     -- {
     --   "authentication": "c=biws,r=<nonce><server_nonce>,p=<proof>"
     -- }
-    raw_socket.send(_r.encode({
+    raw_socket.send(_r.encode({}, {
       authentication =
       client_final_message_without_proof ..
-      ',p=' .. _r.b64(client_proof)
+      ',p=' .. _r.b64({}, client_proof)
     }), '\0')
 
     -- wait for the third server challenge
@@ -209,6 +208,3 @@ function m.init(_r)
 
     return buffer
   end
-end
-
-return m

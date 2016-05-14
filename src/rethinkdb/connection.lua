@@ -1,14 +1,11 @@
-local m = {}
+local connection_instance = require'rethinkdb.connection_instance'
+local current_protocol = require'rethinkdb.current_protocol'
 
 local DEFAULT_HOST = 'localhost'
 local DEFAULT_PORT = 28015
 local DEFAULT_USER = 'admin'
 local DEFAULT_AUTH_KEY = ''
 local DEFAULT_TIMEOUT = 20 -- In seconds
-
-function m.init(_r)
-  local current_protocol = require'rethinkdb.current_protocol'.init(_r)
-  local connection_instance = require'rethinkdb.connection_instance'.init(_r)
 
   return function(opts, _proto_version)
     local port = opts.port or DEFAULT_PORT
@@ -19,10 +16,11 @@ function m.init(_r)
     local ssl_params = opts.ssl
     local proto_version = _proto_version or current_protocol
     local host = opts.host or DEFAULT_HOST
+    local r = opts.r or {}
 
     local function connect(callback)
       return connection_instance(
-        auth_key, db, host, port, proto_version, ssl_params, timeout, user
+        r, auth_key, db, host, port, proto_version, ssl_params, timeout, user
         ).connect(callback)
     end
 
@@ -36,6 +34,3 @@ function m.init(_r)
       end
     }
   end
-end
-
-return m

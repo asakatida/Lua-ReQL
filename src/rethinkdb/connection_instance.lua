@@ -1,22 +1,20 @@
+local _r = require'rethinkdb.utilities'
+
 local bytes_to_int = require'rethinkdb.bytes_to_int'
 local Cursor = require'rethinkdb.cursor'
 local errors = require'rethinkdb.errors'
 local int_to_bytes = require'rethinkdb.int_to_bytes'
 local proto = require'rethinkdb.protodef'
+local Socket = require'rethinkdb.socket'
 
-local m = {}
-
-function m.init(_r)
-  local Socket = require'rethinkdb.socket'.init(_r)
-
-  return function(auth_key, db, host, port, proto_version, ssl_params, timeout, user)
-    local raw_socket = Socket(host, port, ssl_params, timeout)
+  return function(r, auth_key, db, host, port, proto_version, ssl_params, timeout, user)
+    local raw_socket = Socket(r, host, port, ssl_params, timeout)
     local outstanding_callbacks = {}
     local next_token = 1
     local buffer = ''
 
     local function write_socket(token, query)
-      local data = _r.encode(query)
+      local data = _r.encode(r, query)
       return raw_socket.send(
         int_to_bytes(token, 8),
         int_to_bytes(#data, 4),
@@ -43,7 +41,7 @@ function m.init(_r)
       local cursor = outstanding_callbacks[token]
       if not cursor then
         -- Unexpected token
-        return _r.logger('Unexpected token ' .. token .. '.')
+        return _r.logger(r, 'Unexpected token ' .. token .. '.')
       end
       local add_response = cursor.add_response
       cursor = cursor.cursor
@@ -67,7 +65,7 @@ function m.init(_r)
         local buf, err = raw_socket.recv()
         if err then
           inst.close({noreply_wait = false})
-          return _r.logger('connection returned: ' .. err)
+          return _r.logger(r, 'connection returned: ' .. err)
         end
         buffer = buffer .. buf
         if #buffer >= 12 then
@@ -76,7 +74,7 @@ function m.init(_r)
           local query_slice = string.sub(buffer, 13)
           local response_buffer = string.sub(query_slice, 1, response_length)
           continue_query(token)
-          process_response(_r.decode(response_buffer), token)
+          process_response(_r.decode(r, response_buffer), token)
           buffer = string.sub(query_slice, response_length + 1)
           if token == reqest_token then return end
         end
@@ -85,7 +83,7 @@ function m.init(_r)
 
     local function make_cursor(token, opts, term)
       local cursor, add_response = Cursor(
-         del_query, end_query, get_response, token, opts or {}, term)
+         r, del_query, end_query, get_response, token, opts or {}, term)
 
       -- Save cursor
 
@@ -104,7 +102,7 @@ function m.init(_r)
           res = callback(err, cur)
         else
           if err then
-            return _r.logger(err.message())
+            return _r.logger(r, err.message())
           end
         end
         cur.close()
@@ -153,7 +151,7 @@ function m.init(_r)
       local opts = {}
       if callback then
         if type(opts_or_callback) ~= 'table' then
-          return _r.logger('First argument to two-argument `close` must be a table.')
+          return _r.logger(r, 'First argument to two-argument `close` must be a table.')
         end
         opts = opts_or_callback
       elseif type(opts_or_callback) == 'table' then
@@ -269,6 +267,3 @@ function m.init(_r)
 
     return inst
   end
-end
-
-return m
