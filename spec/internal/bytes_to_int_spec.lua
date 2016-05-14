@@ -9,28 +9,53 @@ describe('bytes to int', function()
     bytes_to_int = nil
   end)
 
-  local function test(name, bytes, int)
-    it(name, function()
-      assert.same(int, bytes_to_int(bytes))
-    end)
-  end
+  it('endian', function()
+    assert.same(1, bytes_to_int'\1\0\0')
+  end)
 
-  local function roundtrip(name, orig)
-    it('roundtrip ' .. name, function()
-      local int_to_bytes = require('rethinkdb.int_to_bytes')
-      assert.same(orig, int_to_bytes(bytes_to_int(orig), #orig))
-    end)
-  end
+  it('empty', function()
+    assert.same(0, bytes_to_int'')
+  end)
 
-  test('endian', '\1\0\0', 1)
-  test('empty', '', 0)
-  test('bom', '\239\255', 0xFFEF)
-  test('large number', '\255\255\255\127', 2 ^ 31 - 1)
-  test('long bytes', '\0\0\0\0\0\0\0\0\0', 0)
+  it('bom', function()
+    assert.same(0xFFEF, bytes_to_int'\239\255')
+  end)
 
-  roundtrip('endian', '\1\0\0')
-  roundtrip('empty', '')
-  roundtrip('bom', '\239\255')
-  roundtrip('large number', '\255\255\255\127')
-  roundtrip('long bytes', '\0\0\0\0\0\0\0\0\0')
+  it('large number', function()
+    assert.same(2 ^ 31 - 1, bytes_to_int'\255\255\255\127')
+  end)
+
+  it('long bytes', function()
+    assert.same(0, bytes_to_int'\0\0\0\0\0\0\0\0\0')
+  end)
+
+  it('roundtrip endian', function()
+    local int_to_bytes = require('rethinkdb.int_to_bytes')
+    local orig = '\1\0\0'
+    assert.same(orig, int_to_bytes(bytes_to_int(orig), #orig))
+  end)
+
+  it('roundtrip empty', function()
+    local int_to_bytes = require('rethinkdb.int_to_bytes')
+    local orig = ''
+    assert.same(orig, int_to_bytes(bytes_to_int(orig), #orig))
+  end)
+
+  it('roundtrip bom', function()
+    local int_to_bytes = require('rethinkdb.int_to_bytes')
+    local orig = '\239\255'
+    assert.same(orig, int_to_bytes(bytes_to_int(orig), #orig))
+  end)
+
+  it('roundtrip large number', function()
+    local int_to_bytes = require('rethinkdb.int_to_bytes')
+    local orig = '\255\255\255\127'
+    assert.same(orig, int_to_bytes(bytes_to_int(orig), #orig))
+  end)
+
+  it('roundtrip long bytes', function()
+    local int_to_bytes = require('rethinkdb.int_to_bytes')
+    local orig = '\0\0\0\0\0\0\0\0\0'
+    assert.same(orig, int_to_bytes(bytes_to_int(orig), #orig))
+  end)
 end)

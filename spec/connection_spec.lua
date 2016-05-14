@@ -1,6 +1,14 @@
-local r = require('rethinkdb')
-
 describe('connection', function()
+  local r
+
+  setup(function()
+    r = require('rethinkdb')
+  end)
+
+  teardown(function()
+    r = nil
+  end)
+
   it('basic', function()
     r.connect(function(err, c)
       if err then error(err.message()) end
@@ -37,7 +45,7 @@ describe('connection', function()
     assert.has_error(
       function()
         for _id=1,500000 do
-          r.table(reql_table).insert({id=_id}).run(c)
+          r.table(reql_table).insert{id=_id}.run(c)
         end
       end,
       'ReQLDriverError Connection is closed.'
