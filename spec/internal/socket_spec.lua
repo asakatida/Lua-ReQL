@@ -14,10 +14,10 @@ describe('socket', function()
   end)
 
   it('closes repeatedly', function()
-    local client = assert(socket({}, nil, 28015, nil, 0))
+    local client = assert(socket({}, 'localhost', 28015, nil, 1))
 
     finally(function() client.close() end)
-    
+
     assert.is_false(client.isOpen())
 
     client.close()
@@ -44,7 +44,7 @@ describe('socket', function()
   end)
 
   it('connects', function()
-    local client = assert(socket({}, nil, 28015, nil, 0))
+    local client = assert(socket({}, 'localhost', 28015, nil, 1))
 
     client.open()
 
