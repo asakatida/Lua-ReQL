@@ -1,3 +1,8 @@
 return {
+  exclude = {
+    'src/rethinkdb/protodef',
+    'src/rethinkdb/semver',
+    'src/rethinkdb/unpack',
+  },
   include = {'src'},
 }
