@@ -26,7 +26,7 @@ describe('int to bytes', function()
   end)
 
   it('long bytes', function()
-    assert.same('\0\0\0\0\0\0\0\0\0', int_to_bytes(0, 8))
+    assert.same('\0\0\0\0\0\0\0\0', int_to_bytes(0, 8))
   end)
 
   it('roundtrip endian', function()
