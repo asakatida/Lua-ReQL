@@ -24,7 +24,7 @@ describe('connection', function()
     assert.is_false(conn.open())
   end)
 
-  it('basic_pool', function()
+  it('basic pool', function()
     r.pool({}, function(err, p)
       if err then error(err.message()) end
       assert.is_not_nil(p)
