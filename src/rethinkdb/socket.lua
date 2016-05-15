@@ -75,9 +75,9 @@ return function(r, host, port, ssl_params, timeout)
             return _r.logger(r, err)
           end
         end
-
-        raw_socket = socket
       end
+
+      raw_socket, socket = socket, raw_socket
     end,
     recv = function()
       if not raw_socket then return nil, 'closed' end
