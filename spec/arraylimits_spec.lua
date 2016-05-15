@@ -81,7 +81,7 @@ describe('array limits', function()
       end
     )
     assert.same(
-      r.table(reql_table).get(0).run(
+      {}, r.table(reql_table).get(0).run(
         c, {array_limit = 100001}, function(_err, cur)
           if _err then error(_err.message()) end
           return cur.to_array(function(err, arr)
@@ -89,7 +89,7 @@ describe('array limits', function()
             return arr
           end)
         end
-      ), {}
+      )
     )
   end)
 
@@ -141,6 +141,7 @@ describe('array limits', function()
       end
     )
     assert.same(
+      {{array = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}, id = 1}},
       r.table(reql_table).get(1).run(
         c, {array_limit = 4}, function(_err, cur)
           if _err then error(_err.message()) end
@@ -149,7 +150,7 @@ describe('array limits', function()
             return arr
           end)
         end
-      ), {{array = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}, id = 1}}
+      )
     )
   end)
 
