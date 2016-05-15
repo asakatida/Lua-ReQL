@@ -171,7 +171,7 @@ return function(r, auth_key, db, host, port, proto_version, ssl_params, timeout,
     local noreply_wait = (opts.noreply_wait ~= false) and inst.open()
 
     if noreply_wait then
-      return noreply_wait(cb)
+      return inst.noreply_wait(cb)
     end
     return cb()
   end
