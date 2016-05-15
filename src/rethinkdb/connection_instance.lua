@@ -162,6 +162,7 @@ return function(r, auth_key, db, host, port, proto_version, ssl_params, timeout,
 
     local function cb(err)
       raw_socket.close()
+      buffer = ''
       if callback then
         return callback(err)
       end
@@ -178,6 +179,7 @@ return function(r, auth_key, db, host, port, proto_version, ssl_params, timeout,
 
   function inst.connect(callback)
     local function error_(err)
+      inst.close{noreply_wait = false}
       err = errors.ReQLDriverError(
         'Could not connect to ' .. host .. ':' .. port .. '.\n' .. err)
       if callback then
@@ -194,9 +196,9 @@ return function(r, auth_key, db, host, port, proto_version, ssl_params, timeout,
 
     buffer, err = proto_version(raw_socket, auth_key, user)
 
-      if err then
-        return error_(err)
-      end
+    if err then
+      return error_(err)
+    end
 
     if callback then
       local res = callback(nil, inst)
