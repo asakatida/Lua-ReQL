@@ -29,6 +29,14 @@ describe('int to bytes', function()
     assert.same('\0\0\0\0\0\0\0\0', int_to_bytes(0, 8))
   end)
 
+  it('negative length', function()
+    assert.same('', int_to_bytes(0, -1))
+  end)
+
+  it('insuficient length', function()
+    assert.same('\239', int_to_bytes(0xFFEF, 1))
+  end)
+
   it('roundtrip endian', function()
     local bytes_to_int = require('rethinkdb.bytes_to_int')
     local orig = 1
@@ -40,6 +48,8 @@ describe('int to bytes', function()
     local bytes_to_int = require('rethinkdb.bytes_to_int')
     local orig = 0
     local bytes = int_to_bytes(orig, 0)
+    assert.same(orig, bytes_to_int(bytes))
+    bytes = int_to_bytes(orig, 3)
     assert.same(orig, bytes_to_int(bytes))
   end)
 
@@ -62,5 +72,12 @@ describe('int to bytes', function()
     local orig = 0
     local bytes = int_to_bytes(orig, 8)
     assert.same(orig, bytes_to_int(bytes))
+  end)
+
+  it('roundtrip insuficient length', function()
+    local bytes_to_int = require('rethinkdb.bytes_to_int')
+    local orig = 2 ^ 31 - 1
+    local bytes = int_to_bytes(orig, 3)
+    assert.are_not_equal(orig, bytes_to_int(bytes))
   end)
 end)
