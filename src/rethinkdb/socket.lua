@@ -41,17 +41,21 @@ return function(r, host, port, ssl_params, timeout)
     end
   end
 
+  local function shutdown(socket)
+    if socket then
+      if ngx == nil and ssl_params == nil then
+        socket:shutdown()
+      end
+      socket:close()
+    end
+  end
+
   local inst = {
     close = function()
       local socket = nil
       raw_socket, socket = socket, raw_socket
 
-      if socket then
-        if ngx == nil and ssl_params == nil then
-          socket:shutdown()
-        end
-        socket:close()
-      end
+      shutdown(socket)
     end,
     isOpen = function()
       return raw_socket and true or false
@@ -78,6 +82,8 @@ return function(r, host, port, ssl_params, timeout)
       end
 
       raw_socket, socket = socket, raw_socket
+
+      shutdown(socket)
     end,
     recv = function()
       if not raw_socket then return nil, 'closed' end
