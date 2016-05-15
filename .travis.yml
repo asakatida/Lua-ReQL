@@ -31,7 +31,7 @@ before_script:
   - ./usr/bin/rethinkdb --daemon
 
 script:
-  - busted -t sanity
+  - busted -t sanity --lazy
   - busted -c
 
 after_success:
