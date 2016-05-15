@@ -12,22 +12,22 @@ describe('connection', function()
   it('basic', function()
     r.connect(function(err, c)
       if err then error(err.message()) end
-      assert.are_not.equal(c, nil)
+      assert.is_not_nil(c)
     end)
   end)
 
   it('return conn', function()
     local conn = r.connect()
-    assert.are_not.equal(conn, nil)
-    assert.are.equal(conn.open(), true)
+    assert.is_not_nil(conn)
+    assert.is_true(conn.open())
     conn.close()
-    assert.are.equal(conn.open(), false)
+    assert.is_false(conn.open())
   end)
 
   it('basic_pool', function()
     r.pool({}, function(err, p)
       if err then error(err.message()) end
-      assert.are_not.equal(p, nil)
+      assert.is_not_nil(p)
     end)
   end)
 
