@@ -6,7 +6,7 @@ return function(r, del_query, end_query, get_response, token, opts, root)
   local responses = {}
   local _cb, end_flag, _type
 
-  local run_cb = function(cb)
+  local function run_cb(cb)
     local response = responses[1]
     -- Behavior varies considerably based on response type
     -- Error responses are not discarded, and the error will be sent to all future callbacks

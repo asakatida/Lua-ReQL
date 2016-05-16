@@ -8,7 +8,7 @@ describe('array limits', function()
     reql_table = 'limits'
 
     local ten_l = r{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
-    local ten_f = function() return ten_l end
+    local function ten_f() return ten_l end
     huge_l = ten_l.concat_map(ten_f).concat_map(ten_f).concat_map(
       ten_f).concat_map(ten_f)
 

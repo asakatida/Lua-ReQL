@@ -36,7 +36,7 @@ return function(host, _callback)
 
   local function close(opts, callback)
     local err
-    local cb = function(e)
+    local function cb(e)
       if e then
         err = e
       end
@@ -72,7 +72,7 @@ return function(host, _callback)
     use = use
   }
 
-  local cb = function(err)
+  local function cb(err)
     --[[ TODO
     if not r.pool then
       r.pool = inst

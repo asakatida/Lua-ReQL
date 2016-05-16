@@ -218,7 +218,7 @@ function meta_table.__index(cls, st)
     end
 
     function inst.compose(_args, _optargs)
-      local intsp = function(seq)
+      local function intsp(seq)
         local res = {}
         local sep = ''
         for _, v in ipairs(seq) do
@@ -234,7 +234,7 @@ function meta_table.__index(cls, st)
           '}'
         }
       end
-      local kved = function(optargs)
+      local function kved(optargs)
         local res = {'{'}
         local sep = ''
         for k, v in pairs(optargs) do
