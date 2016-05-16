@@ -124,20 +124,25 @@ local function datum(val)
       return _r.logger(r, 'Illegal non-finite number `' .. val .. '`.')
     end
   end
+
+  local function build()
+    if val == nil then
+      return _r.encode(r)
+    end
+    return val
+  end
+
+  local function compose()
+    if val == nil then
+      return 'nil'
+    end
+    return _r.encode(r, val)
+  end
+
   return setmetatable({
     args = {},
-    build = function()
-      if val == nil then
-        return _r.encode(r)
-      end
-      return val
-    end,
-    compose = function()
-      if val == nil then
-        return 'nil'
-      end
-      return _r.encode(r, val)
-    end,
+    build = build,
+    compose = compose,
     optargs = {},
     tt = proto.Term.datum,
     st = 'datum'

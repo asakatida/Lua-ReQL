@@ -86,14 +86,16 @@ return function(r, del_query, end_query, get_response, token, opts, root)
 
   function inst.to_array(callback)
     local arr = {}
-    return inst.each(
-      function(row)
-        table.insert(arr, row)
-      end,
-      function(err)
-        return callback(err, arr)
-      end
-    )
+
+    local function cb(row)
+      table.insert(arr, row)
+    end
+
+    local function on_finished(err)
+      return callback(err, arr)
+    end
+
+    return inst.each(cb, on_finished)
   end
 
   return inst, function(response)

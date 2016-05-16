@@ -50,14 +50,16 @@ return function(r, auth_key, db, host, port, proto_version, ssl_params, timeout,
     end
   end
 
+  local function use(_db)
+    db = r.db(_db).build()
+  end
+
+  if db then use(db) end
+
   local inst = {
     open = raw_socket.isOpen,
-    use = function(_db)
-      db = r.db(_db).build()
-    end
+    use = use
   }
-
-  if db then inst.use(db) end
 
   local function get_response(reqest_token)
     -- Buffer data, execute return results if need be

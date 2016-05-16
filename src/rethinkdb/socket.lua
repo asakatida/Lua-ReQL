@@ -50,65 +50,69 @@ return function(r, host, port, ssl_params, timeout)
     end
   end
 
-  local inst = {
-    close = function()
-      local socket = nil
-      raw_socket, socket = socket, raw_socket
+  local inst = {}
 
-      shutdown(socket)
-    end,
-    isOpen = function()
-      return raw_socket and true or false
-    end,
-    open = function()
-      local socket = _r.socket(r)
-      socket:settimeout(0)
+  function inst.close()
+    local socket = nil
+    raw_socket, socket = socket, raw_socket
 
-      local status, err = socket:connect(host, port)
+    shutdown(socket)
+  end
 
-      if not status and suppress_write_error(socket, err) then
-        return _r.logger(r, err)
-      end
+  function inst.isOpen()
+    return raw_socket and true or false
+  end
 
-      if ssl_params then
-        socket = ssl.wrap(socket, ssl_params)
-        status = false
-        while not status do
-          status, err = socket:dohandshake()
-          if suppress_read_error(socket, err) then
-            return _r.logger(r, err)
-          end
+  function inst.open()
+    local socket = _r.socket(r)
+    socket:settimeout(0)
+
+    local status, err = socket:connect(host, port)
+
+    if not status and suppress_write_error(socket, err) then
+      return _r.logger(r, err)
+    end
+
+    if ssl_params then
+      socket = ssl.wrap(socket, ssl_params)
+      status = false
+      while not status do
+        status, err = socket:dohandshake()
+        if suppress_read_error(socket, err) then
+          return _r.logger(r, err)
         end
       end
-
-      raw_socket, socket = socket, raw_socket
-
-      shutdown(socket)
-    end,
-    recv = function()
-      if not raw_socket then return nil, 'closed' end
-      local buf, err, partial = raw_socket:receive('*a')
-      if buf then
-        return buf
-      end
-      if suppress_read_error(raw_socket, err) then
-        return nil, _r.logger(r, err)
-      end
-      return partial or ''
-    end,
-    send = function(...)
-      if not raw_socket then return nil, 'closed' end
-      local data = table.concat{...}
-      local idx, err, err_idx = raw_socket:send(data)
-      if idx == #data then
-        return idx
-      end
-      if suppress_write_error(raw_socket, err) then
-        return nil, _r.logger(r, err)
-      end
-      return err_idx
     end
-  }
+
+    raw_socket, socket = socket, raw_socket
+
+    shutdown(socket)
+  end
+
+  function inst.recv()
+    if not raw_socket then return nil, 'closed' end
+    local buf, err, partial = raw_socket:receive('*a')
+    if buf then
+      return buf
+    end
+    if suppress_read_error(raw_socket, err) then
+      return nil, _r.logger(r, err)
+    end
+    return partial or ''
+  end
+
+  function inst.send(...)
+    if not raw_socket then return nil, 'closed' end
+    local data = table.concat{...}
+    local idx, err, err_idx = raw_socket:send(data)
+    if idx == #data then
+      return idx
+    end
+    if suppress_write_error(raw_socket, err) then
+      return nil, _r.logger(r, err)
+    end
+    return err_idx
+  end
 
   return inst
 end
