@@ -37,11 +37,11 @@ return function(r, del_query, end_query, get_response, token, opts, root)
     return cb(errors.ReQLDriverError('Unknown response type ' .. t))
   end
 
-  local inst = {
-    set = function(cb)
-      _cb = cb
-    end
-  }
+  local inst = {}
+
+  function inst.set(cb)
+    _cb = cb
+  end
 
   function inst.close(cb)
     if not end_flag then
@@ -51,12 +51,13 @@ return function(r, del_query, end_query, get_response, token, opts, root)
     if cb then return cb() end
   end
 
-  function inst.each(cb, on_finished)
+  function inst.each(callback, on_finished)
     local e
-    _cb = function(err, data)
+    local function cb(err, data)
       e = err
-      return cb(data)
+      return callback(data)
     end
+    inst.set(cb)
     while not end_flag do
       get_response(token)
     end
@@ -65,15 +66,17 @@ return function(r, del_query, end_query, get_response, token, opts, root)
     end
   end
 
-  function inst.next(cb)
+  function inst.next(callback)
     if end_flag then
-      return cb(errors.ReQLDriverError('No more rows in the cursor.'))
+      return callback(errors.ReQLDriverError('No more rows in the cursor.'))
     end
-    --local __cb = _cb
-    --_cb = function(err, res)
-    --  _cb = __cb
-    --  return cb(err, res)
-    --end
+    local old_cb = nil
+    local function cb(err, res)
+      inst.set(old_cb)
+      return callback(err, res)
+    end
+    old_cb, _cb = _cb, old_cb
+    inst.set(cb)
     local status, err = pcall(get_response, token)
     if status then
       return run_cb(cb)
