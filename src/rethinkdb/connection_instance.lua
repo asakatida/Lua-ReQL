@@ -98,7 +98,7 @@ return function(r, auth_key, db, host, port, proto_version, ssl_params, timeout,
   end
 
   function inst._start(term, callback, opts)
-    local cb = function(err, cur)
+    local function cb(err, cur)
       local res
       if type(callback) == 'function' then
         res = callback(err, cur)
@@ -212,7 +212,7 @@ return function(r, auth_key, db, host, port, proto_version, ssl_params, timeout,
   end
 
   function inst.noreply_wait(callback)
-    local cb = function(_err, _cur)
+    local function cb(_err, _cur)
       if _cur then
         return _cur.next(function(err)
           return callback(err)
