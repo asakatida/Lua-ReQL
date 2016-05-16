@@ -74,8 +74,11 @@ return function(r, del_query, end_query, get_response, token, opts, root)
     --  _cb = __cb
     --  return cb(err, res)
     --end
-    local err, res = get_response(token)
-    return cb(err, res)
+    local status, err = pcall(get_response, token)
+    if status then
+      return run_cb(cb)
+    end
+    return cb(err)
   end
 
   function inst.to_array(callback)
