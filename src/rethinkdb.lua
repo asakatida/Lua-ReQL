@@ -32,25 +32,15 @@ function r.proto_V0_3(raw_socket, auth_key)
     '\199\112\105\126'
   )
 
-  local buffer = ''
-
   -- Now we have to wait for a response from the server
   -- acknowledging the connection
-  while 1 do
-    local buf, err = raw_socket.recv()
-    if not buf then
-      return nil, err
-    end
-    buffer = buffer .. buf
-    local i, _ = string.find(buffer, '\0')
-    if i then
-      if buffer == 'SUCCESS' then
-        -- We're good, finish setting up the connection
-        return ''
-      end
-      return nil, buffer
-    end
+  local message, buffer = raw_socket.get_message('')
+
+  if message == 'SUCCESS' then
+    -- We're good, finish setting up the connection
+    return ''
   end
+  return nil, message, buffer
 end
 
 function r.proto_V0_4(raw_socket, auth_key)
@@ -62,25 +52,15 @@ function r.proto_V0_4(raw_socket, auth_key)
     '\199\112\105\126'
   )
 
-  local buffer = ''
-
   -- Now we have to wait for a response from the server
   -- acknowledging the connection
-  while 1 do
-    local buf, err = raw_socket.recv()
-    if not buf then
-      return nil, err
-    end
-    buffer = buffer .. buf
-    local i, _ = string.find(buffer, '\0')
-    if i then
-      if buffer == 'SUCCESS' then
-        -- We're good, finish setting up the connection
-        return ''
-      end
-      return nil, buffer
-    end
+  local message, buffer = raw_socket.get_message('')
+
+  if message == 'SUCCESS' then
+    -- We're good, finish setting up the connection
+    return ''
   end
+  return nil, message, buffer
 end
 
 r.proto_V1_0 = require'rethinkdb.current_protocol'
