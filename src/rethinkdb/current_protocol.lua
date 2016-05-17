@@ -63,7 +63,7 @@ return function(raw_socket, auth_key, user)
   local client_first_message_bare = 'n=' .. user .. ',r=' .. nonce
 
   raw_socket.send(
-    '\32\45\12\64{"protocol_version":0,',
+    '\195\189\194\52{"protocol_version":0,',
     '"authentication_method":"SCRAM-SHA-256",',
     '"authentication":"n,,', client_first_message_bare, '"}\0'
   )
