@@ -1,3 +1,6 @@
+--- Helper for converting ReQL extensions into lua types.
+-- @module rethinkdb.convert_pseudotype
+
 local _r = require'rethinkdb.utilities'
 
 local errors = require'rethinkdb.errors'

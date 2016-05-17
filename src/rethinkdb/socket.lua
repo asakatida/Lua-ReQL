@@ -1,3 +1,6 @@
+--- Interface to handle socket timeouts and recoverable errors.
+-- @module rethinkdb.socket
+
 local _r = require'rethinkdb.utilities'
 
 local ssl = require('ssl')

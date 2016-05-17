@@ -1,3 +1,6 @@
+--- Interface to the ReQL error heiarchy.
+-- @module rethinkdb.errors
+
 local carrot_marker = {}
 
 local function carrotify(tree)

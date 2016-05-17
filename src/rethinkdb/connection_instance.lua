@@ -1,3 +1,6 @@
+--- Interface for concrete connections.
+-- @module rethinkdb.connection_instance
+
 local _r = require'rethinkdb.utilities'
 
 local bytes_to_int = require'rethinkdb.bytes_to_int'

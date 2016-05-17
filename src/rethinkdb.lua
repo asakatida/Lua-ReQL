@@ -1,3 +1,6 @@
+--- Main interface combining public modules in an export table.
+-- @module rethinkdb
+
 local int_to_bytes = require'rethinkdb.int_to_bytes'
 local v = require('rethinkdb.semver')
 

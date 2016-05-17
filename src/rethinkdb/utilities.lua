@@ -1,3 +1,6 @@
+--- Helpers to allow overriding driver internals.
+-- @module rethinkdb.utilities
+
 local _r = {}
 
 function _r.logger(r, err)

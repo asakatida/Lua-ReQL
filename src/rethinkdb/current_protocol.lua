@@ -1,3 +1,6 @@
+--- Handler implementing latest RethinkDB handshake.
+-- @module rethinkdb.current_protocol
+
 local _r = require'rethinkdb.utilities'
 
 local bit = require('bit')
