@@ -68,38 +68,20 @@ return function(raw_socket, auth_key, user)
     '"authentication":"n,,', client_first_message_bare, '"}\0'
   )
 
-  local buffer = ''
-
-  local function get_message()
-    local i = nil
-    while not i do
-      local buf, err = raw_socket.recv()
-      if not buf then
-        return nil, err
-      end
-      buffer = buffer .. buf
-      i = (string.find(buffer, '\0'))
-    end
-
-    local message = string.sub(buffer, 1, i - 1)
-    buffer = string.sub(buffer, i + 1)
-    local success, response, err = pcall(_r.decode, {}, message)
-
-    if not success or type(response) ~= 'table' then
-      return nil, err
-    end
-
-    return response
-  end
-
   -- Now we have to wait for a response from the server
   -- acknowledging the connection
   -- this will be a null terminated json document on success
   -- or a null terminated error string on failure
-  local response, err = get_message()
+  local message, buffer = raw_socket.get_message('')
 
-  if not response then
-    return nil, err
+  local success, response = pcall(_r.decode, {}, message)
+
+  if not success then
+    return nil, message
+  end
+
+  if response.success ~= true then
+    return nil, message
   end
 
   -- when protocol versions are updated this is where we send the following
@@ -120,10 +102,10 @@ return function(raw_socket, auth_key, user)
   local authentication = {}
   local server_first_message
 
-  response, err = get_message()
+  response, buffer = raw_socket.decode_message(buffer)
 
   if not response then
-    return nil, err
+    return nil, buffer
   end
 
   if not response.success then
@@ -189,10 +171,10 @@ return function(raw_socket, auth_key, user)
   --   "success": <bool>,
   --   "authentication": "v=<server_signature>"
   -- }
-  response, err = get_message()
+  response, buffer = raw_socket.decode_message(buffer)
 
   if not response then
-    return nil, err
+    return nil, buffer
   end
 
   if not response.success then

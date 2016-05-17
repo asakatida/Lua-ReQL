@@ -114,5 +114,38 @@ return function(r, host, port, ssl_params, timeout)
     return err_idx
   end
 
+  function inst.get_message(buffer)
+    local i = nil
+    while not i do
+      local buf, err = inst.recv()
+      if not buf then
+        return nil, err
+      end
+      buffer = buffer .. buf
+      i = (string.find(buffer, '\0'))
+    end
+
+    local message = string.sub(buffer, 1, i - 1)
+    buffer = string.sub(buffer, i + 1)
+    return message, buffer
+  end
+
+  function inst.decode_message(buffer)
+    local message
+    message, buffer = inst.get_message(buffer)
+
+    if message == nil then
+      return nil, buffer
+    end
+
+    local success, response = pcall(_r.decode, r, message)
+
+    if not success then
+      return nil, response
+    end
+
+    return response, buffer
+  end
+
   return inst
 end
