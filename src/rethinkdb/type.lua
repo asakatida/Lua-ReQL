@@ -1,3 +1,6 @@
+--- Helper to determine type of public interface.
+-- @module rethinkdb.type
+
 return function(obj)
   if type(obj) ~= 'table' or getmetatable(obj) == nil then return nil end
 

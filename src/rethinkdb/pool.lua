@@ -1,3 +1,6 @@
+--- Interface to handle a pool of connections.
+-- @module rethinkdb.pool
+
 local Connection = require'rethinkdb.connection'
 
 return function(host, _callback)

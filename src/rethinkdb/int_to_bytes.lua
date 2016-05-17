@@ -1,3 +1,6 @@
+--- Helper for converting an int to a string of bytes.
+-- @module rethinkdb.int_to_bytes
+
 local unpack = require'rethinkdb.unpack'
 
 return function(num, bytes)

@@ -1,3 +1,6 @@
+--- Interface to create ReQL queries.
+-- @module rethinkdb.ast
+
 local _r = require'rethinkdb.utilities'
 
 local errors = require'rethinkdb.errors'

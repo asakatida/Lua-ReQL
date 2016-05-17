@@ -1,3 +1,6 @@
+--- Interface to handle default connection construction.
+-- @module rethinkdb.connection
+
 local connection_instance = require'rethinkdb.connection_instance'
 local current_protocol = require'rethinkdb.current_protocol'
 
