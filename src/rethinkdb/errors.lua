@@ -71,9 +71,48 @@ local function print_query(term, frames)
   return join_tree(compose_term(term)) .. '\n' .. carrots
 end
 
-local function new_error_type(name, parent)
-  return function(msg, term, frames)
-    local inst = {__name = name}
+local heiarchy = {
+  ReQLDriverError = 'ReQLError',
+
+  ReQLAuthError = 'ReQLDriverError',
+
+  ReQLServerError = 'ReQLError',
+
+  ReQLCompileError = 'ReQLServerError',
+  ReQLRuntimeError = 'ReQLServerError',
+  ReQLClientError = 'ReQLServerError',
+
+  ReQLAvailabilityError = 'ReQLRuntimeError',
+  ReQLQueryLogicError = 'ReQLRuntimeError',
+  ReQLInternalError = 'ReQLRuntimeError',
+  ReQLResourceLimitError = 'ReQLRuntimeError',
+  ReQLTimeoutError = 'ReQLRuntimeError',
+  ReQLUserError = 'ReQLRuntimeError',
+
+  ReQLOpFailedError = 'ReQLAvailabilityError',
+  ReQLOpIndeterminateError = 'ReQLAvailabilityError',
+
+  ReQLNonExistenceError = 'ReQLQueryLogicError'
+}
+
+local function set_heiarchy(err, parent)
+  if parent then
+    err[parent] = err
+    set_heiarchy(err, heiarchy[parent])
+  end
+end
+
+local error_meta = {}
+
+function error_meta.__index(_, name)
+  local parent = rawget(heiarchy, name)
+
+  local function ReQLError(msg, term, frames)
+    local inst = {}
+
+    set_heiarchy(inst, parent)
+
+    inst[name] = inst
 
     function inst.message()
       local _message = name .. ' ' .. msg
@@ -86,42 +125,12 @@ local function new_error_type(name, parent)
       return _message
     end
 
-    inst.__parent = parent
     inst.msg = msg
 
-    return setmetatable(inst, {__index = inst.__parent})
+    return inst
   end
+
+  return ReQLError
 end
 
-local ReQLError = {__name = 'ReQLError'}
-
-local ReQLDriverError = new_error_type('ReQLDriverError', ReQLError)
-local ReQLServerError = new_error_type('ReQLServerError', ReQLError)()
-
-local ReQLRuntimeError = new_error_type('ReQLRuntimeError', ReQLServerError)
-
-local ReQLAvailabilityError = new_error_type('ReQLAvailabilityError', ReQLRuntimeError())
-local ReQLQueryLogicError = new_error_type('ReQLQueryLogicError', ReQLRuntimeError())
-
-return {
-  ReQLDriverError = ReQLDriverError,
-
-  ReQLRuntimeError = ReQLRuntimeError,
-  ReQLCompileError = new_error_type('ReQLCompileError', ReQLServerError),
-
-  ReQLAuthError = new_error_type('ReQLAuthError', ReQLDriverError()),
-
-  ReQLClientError = new_error_type('ReQLClientError', ReQLServerError),
-
-  ReQLAvailabilityError = ReQLAvailabilityError,
-  ReQLInternalError = new_error_type('ReQLInternalError', ReQLRuntimeError()),
-  ReQLQueryLogicError = ReQLQueryLogicError,
-  ReQLResourceLimitError = new_error_type('ReQLResourceLimitError', ReQLRuntimeError()),
-  ReQLTimeoutError = new_error_type('ReQLTimeoutError', ReQLRuntimeError()),
-  ReQLUserError = new_error_type('ReQLUserError', ReQLRuntimeError()),
-
-  ReQLOpFailedError = new_error_type('ReQLOpFailedError', ReQLAvailabilityError()),
-  ReQLOpIndeterminateError = new_error_type('ReQLOpIndeterminateError', ReQLAvailabilityError()),
-
-  ReQLNonExistenceError = new_error_type('ReQLNonExistenceError', ReQLQueryLogicError())
-}
+return setmetatable({}, error_meta)
