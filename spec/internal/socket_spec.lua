@@ -18,29 +18,29 @@ describe('socket', function()
 
     finally(function() client.close() end)
 
-    assert.is_false(client.isOpen())
+    assert.is_false(client.is_open())
 
     client.close()
 
-    assert.is_false(client.isOpen())
+    assert.is_false(client.is_open())
 
     client.open()
 
-    assert.is_true(client.isOpen())
+    assert.is_true(client.is_open())
 
     client.close()
 
-    assert.is_false(client.isOpen())
+    assert.is_false(client.is_open())
 
     client.close()
 
     client.open()
 
-    assert.is_true(client.isOpen())
+    assert.is_true(client.is_open())
 
     client.open()
 
-    assert.is_true(client.isOpen())
+    assert.is_true(client.is_open())
   end)
 
   it('connects', function()
@@ -48,7 +48,7 @@ describe('socket', function()
 
     client.open()
 
-    assert.is_true(client.isOpen())
+    assert.is_true(client.is_open())
 
     finally(function() client.close() end)
 

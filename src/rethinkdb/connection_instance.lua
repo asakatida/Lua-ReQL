@@ -60,7 +60,7 @@ return function(r, auth_key, db, host, port, proto_version, ssl_params, timeout,
   if db then use(db) end
 
   local inst = {
-    open = raw_socket.isOpen,
+    is_open = raw_socket.is_open,
     use = use
   }
 
@@ -115,7 +115,7 @@ return function(r, auth_key, db, host, port, proto_version, ssl_params, timeout,
       cur.close()
       return res
     end
-    if not inst.open() then
+    if not inst.is_open() then
       return cb(errors.ReQLDriverError('Connection is closed.'))
     end
 
@@ -176,7 +176,7 @@ return function(r, auth_key, db, host, port, proto_version, ssl_params, timeout,
       return nil, err
     end
 
-    local noreply_wait = (opts.noreply_wait ~= false) and inst.open()
+    local noreply_wait = (opts.noreply_wait ~= false) and inst.is_open()
 
     if noreply_wait then
       return inst.noreply_wait(cb)
@@ -195,7 +195,7 @@ return function(r, auth_key, db, host, port, proto_version, ssl_params, timeout,
       return nil, err
     end
 
-    local success, err = pcall(raw_socket.open)
+    local success, err = raw_socket.open()
 
     if not success or err then
       return error_(err)
@@ -225,7 +225,7 @@ return function(r, auth_key, db, host, port, proto_version, ssl_params, timeout,
       end
       return callback(_err)
     end
-    if not inst.open() then
+    if not inst.is_open() then
       return cb(errors.ReQLDriverError('Connection is closed.'))
     end
 
@@ -254,7 +254,7 @@ return function(r, auth_key, db, host, port, proto_version, ssl_params, timeout,
   end
 
   function inst.server()
-    if not inst.open() then
+    if not inst.is_open() then
       return nil, errors.ReQLDriverError('Connection is closed.')
     end
 

@@ -62,7 +62,7 @@ return function(r, host, port, ssl_params, timeout)
     shutdown(socket)
   end
 
-  function inst.isOpen()
+  function inst.is_open()
     return raw_socket and true or false
   end
 
