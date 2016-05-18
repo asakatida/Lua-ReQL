@@ -195,9 +195,9 @@ return function(r, auth_key, db, host, port, proto_version, ssl_params, timeout,
       return nil, err
     end
 
-    local success, err = raw_socket.open()
+    local err = raw_socket.open()
 
-    if not success or err then
+    if err then
       return error_(err)
     end
 
