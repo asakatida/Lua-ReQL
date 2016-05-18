@@ -22,14 +22,14 @@ return function(host, _callback)
       key = 1
       good_conn = next(pool)
     end
-    if not good_conn.open() then
+    if not good_conn.is_open() then
       pool[key] = good_conn.connect()
     end
     key = key + 1
     for i=1, size do
       if not pool[i] then pool[i] = builder.connect() end
       local conn = pool[i]
-      if not conn.open() then
+      if not conn.is_open() then
         conn.connect()
         pool[i] = conn
       end
@@ -55,7 +55,7 @@ return function(host, _callback)
   local function open()
     if not _open then return false end
     for _, conn in ipairs(pool) do
-      if conn.open() then return true end
+      if conn.is_open() then return true end
     end
     _open = false
     return false
