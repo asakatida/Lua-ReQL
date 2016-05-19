@@ -3,7 +3,6 @@
 
 local _r = require'rethinkdb.utilities'
 
-local errors = require'rethinkdb.errors'
 local proto = require'rethinkdb.protodef'
 
 local unpack = _G.unpack or table.unpack
