@@ -34,7 +34,6 @@ build = {
     ['rethinkdb.semver'] = 'src/rethinkdb/semver.lua',
     ['rethinkdb.socket'] = 'src/rethinkdb/socket.lua',
     ['rethinkdb.type'] = 'src/rethinkdb/type.lua',
-    ['rethinkdb.unpack'] = 'src/rethinkdb/unpack.lua',
     ['rethinkdb.utilities'] = 'src/rethinkdb/utilities.lua',
     rethinkdb = 'src/rethinkdb.lua'
   }
