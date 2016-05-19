@@ -95,27 +95,18 @@ local heiarchy = {
   ReQLNonExistenceError = 'ReQLQueryLogicError'
 }
 
-local function set_heiarchy(err, parent)
-  if parent then
-    err[parent] = err
-    set_heiarchy(err, heiarchy[parent])
-  end
-end
-
-local error_meta = {}
-
-function error_meta.__index(_, name)
-  local parent = rawget(heiarchy, name)
-
+local function __index(_, name)
   local function ReQLError(msg, term, frames)
-    local inst = {}
+    local inst = {msg = msg}
 
-    set_heiarchy(inst, parent)
-
-    inst[name] = inst
+    local _name = name
+    while _name do
+      inst[_name] = inst
+      _name = rawget(heiarchy, _name)
+    end
 
     function inst.message()
-      local _message = name .. ' ' .. msg
+      local _message = name .. ' ' .. inst.msg
       if term then
         _message = _message .. ' in:\n' .. print_query(term, frames)
       end
@@ -125,12 +116,10 @@ function error_meta.__index(_, name)
       return _message
     end
 
-    inst.msg = msg
-
     return inst
   end
 
   return ReQLError
 end
 
-return setmetatable({}, error_meta)
+return setmetatable({}, {__index = __index})
