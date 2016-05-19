@@ -5,7 +5,8 @@ local _r = require'rethinkdb.utilities'
 
 local errors = require'rethinkdb.errors'
 local proto = require'rethinkdb.protodef'
-local unpack = require'rethinkdb.unpack'
+
+local unpack = _G.unpack or table.unpack
 
 local meta_table = {}
 
