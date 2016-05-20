@@ -15,10 +15,9 @@ return function(r, del_query, end_query, get_response, token, opts, root)
     -- Error responses are not discarded, and the error will be sent to all future callbacks
     local t = response.t
     if t == proto.Response.SUCCESS_ATOM or t == proto.Response.SUCCESS_PARTIAL or t == proto.Response.SUCCESS_SEQUENCE then
-      local err
-      local status, row = pcall(convert_pseudotype, r, response.r[1], opts)
-      if not status then
-        err = row
+      local row, err = convert_pseudotype(r, response.r[1], opts)
+
+      if err then
         row = response.r[1]
       end
 
