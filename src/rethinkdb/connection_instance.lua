@@ -10,14 +10,22 @@ local int_to_bytes = require'rethinkdb.int_to_bytes'
 local proto = require'rethinkdb.protodef'
 local Socket = require'rethinkdb.socket'
 
+local Query = proto.Query
+
+local CONTINUE = '[' .. Query.CONTINUE .. ']'
+local NOREPLY_WAIT = '[' .. Query.NOREPLY_WAIT .. ']'
+local SERVER_INFO = '[' .. Query.SERVER_INFO .. ']'
+local STOP = '[' .. Query.STOP .. ']'
+
+local START = Query.START
+
 return function(r, auth_key, db, host, port, proto_version, ssl_params, timeout, user)
   local raw_socket = Socket(r, host, port, ssl_params, timeout)
   local outstanding_callbacks = {}
   local next_token = 1
   local buffer = ''
 
-  local function write_socket(token, query)
-    local data = _r.encode(r, query)
+  local function write_socket(token, data)
     return raw_socket.send(
       int_to_bytes(token, 8),
       int_to_bytes(#data, 4),
@@ -25,8 +33,13 @@ return function(r, auth_key, db, host, port, proto_version, ssl_params, timeout,
     )
   end
 
+  local function send_query(token, query)
+    local data = _r.encode(r, query)
+    return write_socket(token, data)
+  end
+
   local function continue_query(token)
-    return write_socket(token, {proto.Query.CONTINUE})
+    return write_socket(token, CONTINUE)
   end
 
   local function del_query(token)
@@ -37,7 +50,7 @@ return function(r, auth_key, db, host, port, proto_version, ssl_params, timeout,
 
   local function end_query(token)
     del_query(token)
-    return write_socket(token, {proto.Query.STOP})
+    return write_socket(token, STOP)
   end
 
   local function process_response(response, token)
@@ -141,9 +154,9 @@ return function(r, auth_key, db, host, port, proto_version, ssl_params, timeout,
     end
 
     -- Construct query
-    local query = {proto.Query.START, term.build(), global_opts}
+    local query = {START, term.build(), global_opts}
 
-    local _, err = write_socket(token, query)
+    local _, err = send_query(token, query)
 
     if err then
       inst.close({noreply_wait = false}, function(_err)
@@ -236,7 +249,7 @@ return function(r, auth_key, db, host, port, proto_version, ssl_params, timeout,
     local cursor = make_cursor(token)
 
     -- Construct query
-    write_socket(token, {proto.Query.NOREPLY_WAIT})
+    write_socket(token, NOREPLY_WAIT)
 
     return cb(nil, cursor)
   end
@@ -265,7 +278,7 @@ return function(r, auth_key, db, host, port, proto_version, ssl_params, timeout,
     local cursor = make_cursor(token)
 
     -- Construct query
-    write_socket(token, {proto.Query.SERVER_INFO})
+    write_socket(token, SERVER_INFO)
 
     return cursor.next(function(err, res)
       if err then return nil, err end
