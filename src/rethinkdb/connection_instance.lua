@@ -159,8 +159,8 @@ return function(r, auth_key, db, host, port, proto_version, ssl_params, timeout,
     local _, err = send_query(token, query)
 
     if err then
-      inst.close({noreply_wait = false}, function(_err)
-        return cb(_err or errors.ReQLDriverError('Connection is closed.'))
+      return inst.close({noreply_wait = false}, function()
+        return cb(err)
       end)
     end
 
