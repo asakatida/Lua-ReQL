@@ -5,6 +5,16 @@ local errors = require'rethinkdb.errors'
 local proto = require'rethinkdb.protodef'
 local convert_pseudotype = require'rethinkdb.convert_pseudotype'
 
+local Response = proto.Response
+
+local COMPILE_ERROR = Response.COMPILE_ERROR
+local SUCCESS_ATOM = Response.SUCCESS_ATOM
+local SUCCESS_PARTIAL = Response.SUCCESS_PARTIAL
+local SUCCESS_SEQUENCE = Response.SUCCESS_SEQUENCE
+local CLIENT_ERROR = Response.CLIENT_ERROR
+local RUNTIME_ERROR = Response.RUNTIME_ERROR
+local WAIT_COMPLETE = Response.WAIT_COMPLETE
+
 return function(r, del_query, end_query, get_response, token, opts, root)
   local responses = {}
   local _cb, end_flag, _type
@@ -14,7 +24,7 @@ return function(r, del_query, end_query, get_response, token, opts, root)
     -- Behavior varies considerably based on response type
     -- Error responses are not discarded, and the error will be sent to all future callbacks
     local t = response.t
-    if t == proto.Response.SUCCESS_ATOM or t == proto.Response.SUCCESS_PARTIAL or t == proto.Response.SUCCESS_SEQUENCE then
+    if t == SUCCESS_ATOM or t == SUCCESS_PARTIAL or t == SUCCESS_SEQUENCE then
       local row, err = convert_pseudotype(r, response.r[1], opts)
 
       if err then
@@ -27,13 +37,13 @@ return function(r, del_query, end_query, get_response, token, opts, root)
       return cb(err, row)
     end
     _cb = nil
-    if t == proto.Response.COMPILE_ERROR then
+    if t == COMPILE_ERROR then
       return cb(errors.ReQLCompileError(response.r[1], root, response.b))
-    elseif t == proto.Response.CLIENT_ERROR then
+    elseif t == CLIENT_ERROR then
       return cb(errors.ReQLClientError(response.r[1], root, response.b))
-    elseif t == proto.Response.RUNTIME_ERROR then
+    elseif t == RUNTIME_ERROR then
       return cb(errors.ReQLRuntimeError(response.r[1], root, response.b))
-    elseif t == proto.Response.WAIT_COMPLETE then
+    elseif t == WAIT_COMPLETE then
       return cb()
     end
     return cb(errors.ReQLDriverError('Unknown response type ' .. t))
@@ -109,10 +119,10 @@ return function(r, del_query, end_query, get_response, token, opts, root)
         _type = 'finite'
       end
     end
-    if response.r[1] or t == proto.Response.WAIT_COMPLETE then
+    if response.r[1] or t == WAIT_COMPLETE then
       table.insert(responses, response)
     end
-    if t ~= proto.Response.SUCCESS_PARTIAL then
+    if t ~= SUCCESS_PARTIAL then
       -- We got an error, SUCCESS_SEQUENCE, WAIT_COMPLETE, or a SUCCESS_ATOM
       end_flag = true
       del_query(token)

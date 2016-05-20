@@ -5,6 +5,10 @@ local _r = require'rethinkdb.utilities'
 
 local proto = require'rethinkdb.protodef'
 
+local Term = proto.Term
+
+local _datum = Term.datum
+
 local unpack = _G.unpack or table.unpack
 
 local meta_table = {}
@@ -147,14 +151,14 @@ local function datum(val)
     build = build,
     compose = compose,
     optargs = {},
-    tt = proto.Term.datum,
+    tt = _datum,
     st = 'datum'
   }, meta_table)
 end
 
 function meta_table.__index(cls, st)
   if st == 'datum' then return datum end
-  local tt = rawget(proto.Term, st)
+  local tt = rawget(Term, st)
   if tt == nil then
     return nil
   end
