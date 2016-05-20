@@ -73,7 +73,7 @@ return function(r, host, port, ssl_params, timeout)
     local status, err = socket:connect(host, port)
 
     if not status and suppress_write_error(socket, err) then
-      return _r.logger(r, err)
+      return nil, err
     end
 
     if ssl_params then
@@ -82,7 +82,7 @@ return function(r, host, port, ssl_params, timeout)
       while not status do
         status, err = socket:dohandshake()
         if suppress_read_error(socket, err) then
-          return _r.logger(r, err)
+          return nil, err
         end
       end
     end
@@ -99,7 +99,7 @@ return function(r, host, port, ssl_params, timeout)
       return buf
     end
     if suppress_read_error(raw_socket, err) then
-      return nil, _r.logger(r, err)
+      return nil, err
     end
     return partial or ''
   end
@@ -112,7 +112,7 @@ return function(r, host, port, ssl_params, timeout)
       return idx
     end
     if suppress_write_error(raw_socket, err) then
-      return nil, _r.logger(r, err)
+      return nil, err
     end
     return err_idx
   end

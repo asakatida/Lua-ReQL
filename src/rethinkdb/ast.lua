@@ -23,7 +23,13 @@ function r_meta_table.__call(r, val, nesting_depth)
     return _r.logger(r, 'Second argument to `r(val, nesting_depth)` must be a number.')
   end
   if nesting_depth <= 0 then
-    return _r.logger(r, 'Nesting depth limit exceeded', val)
+    return _r.logger(r, 'Nesting depth limit exceeded')
+  end
+  if type(val) == 'userdata' then
+    return _r.logger(r, 'Cannot insert userdata object into query')
+  end
+  if type(val) == 'thread' then
+    return _r.logger(r, 'Cannot insert thread object into query')
   end
   if getmetatable(val) == meta_table then
     return val
@@ -41,14 +47,6 @@ function r_meta_table.__call(r, val, nesting_depth)
       return r.make_array(unpack(val))
     end
     return r.make_obj(val)
-  end
-  if type(val) == 'userdata' then
-    val = pcall(tostring, val)
-    return _r.logger(r, 'Found userdata inserting "' .. val .. '" into query', val)
-  end
-  if type(val) == 'thread' then
-    val = pcall(tostring, val)
-    return _r.logger(r, 'Cannot insert thread object into query ' .. val, val)
   end
   return r.datum(val)
 end
