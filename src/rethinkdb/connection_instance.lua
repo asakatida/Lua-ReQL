@@ -57,7 +57,7 @@ return function(r, auth_key, db, host, port, proto_version, ssl_params, timeout,
     local cursor = outstanding_callbacks[token]
     if not cursor then
       -- Unexpected token
-      return _r.logger(r, 'Unexpected token ' .. token .. '.')
+      return nil, 'Unexpected token ' .. token
     end
     local add_response = cursor.add_response
     cursor = cursor.cursor
@@ -83,7 +83,7 @@ return function(r, auth_key, db, host, port, proto_version, ssl_params, timeout,
       local buf, err = raw_socket.recv()
       if err then
         inst.close{noreply_wait = false}
-        return _r.logger(r, 'connection returned: ' .. err)
+        return err
       end
       buffer = buffer .. buf
       local buffer_len = #buffer
@@ -122,7 +122,7 @@ return function(r, auth_key, db, host, port, proto_version, ssl_params, timeout,
         res = callback(err, cur)
       else
         if err then
-          return _r.logger(r, err.message())
+          return nil, err
         end
       end
       cur.close()
