@@ -1,9 +1,6 @@
 language: python
 sudo: false
 
-git:
-  depth: 1
-
 env:
   matrix:
     - LUA="lua 5.1" RDB_VER="http://download.rethinkdb.com/apt/pool/precise/main/r/rethinkdb/rethinkdb_2.3.0~0precise_amd64.deb"
@@ -16,9 +13,7 @@ before_install:
   - pip install hererocks
   - hererocks here -r^ --$LUA
   - export PATH=$PATH:$PWD/here/bin
-  - luarocks install busted
   - luarocks install luacheck
-  - luarocks install luacov
   - luacheck .
 
 install:
@@ -29,10 +24,12 @@ before_script:
   - ar x *.deb
   - tar xvzf data.tar.gz
   - ./usr/bin/rethinkdb --daemon
+  - luarocks install busted
+  - busted -t sanity --lazy
 
 script:
-  - busted -t sanity --lazy
   - busted -c
 
 after_success:
+  - luarocks install luacov
   - luacov
