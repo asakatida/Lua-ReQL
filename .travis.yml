@@ -26,10 +26,10 @@ before_script:
   - ./usr/bin/rethinkdb --daemon
   - luarocks install busted
   - busted -t sanity --lazy
+  - luarocks install luacov
 
 script:
   - busted -c
 
 after_success:
-  - luarocks install luacov
   - luacov
