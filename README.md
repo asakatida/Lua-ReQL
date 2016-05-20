@@ -3,6 +3,7 @@
 Rethinkdb driver in Lua
 
 ## Installing
+- _IF USING LUA 5.1_ `luarocks install luabitop`
 - `luarocks install lua-reql`
 
 ## Dev Dependencies
@@ -11,6 +12,7 @@ Rethinkdb driver in Lua
   - busted
   - luacheck
   - luacov
+  - _IF USING LUA 5.1_ luabitop
 - RethinkDB
 
 ## Testing
