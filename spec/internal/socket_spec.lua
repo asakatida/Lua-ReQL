@@ -14,7 +14,7 @@ describe('socket', function()
   end)
 
   it('closes repeatedly', function()
-    local client = assert(socket({}, 'localhost', 28015, nil, 1))
+    local client = assert.is_not_nil(socket({}, 'localhost', 28015, nil, 1))
 
     finally(function() client.close() end)
 
@@ -44,7 +44,7 @@ describe('socket', function()
   end)
 
   it('connects', function()
-    local client = assert(socket({}, 'localhost', 28015, nil, 1))
+    local client = assert.is_not_nil(socket({}, 'localhost', 28015, nil, 1))
 
     client.open()
 
@@ -52,11 +52,11 @@ describe('socket', function()
 
     finally(function() client.close() end)
 
-    local idx = assert(client.send('\0\0', '\0\0\0\0\0\0\0\0\0\0'))
+    local idx = assert.is_not_nil(client.send('\0\0', '\0\0\0\0\0\0\0\0\0\0'))
 
     assert.are_equal(12, idx)
 
-    local message = assert(client.recv())
+    local message = assert.is_not_nil(client.recv())
 
     assert.are_equal(
       'ERROR: Received an unsupported protocol version. This port is for ' ..

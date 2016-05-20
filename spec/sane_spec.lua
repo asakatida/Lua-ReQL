@@ -2,17 +2,17 @@ insulate('safety net', function()
   describe('environment #sanity', function()
     it('is sane', function()
       local socket = require('socket')
-      local client = assert(socket.tcp())
+      local client = assert.is_not_nil(socket.tcp())
 
       finally(function() client:close() end)
 
-      assert(client:connect('localhost', 28015))
+      assert.is_not_nil(client:connect('localhost', 28015))
 
-      local idx = assert(client:send'\0\0\0\0\0\0\0\0\0\0\0\0')
+      local idx = assert.is_not_nil(client:send'\0\0\0\0\0\0\0\0\0\0\0\0')
 
       assert.are_equal(idx, 12)
 
-      local message = assert(client:receive('*a'))
+      local message = assert.is_not_nil(client:receive('*a'))
 
       assert.are_equal(
         message,
@@ -20,7 +20,7 @@ insulate('safety net', function()
         'RethinkDB queries. Does your client driver version not match the ' ..
         'server?\n\0')
 
-      assert(require('rethinkdb'))
+      assert.is_not_nil(require('rethinkdb'))
     end)
   end)
 end)
