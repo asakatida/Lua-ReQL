@@ -82,7 +82,8 @@ return function(r, auth_key, db, host, port, proto_version, ssl_params, timeout,
     while true do
       local buf, err = raw_socket.recv()
       if err then
-        inst.close{noreply_wait = false}
+        raw_socket.close()
+        buffer = ''
         return err
       end
       buffer = buffer .. buf
@@ -159,9 +160,9 @@ return function(r, auth_key, db, host, port, proto_version, ssl_params, timeout,
     local _, err = send_query(token, query)
 
     if err then
-      return inst.close({noreply_wait = false}, function()
-        return cb(err)
-      end)
+      raw_socket.close()
+      buffer = ''
+      return cb(err)
     end
 
     return cb(nil, make_cursor(token, opts, term))
@@ -186,7 +187,7 @@ return function(r, auth_key, db, host, port, proto_version, ssl_params, timeout,
       if callback then
         return callback(err)
       end
-      return nil, err
+      return err
     end
 
     local noreply_wait = (opts.noreply_wait ~= false) and inst.is_open()
@@ -199,7 +200,8 @@ return function(r, auth_key, db, host, port, proto_version, ssl_params, timeout,
 
   function inst.connect(callback)
     local function error_(err)
-      inst.close{noreply_wait = false}
+      raw_socket.close()
+      buffer = ''
       err = errors.ReQLDriverError(
         'Could not connect to ' .. host .. ':' .. port .. '.\n' .. err)
       if callback then
@@ -222,7 +224,8 @@ return function(r, auth_key, db, host, port, proto_version, ssl_params, timeout,
 
     if callback then
       local res = callback(nil, inst)
-      inst.close{noreply_wait = false}
+      raw_socket.close()
+      buffer = ''
       return res
     end
 
@@ -261,9 +264,8 @@ return function(r, auth_key, db, host, port, proto_version, ssl_params, timeout,
     else
       callback = opts_or_callback
     end
-    return inst.close(opts, function()
-      return inst.connect(callback)
-    end)
+    inst.close(opts)
+    return inst.connect(callback)
   end
 
   function inst.server()
