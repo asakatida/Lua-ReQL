@@ -8,7 +8,7 @@ local function carrotify(tree)
 end
 
 local function compose_term(term)
-  if type(term) ~= 'table' then return '' .. term end
+  if type(term) ~= 'table' then return tostring(term) end
   local args = {}
   for i, arg in ipairs(term.args) do
     args[i] = compose_term(arg)
