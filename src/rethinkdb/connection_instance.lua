@@ -3,16 +3,16 @@
 
 local utilities = require'rethinkdb.utilities'
 
-local logger = utilities.logger
-local encode = utilities.encode
-local decode = utilities.decode
-
 local bytes_to_int = require'rethinkdb.bytes_to_int'
 local Cursor = require'rethinkdb.cursor'
 local errors = require'rethinkdb.errors'
 local int_to_bytes = require'rethinkdb.int_to_bytes'
 local proto = require'rethinkdb.protodef'
 local Socket = require'rethinkdb.socket'
+
+local logger = utilities.logger
+local encode = utilities.encode
+local decode = utilities.decode
 
 local Query = proto.Query
 
