@@ -25,7 +25,7 @@ describe('connection', function()
   end)
 
   it('basic pool', function()
-    r.pool({}, function(err, p)
+    r.connect({pool = 2}, function(err, p)
       if err then error(err.message()) end
       assert.is_not_nil(p)
     end)
