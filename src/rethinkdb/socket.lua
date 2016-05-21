@@ -50,7 +50,7 @@ return function(r, host, port, ssl_params, timeout)
 
   local function shutdown(client)
     if client then
-      if ngx == nil and ssl_params == nil then
+      if ngx == nil and ssl_params == nil then  --luacheck: globals ngx
         client:shutdown()
       end
       client:close()
