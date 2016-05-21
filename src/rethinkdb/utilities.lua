@@ -42,7 +42,7 @@ local function encode(r, ...)
     r.encode = r.json_parser.encode
     return r.encode(...)
   end
-  if ngx == nil then
+  if ngx == nil then  --luacheck: globals ngx
     r.json_parser = require('json')
   else
     r.json_parser = require('cjson')
@@ -58,7 +58,7 @@ local function decode(r, ...)
     r.decode = r.json_parser.decode
     return r.decode(...)
   end
-  if ngx == nil then
+  if ngx == nil then  --luacheck: globals ngx
     r.json_parser = require('json')
   else
     r.json_parser = require('cjson')
@@ -72,10 +72,10 @@ local function socket(r, ...)
     return r.socket(...)
   end
   local lib_socket
-  if ngx == nil then
+  if ngx == nil then  --luacheck: globals ngx
     lib_socket = require('socket')
   else
-    lib_socket = ngx.socket
+    lib_socket = ngx.socket  --luacheck: globals ngx
   end
   r.socket = lib_socket.tcp
   if not r.select then
@@ -89,10 +89,10 @@ local function select(r, ...)
     return r.select(...)
   end
   local lib_socket
-  if ngx == nil then
+  if ngx == nil then  --luacheck: globals ngx
     lib_socket = require('socket')
   else
-    lib_socket = ngx.socket
+    lib_socket = ngx.socket  --luacheck: globals ngx
   end
   r.select = lib_socket.select
   if not r.socket then

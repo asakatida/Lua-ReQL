@@ -1,4 +1,5 @@
-if not jit then
+
+if not jit then  --luacheck: globals jit
   local success, __bxor, __compare_digest, __pbkdf2_hmac = pcall(
     require, 'rethinkdb.security53')
   if success then
