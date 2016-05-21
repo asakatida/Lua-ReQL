@@ -5,7 +5,6 @@ local ast = require'rethinkdb.ast'
 local connection = require'rethinkdb.connection'
 local current_protocol = require'rethinkdb.current_protocol'
 local int_to_bytes = require'rethinkdb.int_to_bytes'
-local pool = require'rethinkdb.pool'
 local type_ = require'rethinkdb.type'
 
 local v = require('rethinkdb.semver')
@@ -46,7 +45,6 @@ end
 local r = ast
 
 r.Connection = connection
-r.pool = pool
 r.type = type_
 r.version = v'1.0.0'
 
