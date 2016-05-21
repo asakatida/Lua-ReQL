@@ -1,7 +1,11 @@
 --- Interface for concrete connections.
 -- @module rethinkdb.connection_instance
 
-local _r = require'rethinkdb.utilities'
+local utilities = require'rethinkdb.utilities'
+
+local logger = utilities.logger
+local encode = utilities.encode
+local decode = utilities.decode
 
 local bytes_to_int = require'rethinkdb.bytes_to_int'
 local Cursor = require'rethinkdb.cursor'
@@ -34,7 +38,7 @@ return function(r, auth_key, db, host, port, proto_version, ssl_params, timeout,
   end
 
   local function send_query(token, query)
-    local data = _r.encode(r, query)
+    local data = encode(r, query)
     return write_socket(token, data)
   end
 
@@ -94,7 +98,7 @@ return function(r, auth_key, db, host, port, proto_version, ssl_params, timeout,
         if buffer_len >= response_length then
           local response_buffer = string.sub(buffer, 13, response_length)
           continue_query(token)
-          process_response(_r.decode(r, response_buffer), token)
+          process_response(decode(r, response_buffer), token)
           buffer = string.sub(buffer, response_length + 1)
           if token == reqest_token then return end
         end
@@ -172,7 +176,7 @@ return function(r, auth_key, db, host, port, proto_version, ssl_params, timeout,
     local opts = {}
     if callback then
       if type(opts_or_callback) ~= 'table' then
-        return _r.logger(r, 'First argument to two-argument `close` must be a table.')
+        return logger(r, 'First argument to two-argument `close` must be a table.')
       end
       opts = opts_or_callback
     elseif type(opts_or_callback) == 'table' then
@@ -216,7 +220,7 @@ return function(r, auth_key, db, host, port, proto_version, ssl_params, timeout,
       return error_(err)
     end
 
-    buffer, err = proto_version(raw_socket, auth_key, user)
+    buffer, err = proto_version(r, raw_socket, auth_key, user)
 
     if err then
       return error_(err)

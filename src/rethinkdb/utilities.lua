@@ -1,102 +1,114 @@
 --- Helpers to allow overriding driver internals.
 -- @module rethinkdb.utilities
 
-local _r = {}
-
-function _r.logger(r, err)
+local function logger(r, err)
   if r.logger then
-    r.logger(err)
+    return r.logger(err)
   elseif type(err) == 'string' then
     error(err)
-  elseif type(err) == 'table' and err.msg then
-    error(err.msg)
   else
     error('Unknown error type from driver')
   end
 end
 
-function _r.unb64(r, data)
+local function unb64(r, ...)
   if r.unb64 then
-    return r.unb64(data)
-  elseif not _r.lib_mime then
-    _r.lib_mime = require('mime')
+    return r.unb64(...)
   end
-  r.unb64 = _r.lib_mime.unb64
-  return r.unb64(data)
+  local lib_mime = require('mime')
+  r.unb64 = lib_mime.unb64
+  if not r.b64 then
+    r.b64 = lib_mime.b64
+  end
+  return r.unb64(...)
 end
 
-function _r.b64(r, data)
+local function b64(r, ...)
   if r.b64 then
-    return r.b64(data)
-  elseif not _r.lib_mime then
-    _r.lib_mime = require('mime')
+    return r.unb64(...)
   end
-  r.b64 = _r.lib_mime.b64
-  return r.b64(data)
+  local lib_mime = require('mime')
+  r.b64 = lib_mime.b64
+  if not r.unb64 then
+    r.unb64 = lib_mime.unb64
+  end
+  return r.b64(...)
 end
 
-function _r.encode(r, data)
+local function encode(r, ...)
   if r.encode then
-    return r.encode(data)
+    return r.encode(...)
   elseif r.json_parser then
     r.encode = r.json_parser.encode
-    return r.encode(data)
-  elseif not _r.lib_json then
-    if ngx == nil then
-      _r.lib_json = require('json')
-    else
-      _r.lib_json = require('cjson')
-    end
+    return r.encode(...)
   end
-  r.json_parser = _r.lib_json
-  r.encode = _r.lib_json.encode
-  return r.encode(data)
+  if ngx == nil then
+    r.json_parser = require('json')
+  else
+    r.json_parser = require('cjson')
+  end
+  r.encode = r.json_parser.encode
+  return r.encode(...)
 end
 
-function _r.decode(r, buffer)
+local function decode(r, ...)
   if r.decode then
-    return r.decode(buffer)
+    return r.decode(...)
   elseif r.json_parser then
     r.decode = r.json_parser.decode
-    return r.decode(buffer)
-  elseif not _r.lib_json then
-    if ngx == nil then
-      _r.lib_json = require('json')
-    else
-      _r.lib_json = require('cjson')
-    end
+    return r.decode(...)
   end
-  r.json_parser = _r.lib_json
-  r.decode = _r.lib_json.decode
-  return r.decode(buffer)
+  if ngx == nil then
+    r.json_parser = require('json')
+  else
+    r.json_parser = require('cjson')
+  end
+  r.decode = r.json_parser.decode
+  return r.decode(...)
 end
 
-function _r.socket(r)
+local function socket(r, ...)
   if r.socket then
-    return r.socket()
-  elseif not _r.lib_socket then
-    if ngx == nil then
-      _r.lib_socket = require('socket')
-    else
-      _r.lib_socket = ngx.socket
-    end
+    return r.socket(...)
   end
-  r.socket = _r.lib_socket.tcp
-  return r.socket()
+  local lib_socket
+  if ngx == nil then
+    lib_socket = require('socket')
+  else
+    lib_socket = ngx.socket
+  end
+  r.socket = lib_socket.tcp
+  if not r.select then
+    r.select = lib_socket.select
+  end
+  return r.socket(...)
 end
 
-function _r.select(r, ...)
+local function select(r, ...)
   if r.select then
     return r.select(...)
-  elseif not _r.lib_socket then
-    if ngx == nil then
-      _r.lib_socket = require('socket')
-    else
-      _r.lib_socket = ngx.socket
-    end
   end
-  r.select = _r.lib_socket.select
+  local lib_socket
+  if ngx == nil then
+    lib_socket = require('socket')
+  else
+    lib_socket = ngx.socket
+  end
+  r.select = lib_socket.select
+  if not r.socket then
+    r.socket = lib_socket.tcp
+  end
   return r.select(...)
 end
+
+local _r = {
+  logger = logger,
+  unb64 = unb64,
+  b64 = b64,
+  encode = encode,
+  decode = decode,
+  socket = socket,
+  select = select,
+}
 
 return _r

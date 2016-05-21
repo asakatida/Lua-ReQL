@@ -1,7 +1,9 @@
 --- Helper for converting ReQL extensions into lua types.
 -- @module rethinkdb.convert_pseudotype
 
-local _r = require'rethinkdb.utilities'
+local utilities = require'rethinkdb.utilities'
+
+local unb64 = utilities.unb64
 
 -- Don't convert the data into a map, because the keys could be tables which doesn't work in JS
 -- Instead, we have the following format:
@@ -42,7 +44,7 @@ local time_table = {
 local function convert_pseudotype(r, _obj, opts)
   local function native_binary(obj)
     assert(obj.data, 'pseudo-type BINARY table missing expected field `data`')
-    return _r.unb64(r, obj.data)
+    return unb64(r, obj.data)
   end
 
   local binary_table = {
