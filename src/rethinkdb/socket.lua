@@ -1,24 +1,28 @@
 --- Interface to handle socket timeouts and recoverable errors.
 -- @module rethinkdb.socket
 
-local _r = require'rethinkdb.utilities'
+local utilities = require'rethinkdb.utilities'
 
 local ssl = require('ssl')
+
+local decode = utilities.decode
+local socket = utilities.socket
+local select = utilities.select
 
 return function(r, host, port, ssl_params, timeout)
   local raw_socket
 
-  local function suppress_read_error(socket, err)
+  local function suppress_read_error(client, err)
     if err == 'closed' then
       raw_socket = nil
     elseif err == 'timeout' or err == 'wantread' then
-      local recvt, _, sel_err = _r.select(r, {socket}, nil, timeout)
-      if sel_err == 'timeout' or not recvt[socket] then
+      local recvt, _, sel_err = select(r, {client}, nil, timeout)
+      if sel_err == 'timeout' or not recvt[client] then
         return err
       end
     elseif err == 'wantwrite' then
-      local _, sendt, sel_err = _r.select(r, nil, {socket}, timeout)
-      if sel_err == 'timeout' or not sendt[socket] then
+      local _, sendt, sel_err = select(r, nil, {client}, timeout)
+      if sel_err == 'timeout' or not sendt[client] then
         return err
       end
     else
@@ -26,17 +30,17 @@ return function(r, host, port, ssl_params, timeout)
     end
   end
 
-  local function suppress_write_error(socket, err)
+  local function suppress_write_error(client, err)
     if err == 'closed' then
       raw_socket = nil
     elseif err == 'wantread' then
-      local recvt, _, sel_err = _r.select(r, {socket}, nil, timeout)
-      if sel_err == 'timeout' or not recvt[socket] then
+      local recvt, _, sel_err = select(r, {client}, nil, timeout)
+      if sel_err == 'timeout' or not recvt[client] then
         return err
       end
     elseif err == 'timeout' or err == 'wantwrite' then
-      local _, sendt, sel_err = _r.select(r, nil, {socket}, timeout)
-      if sel_err == 'timeout' or not sendt[socket] then
+      local _, sendt, sel_err = select(r, nil, {client}, timeout)
+      if sel_err == 'timeout' or not sendt[client] then
         return err
       end
     else
@@ -44,22 +48,22 @@ return function(r, host, port, ssl_params, timeout)
     end
   end
 
-  local function shutdown(socket)
-    if socket then
+  local function shutdown(client)
+    if client then
       if ngx == nil and ssl_params == nil then
-        socket:shutdown()
+        client:shutdown()
       end
-      socket:close()
+      client:close()
     end
   end
 
   local inst = {}
 
   function inst.close()
-    local socket = nil
-    raw_socket, socket = socket, raw_socket
+    local client = nil
+    raw_socket, client = client, raw_socket
 
-    shutdown(socket)
+    shutdown(client)
   end
 
   function inst.is_open()
@@ -67,29 +71,29 @@ return function(r, host, port, ssl_params, timeout)
   end
 
   function inst.open()
-    local socket = _r.socket(r)
-    socket:settimeout(0)
+    local client = socket(r)
+    client:settimeout(0)
 
-    local status, err = socket:connect(host, port)
+    local status, err = client:connect(host, port)
 
-    if not status and suppress_write_error(socket, err) then
+    if not status and suppress_write_error(client, err) then
       return nil, err
     end
 
     if ssl_params then
-      socket = ssl.wrap(socket, ssl_params)
+      client = ssl.wrap(client, ssl_params)
       status = false
       while not status do
-        status, err = socket:dohandshake()
-        if suppress_read_error(socket, err) then
+        status, err = client:dohandshake()
+        if suppress_read_error(client, err) then
           return nil, err
         end
       end
     end
 
-    raw_socket, socket = socket, raw_socket
+    raw_socket, client = client, raw_socket
 
-    shutdown(socket)
+    shutdown(client)
   end
 
   function inst.recv()
@@ -141,7 +145,7 @@ return function(r, host, port, ssl_params, timeout)
       return nil, buffer
     end
 
-    local success, response = pcall(_r.decode, r, message)
+    local success, response = pcall(decode, r, message)
 
     if not success then
       return nil, response

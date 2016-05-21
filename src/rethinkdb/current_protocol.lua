@@ -1,18 +1,23 @@
 --- Handler implementing latest RethinkDB handshake.
 -- @module rethinkdb.current_protocol
 
-local _r = require'rethinkdb.utilities'
+local utilities = require'rethinkdb.utilities'
 
 local __bxor, __compare_digest, __pbkdf2_hmac = require'rethinkdb.security'
 local bytes_to_int = require'rethinkdb.bytes_to_int'
 local crypto = require('crypto')
 
+local unb64 = utilities.unb64
+local b64 = utilities.b64
+local encode = utilities.encode
+local decode = utilities.decode
+
 local rand_bytes = crypto.rand.bytes
 local evp = crypto.evp
 local hmac = crypto.hmac
 
-return function(raw_socket, auth_key, user)
-  local nonce = _r.b64({}, rand_bytes(18))
+return function(r, raw_socket, auth_key, user)
+  local nonce = b64(r, rand_bytes(18))
 
   local client_first_message_bare = 'n=' .. user .. ',r=' .. nonce
 
@@ -32,7 +37,7 @@ return function(raw_socket, auth_key, user)
     return nil, buffer
   end
 
-  local success, response = pcall(_r.decode, {}, message)
+  local success, response = pcall(decode, r, message)
 
   if not success then
     return nil, message
@@ -83,7 +88,7 @@ return function(raw_socket, auth_key, user)
 
   local client_final_message_without_proof = 'c=biws,r=' .. authentication.r
 
-  local salt = _r.unb64({}, authentication.s)
+  local salt = unb64(r, authentication.s)
 
   -- SaltedPassword := Hi(Normalize(password), salt, i)
   local salted_password = __pbkdf2_hmac('sha256', auth_key, salt, authentication.i)
@@ -117,10 +122,10 @@ return function(raw_socket, auth_key, user)
   -- {
   --   "authentication": "c=biws,r=<nonce><server_nonce>,p=<proof>"
   -- }
-  raw_socket.send(_r.encode({}, {
+  raw_socket.send(encode(r, {
     authentication =
     client_final_message_without_proof ..
-    ',p=' .. _r.b64({}, client_proof)
+    ',p=' .. b64(r, client_proof)
   }), '\0')
 
   -- wait for the third server challenge
