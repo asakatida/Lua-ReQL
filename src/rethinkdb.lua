@@ -41,9 +41,9 @@ function r.proto_V0_3(raw_socket, auth_key)
 
   if message == 'SUCCESS' then
     -- We're good, finish setting up the connection
-    return ''
+    return buffer
   end
-  return nil, message, buffer
+  return nil, buffer
 end
 
 function r.proto_V0_4(raw_socket, auth_key)
@@ -61,9 +61,9 @@ function r.proto_V0_4(raw_socket, auth_key)
 
   if message == 'SUCCESS' then
     -- We're good, finish setting up the connection
-    return ''
+    return buffer
   end
-  return nil, message, buffer
+  return nil, buffer
 end
 
 r.proto_V1_0 = require'rethinkdb.current_protocol'

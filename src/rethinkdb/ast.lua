@@ -225,31 +225,23 @@ function meta_table.__index(cls, st)
     end
 
     function inst.compose(_args, _optargs)
-      local function intsp(seq)
-        local res = {}
-        local sep = ''
-        for _, v in ipairs(seq) do
-          table.insert(res, {sep, v})
-          sep = ', '
-        end
-        return res
-      end
       if st == 'make_array' then
         return {
           '{',
-          intsp(_args),
+          table.concat(_args, ', '),
           '}'
         }
       end
       local function kved(optargs)
-        local res = {'{'}
-        local sep = ''
+        local res = {}
         for k, v in pairs(optargs) do
-          table.insert(res, {sep, k, ' = ', v})
-          sep = ', '
+          table.insert(res, k .. ' = ' .. v)
         end
-        table.insert(res, '}')
-        return res
+        return {
+          '{',
+          table.concat(res, ', '),
+          '}'
+        }
       end
       if st == 'make_obj' then
         return kved(_optargs)
@@ -266,13 +258,13 @@ function meta_table.__index(cls, st)
       if st == 'func' then
         return {
           'function(',
-          intsp((function()
+          table.concat((function()
             local _accum_0 = {}
             for i, v in ipairs(inst.args[1]) do
               _accum_0[i] = 'var_' .. v
             end
             return _accum_0
-          end)()),
+          end)(), ', '),
           ') return ', _args[2], ' end'
         }
       end
@@ -287,7 +279,7 @@ function meta_table.__index(cls, st)
       end
       local argrepr = {}
       if _args and next(_args) then
-        table.insert(argrepr, intsp(_args))
+        table.insert(argrepr, table.concat(_args, ', '))
       end
       if _optargs and next(_optargs) then
         if next(argrepr) then

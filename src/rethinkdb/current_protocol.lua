@@ -28,6 +28,10 @@ return function(raw_socket, auth_key, user)
   -- or a null terminated error string on failure
   local message, buffer = raw_socket.get_message('')
 
+  if not message then
+    return nil, buffer
+  end
+
   local success, response = pcall(_r.decode, {}, message)
 
   if not success then
