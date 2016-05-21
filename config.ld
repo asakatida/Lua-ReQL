@@ -7,7 +7,6 @@ file = {
   exclude = {
     'src/rethinkdb/protodef.lua',
     'src/rethinkdb/semver.lua',
-    'src/rethinkdb/unpack.lua',
   }
 }
 format = 'discount'
