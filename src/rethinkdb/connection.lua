@@ -10,7 +10,7 @@ local DEFAULT_USER = 'admin'
 local DEFAULT_AUTH_KEY = ''
 local DEFAULT_TIMEOUT = 20 -- In seconds
 
-return function(connection_opts, _proto_version)
+local function connection(connection_opts, _proto_version)
   local port = connection_opts.port or DEFAULT_PORT
   local db = connection_opts.db -- left nil if this is not set
   local auth_key = connection_opts.password or connection_opts.auth_key or DEFAULT_AUTH_KEY
@@ -50,3 +50,5 @@ return function(connection_opts, _proto_version)
     use = use
   }
 end
+
+return connection

@@ -3,7 +3,7 @@
 
 local unpack = _G.unpack or table.unpack
 
-return function(num, bytes)
+local function int_to_bytes(num, bytes)
   local res = {}
   num = math.fmod(num, 2 ^ (8 * bytes))
   for k = bytes, 1, -1 do
@@ -13,3 +13,5 @@ return function(num, bytes)
   end
   return string.char(unpack(res))
 end
+
+return int_to_bytes
