@@ -23,7 +23,10 @@ local STOP = '[' .. Query.STOP .. ']'
 
 local START = Query.START
 
-return function(r, auth_key, db, host, port, proto_version, ssl_params, timeout, user)
+local function connection_instance(...)
+  local
+    r, auth_key, db, host, port, proto_version, ssl_params, timeout, user = ...
+
   local raw_socket = Socket(r, host, port, ssl_params, timeout)
   local outstanding_callbacks = {}
   local next_token = 1
@@ -294,3 +297,5 @@ return function(r, auth_key, db, host, port, proto_version, ssl_params, timeout,
 
   return inst
 end
+
+return connection_instance

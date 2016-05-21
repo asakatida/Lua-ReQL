@@ -165,7 +165,7 @@ function meta_table.__index(cls, st)
     return nil
   end
 
-  return function(...)
+  local function reql_term(...)
     local __optargs, args = (arg_wrappers[st] or no_opts)(...)
 
     local inst = setmetatable({tt = tt, st = st}, meta_table)
@@ -345,6 +345,8 @@ function meta_table.__index(cls, st)
 
     return inst
   end
+
+  return reql_term
 end
 
 function meta_table.__call(term, ...)

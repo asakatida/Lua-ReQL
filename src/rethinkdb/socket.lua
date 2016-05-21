@@ -9,7 +9,7 @@ local decode = utilities.decode
 local socket = utilities.socket
 local select = utilities.select
 
-return function(r, host, port, ssl_params, timeout)
+local function socket(r, host, port, ssl_params, timeout)
   local raw_socket
 
   local function suppress_read_error(client, err)
@@ -156,3 +156,5 @@ return function(r, host, port, ssl_params, timeout)
 
   return inst
 end
+
+return socket

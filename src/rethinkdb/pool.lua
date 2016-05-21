@@ -3,7 +3,7 @@
 
 local Connection = require'rethinkdb.connection'
 
-return function(host, _callback)
+local function pool(host, _callback)
   local size
   local _open = false
   local key = 1
@@ -99,3 +99,5 @@ return function(host, _callback)
     return cb()
   end)
 end
+
+return pool

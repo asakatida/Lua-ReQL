@@ -15,7 +15,9 @@ local CLIENT_ERROR = Response.CLIENT_ERROR
 local RUNTIME_ERROR = Response.RUNTIME_ERROR
 local WAIT_COMPLETE = Response.WAIT_COMPLETE
 
-return function(r, del_query, end_query, get_response, token, opts, root)
+local function cursor(...)
+  local r, del_query, end_query, get_response, token, opts, root = ...
+
   local responses = {}
   local _cb, end_flag, _type
 
@@ -132,3 +134,5 @@ return function(r, del_query, end_query, get_response, token, opts, root)
     end
   end
 end
+
+return cursor

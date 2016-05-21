@@ -16,7 +16,7 @@ local rand_bytes = crypto.rand.bytes
 local evp = crypto.evp
 local hmac = crypto.hmac
 
-return function(r, raw_socket, auth_key, user)
+local function current_protocol(r, raw_socket, auth_key, user)
   local nonce = b64(r, rand_bytes(18))
 
   local client_first_message_bare = 'n=' .. user .. ',r=' .. nonce
@@ -153,3 +153,5 @@ return function(r, raw_socket, auth_key, user)
 
   return buffer
 end
+
+return current_protocol
