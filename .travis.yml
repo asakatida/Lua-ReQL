@@ -1,13 +1,15 @@
 language: python
 sudo: false
 
+cache:
+  pip: true
+  directories:
+    - here
+
 env:
   matrix:
     - LUA="lua 5.1" RDB_VER="http://download.rethinkdb.com/apt/pool/precise/main/r/rethinkdb/rethinkdb_2.3.0~0precise_amd64.deb"
     - LUA="lua 5.2" RDB_VER="http://download.rethinkdb.com/apt/pool/precise/main/r/rethinkdb/rethinkdb_2.3.0~0precise_amd64.deb"
-    - LUA="lua 5.3" RDB_VER="http://download.rethinkdb.com/apt/pool/precise/main/r/rethinkdb/rethinkdb_2.3.0~0precise_amd64.deb"
-    - LUA="luajit 2.0" RDB_VER="http://download.rethinkdb.com/apt/pool/precise/main/r/rethinkdb/rethinkdb_2.3.0~0precise_amd64.deb"
-    - LUA="luajit 2.1" RDB_VER="http://download.rethinkdb.com/apt/pool/precise/main/r/rethinkdb/rethinkdb_2.3.0~0precise_amd64.deb"
 
 before_install:
   - pip install hererocks
@@ -19,9 +21,6 @@ before_install:
 install:
   # Fix from https://github.com/leafo/lapis/issues/6
   - luarocks install https://gist.githubusercontent.com/starius/b20d3e63929ae678c857/raw/4b4499f442337b6f577422364358590bd00c9d48/luacrypto-0.3.2-2.rockspec
-  - if [ "${LUA}" = "lua 5.1" ]; then
-      luarocks install luabitop
-    fi
   - luarocks make
 
 before_script:
@@ -30,11 +29,13 @@ before_script:
   - tar xvzf data.tar.gz
   - ./usr/bin/rethinkdb --daemon
   - luarocks install busted
+  - luarocks install luabitop
   - busted -t sanity --lazy
   - luarocks install luacov
 
 script:
-  - busted -c
+  - busted -c -t sanity --lazy
 
 after_success:
-  - luacov
+  - luarocks install luacov-coveralls
+  - luacov-coveralls
