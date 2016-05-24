@@ -30,7 +30,6 @@ before_script:
   - ./usr/bin/rethinkdb --daemon
   - luarocks install busted
   - luarocks install luabitop
-  - busted -t sanity --lazy
   - luarocks install luacov-coveralls
 
 script:
