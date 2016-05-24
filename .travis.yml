@@ -8,13 +8,13 @@ cache:
 
 env:
   matrix:
-    - LUA="lua 5.1" LUA_PATH="here/lua51" RDB_VER="http://download.rethinkdb.com/apt/pool/precise/main/r/rethinkdb/rethinkdb_2.3.0~0precise_amd64.deb"
-    - LUA="lua 5.2" LUA_PATH="here/lua52" RDB_VER="http://download.rethinkdb.com/apt/pool/precise/main/r/rethinkdb/rethinkdb_2.3.0~0precise_amd64.deb"
+    - LUA="lua 5.1" LUA_PATH="lua51" RDB_VER="http://download.rethinkdb.com/apt/pool/precise/main/r/rethinkdb/rethinkdb_2.3.0~0precise_amd64.deb"
+    - LUA="lua 5.2" LUA_PATH="lua52" RDB_VER="http://download.rethinkdb.com/apt/pool/precise/main/r/rethinkdb/rethinkdb_2.3.0~0precise_amd64.deb"
 
 before_install:
   - pip install hererocks
-  - hererocks $LUA_PATH --compat none -r^ --$LUA
-  - export PATH="$PATH:$PWD/$LUA_PATH/bin"
+  - hererocks here/$LUA_PATH --compat none -r^ --$LUA
+  - export PATH="$PATH:$PWD/here/$LUA_PATH/bin"
   - luarocks install luacheck
   - luacheck .
 
