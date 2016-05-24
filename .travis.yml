@@ -31,7 +31,6 @@ before_script:
   - luarocks install busted
   - luarocks install luabitop
   - busted -t sanity --lazy
-  - luarocks install luacov
   - luarocks install luacov-coveralls
 
 script:
