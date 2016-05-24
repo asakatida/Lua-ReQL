@@ -13,8 +13,8 @@ env:
 
 before_install:
   - pip install hererocks
-  - hererocks $LUA_PATH -r^ --$LUA
-  - export PATH=$PATH:$PWD/$LUA_PATH/bin
+  - hererocks $LUA_PATH --compat none -r^ --$LUA
+  - export PATH="$PATH:$PWD/$LUA_PATH/bin"
   - luarocks install luacheck
   - luacheck .
 
