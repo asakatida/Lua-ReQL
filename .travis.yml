@@ -38,7 +38,7 @@ before_script:
   - luarocks install luacov-coveralls
 
 script:
-  - busted -c -t sanity --lazy
+  - busted
 
 after_success:
   - luacov-coveralls
