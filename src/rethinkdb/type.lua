@@ -1,7 +1,10 @@
 --- Helper to determine type of public interface.
 -- @module rethinkdb.type
+-- @author Adam Grandquist
+-- @license Apache
+-- @copyright Adam Grandquist 2016
 
-local function type(obj)
+local function type_(obj)
   if type(obj) ~= 'table' or getmetatable(obj) == nil then return nil end
 
   if type(obj.build) == 'function' and type(obj.compose) == 'function' then
@@ -34,4 +37,4 @@ local function type(obj)
   return nil
 end
 
-return type
+return type_

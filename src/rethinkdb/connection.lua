@@ -1,5 +1,8 @@
 --- Interface to handle default connection construction.
 -- @module rethinkdb.connection
+-- @author Adam Grandquist
+-- @license Apache
+-- @copyright Adam Grandquist 2016
 
 local connection_instance = require'rethinkdb.connection_instance'
 local current_protocol = require'rethinkdb.current_protocol'

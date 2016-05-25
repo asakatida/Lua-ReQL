@@ -1,5 +1,8 @@
 --- Interface to the ReQL error heiarchy.
 -- @module rethinkdb.errors
+-- @author Adam Grandquist
+-- @license Apache
+-- @copyright Adam Grandquist 2016
 
 local carrot_marker = {}
 

@@ -1,5 +1,8 @@
 --- Interface to handle query responses.
 -- @module rethinkdb.cursor
+-- @author Adam Grandquist
+-- @license Apache
+-- @copyright Adam Grandquist 2016
 
 local errors = require'rethinkdb.errors'
 local proto = require'rethinkdb.protodef'
@@ -111,8 +114,8 @@ local function cursor(...)
 
     return inst.each(cb, on_finished)
   end
-
-  return inst, function(response)
+  
+  local function add_response(response)
     local t = response.t
     if not _type then
       if response.n then
@@ -125,7 +128,7 @@ local function cursor(...)
       table.insert(responses, response)
     end
     if t ~= SUCCESS_PARTIAL then
-      -- We got an error, SUCCESS_SEQUENCE, WAIT_COMPLETE, or a SUCCESS_ATOM
+      -- We got the final document for this cursor
       end_flag = true
       del_query(token)
     end
@@ -133,6 +136,8 @@ local function cursor(...)
       run_cb(_cb)
     end
   end
+
+  return inst, add_response
 end
 
 return cursor

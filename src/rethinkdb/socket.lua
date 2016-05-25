@@ -1,5 +1,8 @@
 --- Interface to handle socket timeouts and recoverable errors.
 -- @module rethinkdb.socket
+-- @author Adam Grandquist
+-- @license Apache
+-- @copyright Adam Grandquist 2016
 
 local utilities = require'rethinkdb.utilities'
 

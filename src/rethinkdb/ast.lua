@@ -1,5 +1,9 @@
 --- Interface to create ReQL queries.
 -- @module rethinkdb.ast
+-- @author Adam Grandquist
+-- @license Apache
+-- @copyright Adam Grandquist 2016
+-- @alias r
 
 local utilities = require'rethinkdb.utilities'
 
@@ -15,10 +19,24 @@ local _datum = Term.datum
 
 local unpack = _G.unpack or table.unpack
 
+--- meta table for reql
+-- @func __index
+-- @table meta_table
 local meta_table = {}
 
+--- meta table driver module
+-- @func __call
+-- @func __index
+-- @table r_meta_table
 local r_meta_table = {}
 
+--- wrap lua value
+-- @tab r driver module
+-- @param[opt] val lua value to wrap
+-- @int[opt=20] nesting_depth max depth of value recursion
+-- @treturn table reql
+-- @raise Cannot insert userdata object into query
+-- @raise Cannot insert thread object into query
 function r_meta_table.__call(r, val, nesting_depth)
   if nesting_depth == nil then
     nesting_depth = 20
@@ -55,18 +73,34 @@ function r_meta_table.__call(r, val, nesting_depth)
   return r.datum(val)
 end
 
-function r_meta_table.__index(_, st)
-  return meta_table.__index(nil, st)
+--- creates a top level term
+-- @tab r driver module
+-- @string st reql term name
+-- @treturn table reql
+function r_meta_table.__index(r, st)
+  return meta_table.__index(r, st)
 end
 
+--- module export
+-- @table r
 local r = setmetatable({}, r_meta_table)
 
-local function no_opts(...)
-  return {}, {...}
+--- pack reql arguments
+local function chain(cls, ...)
+  if getmetatable(cls) == r_meta_table then
+    return {...}
+  end
+  return {cls, ...}
 end
 
-local function get_opts(...)
-  local args = {...}
+--- terms that take no options as final arguments
+local function no_opts(cls, ...)
+  return {}, chain(cls, ...)
+end
+
+--- terms that take a variable number of arguments and an optional final argument that is a table of options
+local function get_opts(cls, ...)
+  local args = chain(cls, ...)
   local opt = {}
   local pos_opt = args[#args]
   if (type(pos_opt) == 'table') and (getmetatable(pos_opt) ~= meta_table) then
@@ -76,20 +110,25 @@ local function get_opts(...)
   return opt, args
 end
 
-local function arity_1(arg0, opts)
-  return opts or {}, {arg0}
+--- terms that take 1 argument and an optional final argument that is a table of options
+local function arity_1(cls, arg0, opts)
+  return opts or {}, chain(cls, arg0)
 end
 
-local function arity_2(arg0, arg1, opts)
-  return opts or {}, {arg0, arg1}
+--- terms that take 2 arguments and an optional final argument that is a table of options
+local function arity_2(cls, arg0, arg1, opts)
+  return opts or {}, chain(cls, arg0, arg1)
 end
 
-local function arity_3(arg0, arg1, arg2, opts)
-  return opts or {}, {arg0, arg1, arg2}
+--- terms that take 3 arguments and an optional final argument that is a table of options
+local function arity_3(cls, arg0, arg1, arg2, opts)
+  return opts or {}, chain(cls, arg0, arg1, arg2)
 end
 
+--- int incremented to keep reql function arguments unique
 local next_var_id = 0
 
+--- mapping from reql term names to argument signatures
 local arg_wrappers = {
   between = arity_3,
   between_deprecated = arity_3,
@@ -127,6 +166,9 @@ local arg_wrappers = {
   wait = arity_1
 }
 
+--- wrap a Lua string, number, or nil for reql terms
+-- @param[opt] val string or finite number
+-- @treturn table reql
 local function datum(val)
   if type(val) == 'number' then
     if math.abs(val) == math.huge or val ~= val then
@@ -158,6 +200,11 @@ local function datum(val)
   }, meta_table)
 end
 
+--- returns a chained term
+-- @tab cls term to chain this operation on
+-- @string st reql term name
+-- @treturn function @{reql_term}
+-- @treturn nil if there is no known term
 function meta_table.__index(cls, st)
   if st == 'datum' then return datum end
   local tt = rawget(Term, st)
@@ -165,11 +212,13 @@ function meta_table.__index(cls, st)
     return nil
   end
 
+  --- instantiates a chained term
   local function reql_term(...)
-    local __optargs, args = (arg_wrappers[st] or no_opts)(...)
+    local __optargs, args = (arg_wrappers[st] or no_opts)(cls, ...)
 
     local inst = setmetatable({tt = tt, st = st}, meta_table)
 
+    --- convert from internal represention to JSON
     function inst.build()
       if st == 'binary' and (not inst.args[1]) then
         return {
@@ -199,12 +248,11 @@ function meta_table.__index(cls, st)
       return res
     end
 
+    --- send term to server for evaluation
+    -- @tab connection
+    -- @tab[opt] options
+    -- @func[opt] callback
     function inst.run(connection, options, callback)
-      -- Valid syntaxes are
-      -- connection
-      -- connection, callback
-      -- connection, options, callback
-      -- connection, nil, callback
 
       -- Handle run(connection, callback)
       if type(options) == 'function' then
@@ -228,47 +276,41 @@ function meta_table.__index(cls, st)
       return connection._start(inst, callback, options or {})
     end
 
+    --- get debug represention of query
+    -- @tab debug represention of arguments
+    -- @tab[opt] debug represention of options
+    -- @treturn string
     function inst.compose(_args, _optargs)
       if st == 'make_array' then
-        return {
-          '{',
-          table.concat(_args, ', '),
-          '}'
-        }
+        return '{' .. table.concat(_args, ', ') .. '}'
       end
       local function kved(optargs)
         local res = {}
         for k, v in pairs(optargs) do
           table.insert(res, k .. ' = ' .. v)
         end
-        return {
-          '{',
-          table.concat(res, ', '),
-          '}'
-        }
+        return '{' .. table.concat(res, ', ') .. '}'
       end
       if st == 'make_obj' then
         return kved(_optargs)
       end
       if st == 'var' then
-        return {'var_' .. _args[1]}
+        return 'var_' .. _args[1]
       end
       if st == 'binary' and not inst.args[1] then
         return 'r.binary(<data>)'
       end
       if st == 'bracket' then
-        return {_args[1], '(', _args[2], ')'}
+        return table.concat{_args[1], '(', _args[2], ')'}
       end
       if st == 'func' then
-        return {
+        local res = {}
+        for i, v in ipairs(inst.args[1]) do
+          res[i] = 'var_' .. v
+        end
+        return table.concat{
           'function(',
-          table.concat((function()
-            local _accum_0 = {}
-            for i, v in ipairs(inst.args[1]) do
-              _accum_0[i] = 'var_' .. v
-            end
-            return _accum_0
-          end)(), ', '),
+          table.concat(res, ', '),
           ') return ', _args[2], ' end'
         }
       end
@@ -278,20 +320,14 @@ function meta_table.__index(cls, st)
           table.insert(_args, func)
         end
       end
-      if not inst.args then
-        return {'r.' .. st .. '()'}
-      end
       local argrepr = {}
       if _args and next(_args) then
         table.insert(argrepr, table.concat(_args, ', '))
       end
       if _optargs and next(_optargs) then
-        if next(argrepr) then
-          table.insert(argrepr, ', ')
-        end
         table.insert(argrepr, kved(_optargs))
       end
-      return {'r.' .. st .. '(', argrepr, ')'}
+      return table.concat{'r.', st, '(', table.concat(argrepr, ', '), ')'}
     end
 
     if st == 'func' then
@@ -349,30 +385,37 @@ function meta_table.__index(cls, st)
   return reql_term
 end
 
+--- get index query on server
 function meta_table.__call(term, ...)
   return term.bracket(...)
 end
 
+--- get count on server
 function meta_table.__len(term)
   return term.count()
 end
 
+--- reql math term
 function meta_table.__add(term, ...)
   return term.add(...)
 end
 
+--- reql math term
 function meta_table.__mul(term, ...)
   return term.mul(...)
 end
 
+--- reql math term
 function meta_table.__mod(term, ...)
   return term.mod(...)
 end
 
+--- reql math term
 function meta_table.__sub(term, ...)
   return term.sub(...)
 end
 
+--- reql math term
 function meta_table.__div(term, ...)
   return term.div(...)
 end
