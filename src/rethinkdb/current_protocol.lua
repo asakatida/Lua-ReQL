@@ -1,5 +1,8 @@
 --- Handler implementing latest RethinkDB handshake.
 -- @module rethinkdb.current_protocol
+-- @author Adam Grandquist
+-- @license Apache
+-- @copyright Adam Grandquist 2016
 
 local utilities = require'rethinkdb.utilities'
 

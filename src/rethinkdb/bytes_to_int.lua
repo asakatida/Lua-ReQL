@@ -1,5 +1,8 @@
 --- Helper for converting a string of bytes to an int.
 -- @module rethinkdb.bytes_to_int
+-- @author Adam Grandquist
+-- @license Apache
+-- @copyright Adam Grandquist 2016
 
 local function bytes_to_int(str)
   local t = {string.byte(str, 1, -1)}

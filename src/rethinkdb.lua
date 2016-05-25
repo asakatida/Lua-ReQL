@@ -1,5 +1,9 @@
 --- Main interface combining public modules in an export table.
 -- @module rethinkdb
+-- @author Adam Grandquist
+-- @license Apache
+-- @copyright Adam Grandquist 2016
+-- @alias r
 
 local ast = require'rethinkdb.ast'
 local connection = require'rethinkdb.connection'
@@ -13,7 +17,7 @@ local function proto_V0_x(raw_socket, auth_key, magic)
   -- Initialize connection with magic number to validate version
   raw_socket.send(
     magic,
-    int_to_bytes(#(auth_key), 4),
+    int_to_bytes(#auth_key, 4),
     auth_key,
     '\199\112\105\126'
   )

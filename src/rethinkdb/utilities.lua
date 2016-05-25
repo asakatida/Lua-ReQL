@@ -1,5 +1,8 @@
 --- Helpers to allow overriding driver internals.
 -- @module rethinkdb.utilities
+-- @author Adam Grandquist
+-- @license Apache
+-- @copyright Adam Grandquist 2016
 
 local function logger(r, err)
   if r.logger then

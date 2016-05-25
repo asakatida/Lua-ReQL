@@ -1,5 +1,8 @@
 --- Interface for concrete connections.
 -- @module rethinkdb.connection_instance
+-- @author Adam Grandquist
+-- @license Apache
+-- @copyright Adam Grandquist 2016
 
 local utilities = require'rethinkdb.utilities'
 
@@ -240,13 +243,11 @@ local function connection_instance(...)
   end
 
   function inst.noreply_wait(callback)
-    local function cb(_err, _cur)
-      if _cur then
-        return _cur.next(function(err)
-          return callback(err)
-        end)
+    local function cb(err)
+      if callback then
+        return callback(err)
       end
-      return callback(_err)
+      return nil, err
     end
     if not inst.is_open() then
       return cb(errors.ReQLDriverError('Connection is closed.'))
@@ -261,7 +262,7 @@ local function connection_instance(...)
     -- Construct query
     write_socket(token, NOREPLY_WAIT)
 
-    return cb(nil, cursor)
+    return cursor.next(callback)
   end
 
   function inst.reconnect(opts_or_callback, callback)
@@ -289,10 +290,7 @@ local function connection_instance(...)
     -- Construct query
     write_socket(token, SERVER_INFO)
 
-    return cursor.next(function(err, res)
-      if err then return nil, err end
-      return res
-    end)
+    return cursor.next()
   end
 
   return inst
