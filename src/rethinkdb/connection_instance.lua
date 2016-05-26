@@ -7,7 +7,7 @@
 local utilities = require'rethinkdb.utilities'
 
 local bytes_to_int = require'rethinkdb.bytes_to_int'
-local Cursor = require'rethinkdb.cursor'
+local convert_pseudotype = require'rethinkdb.convert_pseudotype'
 local errors = require'rethinkdb.errors'
 local int_to_bytes = require'rethinkdb.int_to_bytes'
 local proto = require'rethinkdb.protodef'
@@ -18,6 +18,15 @@ local encode = utilities.encode
 local decode = utilities.decode
 
 local Query = proto.Query
+local Response = proto.Response
+
+local COMPILE_ERROR = Response.COMPILE_ERROR
+local SUCCESS_ATOM = Response.SUCCESS_ATOM
+local SUCCESS_PARTIAL = Response.SUCCESS_PARTIAL
+local SUCCESS_SEQUENCE = Response.SUCCESS_SEQUENCE
+local CLIENT_ERROR = Response.CLIENT_ERROR
+local RUNTIME_ERROR = Response.RUNTIME_ERROR
+local WAIT_COMPLETE = Response.WAIT_COMPLETE
 
 local CONTINUE = '[' .. Query.CONTINUE .. ']'
 local NOREPLY_WAIT = '[' .. Query.NOREPLY_WAIT .. ']'
@@ -25,6 +34,36 @@ local SERVER_INFO = '[' .. Query.SERVER_INFO .. ']'
 local STOP = '[' .. Query.STOP .. ']'
 
 local START = Query.START
+
+local function run_cb(responses, cb)
+  local response = responses[1]
+  -- Behavior varies considerably based on response type
+  -- Error responses are not discarded, and the error will be sent to all future callbacks
+  local t = response.t
+  if t == SUCCESS_ATOM or t == SUCCESS_PARTIAL or t == SUCCESS_SEQUENCE then
+    local row, err = convert_pseudotype(r, response.r[1], opts)
+
+    if err then
+      row = response.r[1]
+    end
+
+    table.remove(response.r, 1)
+    if not next(response.r) then table.remove(responses, 1) end
+
+    return cb(err, row)
+  end
+  _cb = nil
+  if t == COMPILE_ERROR then
+    return cb(errors.ReQLCompileError(response.r[1], root, response.b))
+  elseif t == CLIENT_ERROR then
+    return cb(errors.ReQLClientError(response.r[1], root, response.b))
+  elseif t == RUNTIME_ERROR then
+    return cb(errors.ReQLRuntimeError(response.r[1], root, response.b))
+  elseif t == WAIT_COMPLETE then
+    return cb()
+  end
+  return cb(errors.ReQLDriverError('Unknown response type ' .. t))
+end
 
 local function connection_instance(...)
   local
@@ -55,7 +94,7 @@ local function connection_instance(...)
   local function del_query(token)
     -- This query is done, delete this cursor
     if not outstanding_callbacks[token] then return end
-    outstanding_callbacks[token].cursor = nil
+    outstanding_callbacks[token] = {} -- @todo this should set to nil
   end
 
   local function end_query(token)
@@ -66,12 +105,10 @@ local function connection_instance(...)
   local function process_response(response, token)
     local cursor = outstanding_callbacks[token]
     if not cursor then
-      -- Unexpected token
       return nil, 'Unexpected token ' .. token
     end
     local add_response = cursor.add_response
-    cursor = cursor.cursor
-    if cursor then
+    if add_response then
       return add_response(response)
     end
   end
@@ -112,14 +149,101 @@ local function connection_instance(...)
     end
   end
 
+  local function Cursor(...)
+    local token, opts, root = ...
+
+    local responses = {}
+    local _cb, end_flag, _type
+
+    local inst = {}
+
+    function inst.set(cb)
+      _cb = cb
+    end
+
+    function inst.close(cb)
+      if not end_flag then
+        end_flag = true
+        end_query(token)
+      end
+      if cb then return cb() end
+    end
+
+    function inst.each(callback, on_finished)
+      local e
+      local function cb(err, data)
+        e = err
+        return callback(data)
+      end
+      inst.set(cb)
+      while not end_flag do
+        get_response(token)
+      end
+      if on_finished then
+        return on_finished(e)
+      end
+    end
+
+    function inst.next(callback)
+      if end_flag then
+        return callback(errors.ReQLDriverError('No more rows in the cursor.'))
+      end
+      local old_cb = nil
+      local function cb(err, res)
+        inst.set(old_cb)
+        return callback(err, res)
+      end
+      old_cb, _cb = _cb, old_cb
+      inst.set(cb)
+      get_response(token)
+      return run_cb(responses, cb)
+    end
+
+    function inst.to_array(callback)
+      local arr = {}
+
+      local function cb(row)
+        table.insert(arr, row)
+      end
+
+      local function on_finished(err)
+        return callback(err, arr)
+      end
+
+      return inst.each(cb, on_finished)
+    end
+    
+    local function add_response(response)
+      local t = response.t
+      if not _type then
+        if response.n then
+          _type = response.n
+        else
+          _type = 'finite'
+        end
+      end
+      if response.r[1] or t == WAIT_COMPLETE then
+        table.insert(responses, response)
+      end
+      if t ~= SUCCESS_PARTIAL then
+        -- We got the final document for this cursor
+        end_flag = true
+        del_query(token)
+      end
+      while _cb and responses[1] do
+        run_cb(responses, _cb)
+      end
+    end
+
+    return inst, add_response
+  end
+
   local function make_cursor(token, opts, term)
-    local cursor, add_response = Cursor(
-       r, del_query, end_query, get_response, token, opts or {}, term)
+    local cursor, add_response = Cursor(token, opts or {}, term)
 
     -- Save cursor
 
     outstanding_callbacks[token] = {
-      cursor = cursor,
       add_response = add_response
     }
 
