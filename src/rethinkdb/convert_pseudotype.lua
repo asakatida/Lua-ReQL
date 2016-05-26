@@ -8,6 +8,10 @@ local utilities = require'rethinkdb.utilities'
 
 local unb64 = utilities.unb64
 
+--- native conversion from reql grouped data to Lua
+-- @tab obj reql group pseudo-type table
+-- @treturn table
+-- @todo description is from Javascript driver
 -- Don't convert the data into a map, because the keys could be tables which doesn't work in JS
 -- Instead, we have the following format:
 -- [ { 'group': <group>, 'reduction': <value(s)> }, ... ]
@@ -23,6 +27,10 @@ local function native_group(obj)
   return res
 end
 
+--- native conversion from reql time data to Lua
+-- @tab obj reql time pseudo-type table
+-- @treturn number
+-- @todo description is from Javascript driver
 -- We ignore the timezone field of the pseudo-type TIME table. JS dates do not support timezones.
 -- By converting to a native date table we are intentionally throwing out timezone information.
 -- field 'epoch_time' is in seconds but the Date constructor expects milliseconds
@@ -30,6 +38,9 @@ local function native_time(obj)
   return assert(obj.epoch_time, 'pseudo-type TIME table missing expected field `epoch_time`')
 end
 
+--- raw pseudo-type from server
+-- @tab obj reql pseudo-type table
+-- @treturn table
 local function raw(obj)
   return obj
 end
@@ -44,6 +55,11 @@ local time_table = {
   raw = raw
 }
 
+--- convert a nested response from reql to Lua types
+-- @tab r driver module
+-- @tab _obj reql response
+-- @tab opts table of options for native or raw conversions
+-- @treturn table
 local function convert_pseudotype(r, _obj, opts)
   local function native_binary(obj)
     assert(obj.data, 'pseudo-type BINARY table missing expected field `data`')
