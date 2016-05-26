@@ -92,9 +92,9 @@ local function current_protocol(r, raw_socket, auth_key, user)
     return nil, buffer
   end
 
-  local success, response = pcall(decode, r, message)
+  local response = decode(r, message)
 
-  if not success then
+  if not response then
     return nil, message
   end
 

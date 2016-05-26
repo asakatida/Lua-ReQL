@@ -28,10 +28,7 @@ local function type_(obj)
   end
 
   if type(obj.msg) == 'string' and type(obj.message) == 'function' then
-    local success, message = pcall(obj.message)
-    if success and type(message) == 'string' then
-      return 'error'
-    end
+    return 'error'
   end
 
   return nil

@@ -148,7 +148,7 @@ local function socket(r, host, port, ssl_params, timeout)
       return nil, buffer
     end
 
-    local success, response = pcall(decode, r, message)
+    local success, response = decode(r, message)
 
     if not success then
       return nil, response
