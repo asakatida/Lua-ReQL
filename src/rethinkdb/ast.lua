@@ -253,7 +253,6 @@ function meta_table.__index(cls, st)
     -- @tab[opt] options
     -- @func[opt] callback
     function inst.run(connection, options, callback)
-
       -- Handle run(connection, callback)
       if type(options) == 'function' then
         if callback ~= nil then
