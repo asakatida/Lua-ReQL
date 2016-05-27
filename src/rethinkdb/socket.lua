@@ -10,21 +10,21 @@ local ssl = require('ssl')
 
 local decode = utilities.decode
 local _socket = utilities.socket
-local _select = utilities.select
+local _select = utilities._select
 
 local function socket(r, host, port, ssl_params, timeout)
-  local raw_socket
+  local raw_socket = nil
 
   local function suppress_read_error(client, err)
     if err == 'closed' then
       raw_socket = nil
     elseif err == 'timeout' or err == 'wantread' then
-      local recvt, _, sel_err = select(r, {client}, nil, timeout)
+      local recvt, _, sel_err = _select(r, {client}, nil, timeout)
       if sel_err == 'timeout' or not recvt[client] then
         return err
       end
     elseif err == 'wantwrite' then
-      local _, sendt, sel_err = select(r, nil, {client}, timeout)
+      local _, sendt, sel_err = _select(r, nil, {client}, timeout)
       if sel_err == 'timeout' or not sendt[client] then
         return err
       end
