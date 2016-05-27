@@ -35,40 +35,7 @@ local STOP = '[' .. Query.STOP .. ']'
 
 local START = Query.START
 
-local function run_cb(responses, cb)
-  local response = responses[1]
-  -- Behavior varies considerably based on response type
-  -- Error responses are not discarded, and the error will be sent to all future callbacks
-  local t = response.t
-  if t == SUCCESS_ATOM or t == SUCCESS_PARTIAL or t == SUCCESS_SEQUENCE then
-    local row, err = convert_pseudotype(r, response.r[1], opts)
-
-    if err then
-      row = response.r[1]
-    end
-
-    table.remove(response.r, 1)
-    if not next(response.r) then table.remove(responses, 1) end
-
-    return cb(err, row)
-  end
-  _cb = nil
-  if t == COMPILE_ERROR then
-    return cb(errors.ReQLCompileError(response.r[1], root, response.b))
-  elseif t == CLIENT_ERROR then
-    return cb(errors.ReQLClientError(response.r[1], root, response.b))
-  elseif t == RUNTIME_ERROR then
-    return cb(errors.ReQLRuntimeError(response.r[1], root, response.b))
-  elseif t == WAIT_COMPLETE then
-    return cb()
-  end
-  return cb(errors.ReQLDriverError('Unknown response type ' .. t))
-end
-
-local function connection_instance(...)
-  local
-    r, auth_key, db, host, port, proto_version, ssl_params, timeout, user = ...
-
+local function connection_instance(r, auth_key, db, host, port, proto_version, ssl_params, timeout, user)
   local raw_socket = Socket(r, host, port, ssl_params, timeout)
   local outstanding_callbacks = {}
   local next_token = 1
@@ -113,16 +80,15 @@ local function connection_instance(...)
     end
   end
 
-  local function use(_db)
+  local conn_inst = {}
+
+  conn_inst.is_open = raw_socket.is_open
+
+  function conn_inst.use(_db)
     db = r.db(_db).build()
   end
 
-  if db then use(db) end
-
-  local inst = {
-    is_open = raw_socket.is_open,
-    use = use
-  }
+  if db then conn_inst.use(db) end
 
   local function get_response(reqest_token)
     -- Buffer data, execute return results if need be
@@ -149,13 +115,41 @@ local function connection_instance(...)
     end
   end
 
-  local function Cursor(...)
-    local token, opts, root = ...
-
+  local function Cursor(token, opts, root)
     local responses = {}
     local _cb, end_flag, _type
 
     local inst = {}
+
+    local function run_cb(cb)
+      local response = responses[1]
+      -- Behavior varies considerably based on response type
+      -- Error responses are not discarded, and the error will be sent to all future callbacks
+      local t = response.t
+      if t == SUCCESS_ATOM or t == SUCCESS_PARTIAL or t == SUCCESS_SEQUENCE then
+        local row, err = convert_pseudotype(r, response.r[1], opts)
+
+        if err then
+          row = response.r[1]
+        end
+
+        table.remove(response.r, 1)
+        if not next(response.r) then table.remove(responses, 1) end
+
+        return cb(err, row)
+      end
+      _cb = nil
+      if t == COMPILE_ERROR then
+        return cb(errors.ReQLCompileError(response.r[1], root, response.b))
+      elseif t == CLIENT_ERROR then
+        return cb(errors.ReQLClientError(response.r[1], root, response.b))
+      elseif t == RUNTIME_ERROR then
+        return cb(errors.ReQLRuntimeError(response.r[1], root, response.b))
+      elseif t == WAIT_COMPLETE then
+        return cb()
+      end
+      return cb(errors.ReQLDriverError('Unknown response type ' .. t))
+    end
 
     function inst.set(cb)
       _cb = cb
@@ -196,7 +190,7 @@ local function connection_instance(...)
       old_cb, _cb = _cb, old_cb
       inst.set(cb)
       get_response(token)
-      return run_cb(responses, cb)
+      return run_cb(cb)
     end
 
     function inst.to_array(callback)
@@ -212,7 +206,7 @@ local function connection_instance(...)
 
       return inst.each(cb, on_finished)
     end
-    
+
     local function add_response(response)
       local t = response.t
       if not _type then
@@ -231,7 +225,7 @@ local function connection_instance(...)
         del_query(token)
       end
       while _cb and responses[1] do
-        run_cb(responses, _cb)
+        run_cb(_cb)
       end
     end
 
@@ -250,7 +244,7 @@ local function connection_instance(...)
     return cursor
   end
 
-  function inst._start(term, callback, opts)
+  function conn_inst._start(term, callback, opts)
     local function cb(err, cur)
       local res
       if type(callback) == 'function' then
@@ -263,7 +257,7 @@ local function connection_instance(...)
       cur.close()
       return res
     end
-    if not inst.is_open() then
+    if not conn_inst.is_open() then
       return cb(errors.ReQLDriverError('Connection is closed.'))
     end
 
@@ -302,7 +296,7 @@ local function connection_instance(...)
     return cb(nil, make_cursor(token, opts, term))
   end
 
-  function inst.close(opts_or_callback, callback)
+  function conn_inst.close(opts_or_callback, callback)
     local opts = {}
     if callback then
       if type(opts_or_callback) ~= 'table' then
@@ -324,15 +318,15 @@ local function connection_instance(...)
       return err
     end
 
-    local noreply_wait = (opts.noreply_wait ~= false) and inst.is_open()
+    local noreply_wait = (opts.noreply_wait ~= false) and conn_inst.is_open()
 
     if noreply_wait then
-      return inst.noreply_wait(cb)
+      return conn_inst.noreply_wait(cb)
     end
     return cb()
   end
 
-  function inst.connect(callback)
+  function conn_inst.connect(callback)
     local function error_(err)
       raw_socket.close()
       buffer = ''
@@ -357,23 +351,23 @@ local function connection_instance(...)
     end
 
     if callback then
-      local res = callback(nil, inst)
+      local res = callback(nil, conn_inst)
       raw_socket.close()
       buffer = ''
       return res
     end
 
-    return inst
+    return conn_inst
   end
 
-  function inst.noreply_wait(callback)
+  function conn_inst.noreply_wait(callback)
     local function cb(err)
       if callback then
         return callback(err)
       end
       return nil, err
     end
-    if not inst.is_open() then
+    if not conn_inst.is_open() then
       return cb(errors.ReQLDriverError('Connection is closed.'))
     end
 
@@ -389,20 +383,26 @@ local function connection_instance(...)
     return cursor.next(callback)
   end
 
-  function inst.reconnect(opts_or_callback, callback)
+  function conn_inst.reconnect(opts_or_callback, callback)
     local opts = {}
     if callback or not type(opts_or_callback) == 'function' then
       opts = opts_or_callback
     else
       callback = opts_or_callback
     end
-    inst.close(opts)
-    return inst.connect(callback)
+    conn_inst.close(opts)
+    return conn_inst.connect(callback)
   end
 
-  function inst.server()
-    if not inst.is_open() then
-      return nil, errors.ReQLDriverError('Connection is closed.')
+  function conn_inst.server(callback)
+    local function cb(err)
+      if callback then
+        return callback(err)
+      end
+      return nil, err
+    end
+    if not conn_inst.is_open() then
+      return cb(errors.ReQLDriverError('Connection is closed.'))
     end
 
     -- Assign token
@@ -414,10 +414,10 @@ local function connection_instance(...)
     -- Construct query
     write_socket(token, SERVER_INFO)
 
-    return cursor.next()
+    return cursor.next(callback)
   end
 
-  return inst
+  return conn_inst
 end
 
 return connection_instance
