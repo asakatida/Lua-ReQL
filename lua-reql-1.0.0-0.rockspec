@@ -56,7 +56,6 @@ build = {
     ['rethinkdb.connection_instance'] = 'src/rethinkdb/connection_instance.lua',
     ['rethinkdb.convert_pseudotype'] = 'src/rethinkdb/convert_pseudotype.lua',
     ['rethinkdb.current_protocol'] = 'src/rethinkdb/current_protocol.lua',
-    ['rethinkdb.cursor'] = 'src/rethinkdb/cursor.lua',
     ['rethinkdb.errors'] = 'src/rethinkdb/errors.lua',
     ['rethinkdb.int_to_bytes'] = 'src/rethinkdb/int_to_bytes.lua',
     ['rethinkdb.protodef'] = 'src/rethinkdb/protodef.lua',
