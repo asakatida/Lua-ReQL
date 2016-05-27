@@ -33,58 +33,46 @@ local function unpack_bits(a)
   while a < i do
     i = i * 2
   end
-  return unpack_bits_impl(i, a)
+  return unpack_bits_impl(i / 2, a)
+end
+
+local function bor_impl__(a, b, i, ...)
+  local a_i = a[i]
+  local b_i = b[i]
+
+  if a_i == nil and b_i == nil then
+    return ...
+  end
+
+  return bor_impl__(a, b, i + 1, ..., a_i or b_i)
 end
 
 local function bor_impl(...)
   local a = {...}
 
   local function bor_impl_(...)
-    local b = {...}
-
-    local i = 1
-
-    local function bxor_impl__(...)
-      local a_i = a[i]
-      local b_i = b[i]
-
-      if a_i == nil and b_i == nil then
-        return ...
-      end
-
-      i = i + 1
-
-      return bxor_impl__(..., a_i or b_i)
-    end
-
-    return bxor_impl__()
+    return bor_impl__(a, {...}, 1)
   end
 
   return bor_impl_
+end
+
+local function bxor_impl__(a, b, i, ...)
+  local a_i = a[i]
+  local b_i = b[i]
+
+  if a_i == nil and b_i == nil then
+    return ...
+  end
+
+  return bxor_impl__(a, b, i + 1, ..., (a_i and not b_i) or (b_i and not a_i))
 end
 
 local function bxor_impl(...)
   local a = {...}
 
   local function bxor_impl_(...)
-    local b = {...}
-
-    local i = 1
-
-    local function bxor_impl__(...)
-      local a_i = a[i]
-      local b_i = b[i]
-
-      if a_i == nil and b_i == nil then
-        return ...
-      end
-
-      i = i + 1
-
-      return bxor_impl__(..., (a_i and not b_i) or (b_i and not a_i))
-    end
-
-    return bxor_impl__()
+    return bxor_impl__(a, {...}, 1)
   end
 
   return bxor_impl_
