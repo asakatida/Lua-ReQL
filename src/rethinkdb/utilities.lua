@@ -4,17 +4,18 @@
 -- @license Apache
 -- @copyright Adam Grandquist 2016
 
-local function logger(r, err)
+local utilities = {}
+
+--- error out
+function utilities.logger(r, err)
   if r.logger then
     return r.logger(err)
-  elseif type(err) == 'string' then
-    error(err)
-  else
-    error('Unknown error type from driver')
   end
+  error(err)
 end
 
-local function unb64(r, ...)
+--- convert ASCII base64 to 8bit
+function utilities.unb64(r, ...)
   if r.unb64 then
     return r.unb64(...)
   end
@@ -26,7 +27,8 @@ local function unb64(r, ...)
   return r.unb64(...)
 end
 
-local function b64(r, ...)
+--- convert 8bit to ASCII base64
+function utilities.b64(r, ...)
   if r.b64 then
     return r.unb64(...)
   end
@@ -38,7 +40,8 @@ local function b64(r, ...)
   return r.b64(...)
 end
 
-local function encode(r, ...)
+--- convert Lua to JSON
+function utilities.encode(r, ...)
   if r.encode then
     return r.encode(...)
   elseif r.json_parser then
@@ -54,7 +57,8 @@ local function encode(r, ...)
   return r.encode(...)
 end
 
-local function decode(r, ...)
+--- convert JSON to Lua
+function utilities.decode(r, ...)
   if r.decode then
     return r.decode(...)
   elseif r.json_parser then
@@ -70,7 +74,8 @@ local function decode(r, ...)
   return r.decode(...)
 end
 
-local function socket(r, ...)
+--- create new tcp socket
+function utilities.socket(r, ...)
   if r.socket then
     return r.socket(...)
   end
@@ -87,7 +92,8 @@ local function socket(r, ...)
   return r.socket(...)
 end
 
-local function select(r, ...)
+--- block waiting for socket status
+function utilities._select(r, ...)
   if r.select then
     return r.select(...)
   end
@@ -104,14 +110,4 @@ local function select(r, ...)
   return r.select(...)
 end
 
-local _r = {
-  logger = logger,
-  unb64 = unb64,
-  b64 = b64,
-  encode = encode,
-  decode = decode,
-  socket = socket,
-  select = select,
-}
-
-return _r
+return utilities
