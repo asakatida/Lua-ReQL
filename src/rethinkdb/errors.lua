@@ -98,9 +98,13 @@ local heiarchy = {
   ReQLNonExistenceError = 'ReQLQueryLogicError'
 }
 
+local function __tostring(err)
+  return err.msg
+end
+
 local function __index(_, name)
   local function ReQLError(msg, term, frames)
-    local inst = {msg = msg}
+    local inst = setmetatable({msg = msg}, {__tostring = __tostring})
 
     local _name = name
     while _name do

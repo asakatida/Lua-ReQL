@@ -6,14 +6,6 @@
 
 local utilities = {}
 
---- error out
-function utilities.logger(r, err)
-  if r.logger then
-    return r.logger(err)
-  end
-  error(err)
-end
-
 --- convert ASCII base64 to 8bit
 function utilities.unb64(r, ...)
   if r.unb64 then
