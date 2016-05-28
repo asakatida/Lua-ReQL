@@ -10,6 +10,6 @@ describe('utilities', function()
   end)
 
   it('available functions', function()
-    assert.are_same('function', type(utilities.logger))
+    assert.are_same('function', type(utilities.decode))
   end)
 end)

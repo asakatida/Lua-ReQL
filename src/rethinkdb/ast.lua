@@ -9,7 +9,6 @@ local utilities = require'rethinkdb.utilities'
 
 local proto = require'rethinkdb.protodef'
 
-local logger = utilities.logger
 local b64 = utilities.b64
 local encode = utilities.encode
 
@@ -42,16 +41,16 @@ function r_meta_table.__call(r, val, nesting_depth)
     nesting_depth = 20
   end
   if type(nesting_depth) ~= 'number' then
-    return logger(r, 'Second argument to `r(val, nesting_depth)` must be a number.')
+    return nil, 'Second argument to `r(val, nesting_depth)` must be a number.'
   end
   if nesting_depth <= 0 then
-    return logger(r, 'Nesting depth limit exceeded')
+    return nil, 'Nesting depth limit exceeded'
   end
   if type(val) == 'userdata' then
-    return logger(r, 'Cannot insert userdata object into query')
+    return nil, 'Cannot insert userdata object into query'
   end
   if type(val) == 'thread' then
-    return logger(r, 'Cannot insert thread object into query')
+    return nil, 'Cannot insert thread object into query'
   end
   if getmetatable(val) == meta_table then
     return val
@@ -172,7 +171,7 @@ local arg_wrappers = {
 local function datum(val)
   if type(val) == 'number' then
     if math.abs(val) == math.huge or val ~= val then
-      return logger(r, 'Illegal non-finite number `' .. val .. '`.')
+      return nil, 'Illegal non-finite number `' .. val .. '`.'
     end
   end
 
@@ -256,7 +255,7 @@ function meta_table.__index(cls, st)
       -- Handle run(connection, callback)
       if type(options) == 'function' then
         if callback ~= nil then
-          return logger(r, 'Second argument to `run` cannot be a function if a third argument is provided.')
+          return nil, 'Second argument to `run` cannot be a function if a third argument is provided.'
         end
         callback = options
         options = {}
@@ -268,7 +267,7 @@ function meta_table.__index(cls, st)
         if r.pool then
           connection = r.pool
         else]]
-          return logger(r, 'First argument to `run` must be a connection.')
+          return nil, 'First argument to `run` must be a connection.'
         --end
       end
 
@@ -346,7 +345,7 @@ function meta_table.__index(cls, st)
       end
       func = func(unpack(anon_args))
       if func == nil then
-        return logger(r, 'Anonymous function returned `nil`. Did you forget a `return`?')
+        return nil, 'Anonymous function returned `nil`. Did you forget a `return`?'
       end
       __optargs.arity = nil
       args = {arg_nums, func}
@@ -355,7 +354,7 @@ function meta_table.__index(cls, st)
       if type(data) == 'string' then
         inst.base64_data = b64(r, table.remove(args, 1))
       elseif getmetatable(data) ~= meta_table then
-        return logger(r, 'Parameter to `r.binary` must be a string or ReQL query.')
+        return nil, 'Parameter to `r.binary` must be a string or ReQL query.'
       end
     elseif st == 'funcall' then
       local func = table.remove(args)

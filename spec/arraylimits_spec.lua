@@ -1,7 +1,14 @@
+local function reql_error_formatter(err)
+  if err.ReQLError then
+    return err.message()
+  end
+end
+
 describe('array limits', function()
   local r, reql_table, c, huge_l
 
   setup(function()
+    assert:add_formatter(reql_error_formatter)
     r = require('rethinkdb')
 
     local reql_db = 'array'
@@ -15,7 +22,7 @@ describe('array limits', function()
     local err
 
     c, err = r.connect()
-    if err then error(err.message()) end
+    assert.is_nil(err)
 
     r.db_create(reql_db).run(c)
     c.use(reql_db)
@@ -27,6 +34,7 @@ describe('array limits', function()
   end)
 
   teardown(function()
+    assert:remove_formatter(reql_error_formatter)
     r = nil
   end)
 
@@ -35,10 +43,10 @@ describe('array limits', function()
       function()
         r{1, 2, 3, 4, 5, 6, 7, 8}.run(
           c, {array_limit = 4}, function(_err, cur)
-            if _err then error(_err.message()) end
+            assert.is_nil(_err)
             cur.to_array(function(err, arr)
+              assert.is_nil(arr)
               if err then error(err.msg) end
-              error(arr)
             end)
           end
         )

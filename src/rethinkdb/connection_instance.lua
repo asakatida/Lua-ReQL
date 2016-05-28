@@ -13,7 +13,6 @@ local int_to_bytes = require'rethinkdb.int_to_bytes'
 local proto = require'rethinkdb.protodef'
 local Socket = require'rethinkdb.socket'
 
-local logger = utilities.logger
 local encode = utilities.encode
 local decode = utilities.decode
 
@@ -298,12 +297,7 @@ local function connection_instance(r, auth_key, db, host, port, proto_version, s
 
   function conn_inst.close(opts_or_callback, callback)
     local opts = {}
-    if callback then
-      if type(opts_or_callback) ~= 'table' then
-        return logger(r, 'First argument to two-argument `close` must be a table.')
-      end
-      opts = opts_or_callback
-    elseif type(opts_or_callback) == 'table' then
+    if callback or type(opts_or_callback) == 'table' then
       opts = opts_or_callback
     elseif type(opts_or_callback) == 'function' then
       callback = opts_or_callback

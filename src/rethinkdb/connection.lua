@@ -133,7 +133,7 @@ local function connection(connection_opts, _proto_version)
         if callback then
           return callback(err)
         end
-        error(err.message())
+        return nil, err
       end
       return conn._start(term, callback, opts)
     end
