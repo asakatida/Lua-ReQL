@@ -9,6 +9,7 @@ local utilities = require'rethinkdb.utilities'
 local bits = require'rethinkdb.bits'
 local bytes_to_int = require'rethinkdb.bytes_to_int'
 local crypto = require('crypto')
+local errors = require'rethinkdb.errors'
 local int_to_bytes = require'rethinkdb.int_to_bytes'
 
 local unb64 = utilities.unb64
@@ -95,11 +96,11 @@ local function current_protocol(r, raw_socket, auth_key, user)
   local response = decode(r, message)
 
   if not response then
-    return nil, message
+    return nil, errors.ReQLDriverError(message)
   end
 
   if response.success ~= true then
-    return nil, message
+    return nil, errors.ReQLDriverError(message)
   end
 
   -- when protocol versions are updated this is where we send the following
@@ -128,9 +129,9 @@ local function current_protocol(r, raw_socket, auth_key, user)
 
   if not response.success then
     if 10 <= response.error_code and response.error_code <= 20 then
-      return nil, response.error  -- TODO authentication error
+      return nil, errors.ReQLAuthError(response.error)
     end
-    return nil, response.error
+    return nil, errors.ReQLDriverError(response.error)
   end
   server_first_message = response.authentication
   local response_authentication = server_first_message .. ','
@@ -138,7 +139,7 @@ local function current_protocol(r, raw_socket, auth_key, user)
     authentication[k] = v
   end
   if string.sub(authentication.r, 1, #nonce) ~= nonce then
-    return nil, 'Invalid nonce'
+    return nil, errors.ReQLDriverError'Invalid nonce'
   end
 
   local client_final_message_without_proof = 'c=biws,r=' .. authentication.r
@@ -196,13 +197,13 @@ local function current_protocol(r, raw_socket, auth_key, user)
 
   if not response.success then
     if 10 <= response.error_code and response.error_code <= 20 then
-      return nil, response.error  -- TODO authentication error
+      return nil, errors.ReQLAuthError(response.error)
     end
-    return nil, response.error
+    return nil, errors.ReQLDriverError(response.error)
   end
 
   if not __compare_digest(response.v, server_signature) then
-    return nil, response
+    return nil, errors.ReQLDriverError(response)
   end
 
   return buffer

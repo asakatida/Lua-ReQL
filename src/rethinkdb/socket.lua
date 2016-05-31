@@ -6,6 +6,7 @@
 
 local utilities = require'rethinkdb.utilities'
 
+local errors = require'rethinkdb.errors'
 local ssl = require('ssl')
 
 local decode = utilities.decode
@@ -80,7 +81,7 @@ local function socket(r, host, port, ssl_params, timeout)
     local status, err = client:connect(host, port)
 
     if not status and suppress_write_error(client, err) then
-      return nil, err
+      return nil, errors.ReQLDriverError(err)
     end
 
     if ssl_params then
@@ -89,7 +90,7 @@ local function socket(r, host, port, ssl_params, timeout)
       while not status do
         status, err = client:dohandshake()
         if suppress_read_error(client, err) then
-          return nil, err
+          return nil, errors.ReQLDriverError(err)
         end
       end
     end
@@ -100,26 +101,26 @@ local function socket(r, host, port, ssl_params, timeout)
   end
 
   function inst.recv()
-    if not raw_socket then return nil, 'closed' end
+    if not raw_socket then return nil, errors.ReQLDriverError'closed' end
     local buf, err, partial = raw_socket:receive('*a')
     if buf then
       return buf
     end
     if suppress_read_error(raw_socket, err) then
-      return nil, err
+      return nil, errors.ReQLDriverError(err)
     end
     return partial or ''
   end
 
   function inst.send(...)
-    if not raw_socket then return nil, 'closed' end
+    if not raw_socket then return nil, errors.ReQLDriverError'closed' end
     local data = table.concat{...}
     local idx, err, err_idx = raw_socket:send(data)
     if idx == #data then
       return idx
     end
     if suppress_write_error(raw_socket, err) then
-      return nil, err
+      return nil, errors.ReQLDriverError(err)
     end
     return err_idx
   end
@@ -129,10 +130,10 @@ local function socket(r, host, port, ssl_params, timeout)
     while not i do
       local buf, err = inst.recv()
       if not buf then
-        return nil, err
+        return nil, errors.ReQLDriverError(err)
       end
       buffer = buffer .. buf
-      i = (string.find(buffer, '\0'))
+      i = string.find(buffer, '\0')
     end
 
     local message = string.sub(buffer, 1, i - 1)
@@ -145,13 +146,13 @@ local function socket(r, host, port, ssl_params, timeout)
     message, buffer = inst.get_message(buffer)
 
     if message == nil then
-      return nil, buffer
+      return nil, errors.ReQLDriverError(buffer)
     end
 
     local success, response = decode(r, message)
 
     if not success then
-      return nil, response
+      return nil, errors.ReQLDriverError(response)
     end
 
     return response, buffer

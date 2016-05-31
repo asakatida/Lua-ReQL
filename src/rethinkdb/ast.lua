@@ -7,6 +7,7 @@
 
 local utilities = require'rethinkdb.utilities'
 
+local errors = require'rethinkdb.errors'
 local proto = require'rethinkdb.protodef'
 
 local b64 = utilities.b64
@@ -41,16 +42,16 @@ function r_meta_table.__call(r, val, nesting_depth)
     nesting_depth = 20
   end
   if type(nesting_depth) ~= 'number' then
-    return nil, 'Second argument to `r(val, nesting_depth)` must be a number.'
+    return nil, errors.ReQLDriverError'Second argument to `r(val, nesting_depth)` must be a number.'
   end
   if nesting_depth <= 0 then
-    return nil, 'Nesting depth limit exceeded'
+    return nil, errors.ReQLDriverError'Nesting depth limit exceeded'
   end
   if type(val) == 'userdata' then
-    return nil, 'Cannot insert userdata object into query'
+    return nil, errors.ReQLDriverError'Cannot insert userdata object into query'
   end
   if type(val) == 'thread' then
-    return nil, 'Cannot insert thread object into query'
+    return nil, errors.ReQLDriverError'Cannot insert thread object into query'
   end
   if getmetatable(val) == meta_table then
     return val
@@ -171,7 +172,7 @@ local arg_wrappers = {
 local function datum(val)
   if type(val) == 'number' then
     if math.abs(val) == math.huge or val ~= val then
-      return nil, 'Illegal non-finite number `' .. val .. '`.'
+      return nil, errors.ReQLDriverError('Illegal non-finite number `' .. val .. '`.')
     end
   end
 
@@ -255,7 +256,7 @@ function meta_table.__index(cls, st)
       -- Handle run(connection, callback)
       if type(options) == 'function' then
         if callback ~= nil then
-          return nil, 'Second argument to `run` cannot be a function if a third argument is provided.'
+          return nil, errors.ReQLDriverError'Second argument to `run` cannot be a function if a third argument is provided.'
         end
         callback = options
         options = {}
@@ -267,7 +268,7 @@ function meta_table.__index(cls, st)
         if r.pool then
           connection = r.pool
         else]]
-          return nil, 'First argument to `run` must be a connection.'
+          return nil, errors.ReQLDriverError'First argument to `run` must be a connection.'
         --end
       end
 
@@ -345,7 +346,7 @@ function meta_table.__index(cls, st)
       end
       func = func(unpack(anon_args))
       if func == nil then
-        return nil, 'Anonymous function returned `nil`. Did you forget a `return`?'
+        return nil, errors.ReQLDriverError'Anonymous function returned `nil`. Did you forget a `return`?'
       end
       __optargs.arity = nil
       args = {arg_nums, func}
@@ -354,7 +355,7 @@ function meta_table.__index(cls, st)
       if type(data) == 'string' then
         inst.base64_data = b64(r, table.remove(args, 1))
       elseif getmetatable(data) ~= meta_table then
-        return nil, 'Parameter to `r.binary` must be a string or ReQL query.'
+        return nil, errors.ReQLDriverError'Parameter to `r.binary` must be a string or ReQL query.'
       end
     elseif st == 'funcall' then
       local func = table.remove(args)

@@ -71,7 +71,7 @@ local function connection_instance(r, auth_key, db, host, port, proto_version, s
   local function process_response(response, token)
     local cursor = outstanding_callbacks[token]
     if not cursor then
-      return nil, 'Unexpected token ' .. token
+      return nil, errors.ReQLDriverError('Unexpected token ' .. token)
     end
     local add_response = cursor.add_response
     if add_response then

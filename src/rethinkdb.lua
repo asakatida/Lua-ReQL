@@ -8,6 +8,7 @@
 local ast = require'rethinkdb.ast'
 local connection = require'rethinkdb.connection'
 local current_protocol = require'rethinkdb.current_protocol'
+local errors = require'rethinkdb.errors'
 local int_to_bytes = require'rethinkdb.int_to_bytes'
 local type_ = require'rethinkdb.type'
 
@@ -31,7 +32,7 @@ local function proto_V0_x(raw_socket, auth_key, magic)
     return buffer
   end
   if message then
-    return nil, message
+    return nil, errors.ReQLDriverError(message)
   end
   return nil, buffer
 end
