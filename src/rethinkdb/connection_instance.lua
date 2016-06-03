@@ -41,11 +41,35 @@ local function connection_instance(r, auth_key, db, host, port, proto_version, s
   local buffer = ''
 
   local function write_socket(token, data)
-    return raw_socket.send(
+    local size, err = raw_socket.send(
       int_to_bytes(token, 8),
       int_to_bytes(#data, 4),
       data
     )
+    if not size then
+      return nil, err
+    end
+    if err == '' then
+      return
+    end
+    local buf, recv_err = raw_socket.recv()
+    if recv_err then
+      raw_socket.close()
+      buffer = ''
+      return nil, recv_err
+    end
+    buffer = buffer .. buf
+    local remaining = err
+    size, err = raw_socket.send(err)
+    if not size then
+      return nil, err
+    end
+    if err == '' then
+      return
+    end
+    raw_socket.close()
+    buffer = ''
+    return nil, errors.ReQLDriverError('Incomplete write of query ' .. data)
   end
 
   local function send_query(token, query)
