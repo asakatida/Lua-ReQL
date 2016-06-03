@@ -77,11 +77,23 @@ local function current_protocol(r, raw_socket, auth_key, user)
 
   local client_first_message_bare = 'n=' .. user .. ',r=' .. nonce
 
-  raw_socket.send(
+  local size, send_err = raw_socket.send(
     '\195\189\194\52{"protocol_version":0,',
     '"authentication_method":"SCRAM-SHA-256",',
     '"authentication":"n,,', client_first_message_bare, '"}\0'
   )
+  if not size then
+    return nil, send_err
+  end
+  if send_err ~= '' then
+    size, send_err = raw_socket.send(send_err)
+    if not size then
+      return nil, send_err
+    end
+    if send_err ~= '' then
+      return nil, errors.ReQLDriverError'Incomplete protocol sent'
+    end
+  end
 
   -- Now we have to wait for a response from the server
   -- acknowledging the connection
@@ -178,10 +190,22 @@ local function current_protocol(r, raw_socket, auth_key, user)
   -- {
   --   "authentication": "c=biws,r=<nonce><server_nonce>,p=<proof>"
   -- }
-  raw_socket.send(encode(r, {
+  size, send_err = raw_socket.send(encode(r, {
     authentication =
     table.concat({client_final_message_without_proof, b64(r, client_proof)}, ',p=')
   }), '\0')
+  if not size then
+    return nil, send_err
+  end
+  if send_err ~= '' then
+    size, send_err = raw_socket.send(send_err)
+    if not size then
+      return nil, send_err
+    end
+    if send_err ~= '' then
+      return nil, errors.ReQLDriverError'Incomplete protocol sent'
+    end
+  end
 
   -- wait for the third server challenge
   -- this is always a json document
