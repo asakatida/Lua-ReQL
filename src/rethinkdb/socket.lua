@@ -102,9 +102,12 @@ local function socket(r, host, port, ssl_params, timeout)
 
   function inst.recv()
     if not raw_socket then return nil, errors.ReQLDriverError'closed' end
-    local buf, err, partial = raw_socket:receive('*a')
+    local buf, err, partial = raw_socket:receive'*a'
     if buf then
       return buf
+    end
+    if err == 'timeout' and partial then
+      return partial
     end
     if suppress_read_error(raw_socket, err) then
       return nil, errors.ReQLDriverError(err)
