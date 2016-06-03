@@ -59,7 +59,6 @@ local function connection_instance(r, auth_key, db, host, port, proto_version, s
       return nil, recv_err
     end
     buffer = buffer .. buf
-    local remaining = err
     size, err = raw_socket.send(err)
     if not size then
       return nil, err

@@ -16,12 +16,24 @@ local v = require('rethinkdb.semver')
 
 local function proto_V0_x(raw_socket, auth_key, magic)
   -- Initialize connection with magic number to validate version
-  raw_socket.send(
+  local size, send_err = raw_socket.send(
     magic,
     int_to_bytes(#auth_key, 4),
     auth_key,
     '\199\112\105\126'
   )
+  if not size then
+    return nil, send_err
+  end
+  if send_err ~= '' then
+    size, send_err = raw_socket.send(send_err)
+    if not size then
+      return nil, send_err
+    end
+    if send_err ~= '' then
+      return nil, errors.ReQLDriverError'Incomplete protocol sent'
+    end
+  end
 
   -- Now we have to wait for a response from the server
   -- acknowledging the connection
