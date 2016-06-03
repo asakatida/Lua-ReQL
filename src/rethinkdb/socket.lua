@@ -119,14 +119,13 @@ local function socket(r, host, port, ssl_params, timeout)
     if not raw_socket then return nil, errors.ReQLDriverError'closed' end
     local data = table.concat{...}
     local idx, err, err_idx = raw_socket:send(data)
-    local size = #data
-    if idx == size then
-      return idx, size
+    if idx == #data then
+      return idx, ''
     end
     if suppress_write_error(raw_socket, err) then
       return nil, errors.ReQLDriverError(err)
     end
-    return err_idx, size
+    return err_idx, string.sub(data, i + 1)
   end
 
   function inst.get_message(buffer)
