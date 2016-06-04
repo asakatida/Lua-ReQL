@@ -4,6 +4,14 @@
 -- @license Apache
 -- @copyright Adam Grandquist 2016
 
+if string.unpack then
+  local function bytes_to_int(str)
+    return (string.unpack('>J', str))
+  end
+
+  return bytes_to_int
+end
+
 local function bytes_to_int(str)
   local t = {string.byte(str, 1, -1)}
   local n = 0
