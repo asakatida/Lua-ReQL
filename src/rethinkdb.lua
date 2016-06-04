@@ -74,7 +74,7 @@ function r.connect(host_or_callback, callback)
   elseif host_or_callback then
     host = host_or_callback
   end
-  if host.r == nil then host.r = r end
+  if not host.r then host.r = r end
   return r.Connection(host).connect(callback)
 end
 
