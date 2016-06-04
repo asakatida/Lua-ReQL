@@ -21,7 +21,6 @@ local bor = bits.bor
 local bxor = bits.bxor
 local tobit = bits.tobit
 local rand_bytes = crypto.rand.bytes
-local evp = crypto.evp
 local hmac = crypto.hmac
 
 local function __compare_digest(a, b)
@@ -53,11 +52,13 @@ local function __pbkdf2_hmac(hash_name, password, salt, iterations)
     return pbkdf2_cache[cache_string]
   end
 
+  local msg_buffer = ''
+
   local function digest(msg)
+    msg_buffer = msg_buffer .. msg
     local mac = hmac.new(hash_name, password)
-    local mac_copy = mac:clone()
-    mac_copy:update(msg)
-    return mac_copy:digest(nil, true)
+    mac:update(msg_buffer)
+    return mac:final(nil, true)
   end
 
   local t = digest(salt .. '\0\0\0\1')
@@ -150,6 +151,7 @@ local function current_protocol(r, raw_socket, auth_key, user)
   for k, v in string.gmatch(response_authentication, '([rsi])=(.-),') do
     authentication[k] = v
   end
+
   if string.sub(authentication.r, 1, #nonce) ~= nonce then
     return nil, errors.ReQLDriverError'Invalid nonce'
   end
@@ -162,10 +164,10 @@ local function current_protocol(r, raw_socket, auth_key, user)
   local salted_password = __pbkdf2_hmac('sha256', auth_key, salt, authentication.i)
 
   -- ClientKey := HMAC(SaltedPassword, "Client Key")
-  local client_key = hmac.digest('sha256', salted_password .. 'Client Key', true)
+  local client_key = hmac.digest('sha256', salted_password, 'Client Key', true)
 
   -- StoredKey := H(ClientKey)
-  local stored_key = evp.digest('sha256', client_key, true)
+  local stored_key = crypto.digest('sha256', client_key, true)
 
   -- AuthMessage := client-first-message-bare + "," +
   --                server-first-message + "," +
@@ -176,15 +178,15 @@ local function current_protocol(r, raw_socket, auth_key, user)
       client_final_message_without_proof}, ',')
 
   -- ClientSignature := HMAC(StoredKey, AuthMessage)
-  local client_signature = hmac.digest('sha256', stored_key .. auth_message, true)
+  local client_signature = hmac.digest('sha256', stored_key, auth_message, true)
 
-  local client_proof = bxor(bytes_to_int(client_key), bytes_to_int(client_signature))
+  local client_proof = int_to_bytes(bxor(bytes_to_int(client_key), bytes_to_int(client_signature)), 4)
 
   -- ServerKey := HMAC(SaltedPassword, "Server Key")
-  local server_key = hmac.digest('sha256', salted_password .. 'Server Key', true)
+  local server_key = hmac.digest('sha256', salted_password, 'Server Key', true)
 
   -- ServerSignature := HMAC(ServerKey, AuthMessage)
-  local server_signature = hmac.digest('sha256', server_key .. auth_message, true)
+  local server_signature = hmac.digest('sha256', server_key, auth_message, true)
 
   -- send the third client message
   -- {
