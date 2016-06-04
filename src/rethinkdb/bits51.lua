@@ -6,67 +6,38 @@
 -- @license Apache
 -- @copyright Adam Grandquist 2016
 
-local function pack_bits(a)
-  local n = 0
-  for i=1, #a do
-    if a[i] then
-      n = n + 2 ^ i
-    end
-  end
-  return n
-end
-
-local function unpack_bits(a)
-  local n = {}
-  while a > 0 do
-    local i
-    a, i = math.modf(a / 2)
-    table.insert(n, i == 0.5)
-  end
-  local l = #n
-  for i=1, math.floor(l / 2) do
-    l = l - 1
-    n[i], n[l] = n[l], n[i]
-  end
-  return n
-end
-
-local function bor_impl(a, b)
-  local n = {}
-  for i=1, math.max(#a, #b) do
-    n[i] = a[i] or b[i]
-  end
-  return n
-end
-
-local function bxor_impl(a, b)
-  local n = {}
-  for i=1, math.max(#a, #b) do
-    if a[i] then
-      n[i] = not b[i]
-    else
-      n[i] = b[i]
-    end
-  end
-  return n
-end
+local modf = _G.math.modf
 
 local m = {}
 
 --- bitwise or of two values
--- @int a integer bitfield 1
--- @int b integer bitfield 2
+-- @int l integer bitfield 1
+-- @int r integer bitfield 2
 -- @treturn int
-function m.bor(a, b)
-  return pack_bits(bor_impl(unpack_bits(a), unpack_bits(b)))
+function m.bor(l, r)
+  local i, n, a, b = 0, 0
+  while l > 0 or r > 0 do
+    l, a = modf(l / 2)
+    r, b = modf(r / 2)
+    if a == 0.5 or b == 0.5 then n = n + 2 ^ i end
+    i = i + 1
+  end
+  return n
 end
 
 --- bitwise exclusive or of two values
--- @int a integer bitfield 1
--- @int b integer bitfield 2
+-- @int l integer bitfield 1
+-- @int r integer bitfield 2
 -- @treturn int
-function m.bxor(a, b)
-  return pack_bits(bxor_impl(unpack_bits(a), unpack_bits(b)))
+function m.bxor(l, r)
+  local i, n, a, b = 0, 0
+  while l > 0 or r > 0 do
+    l, a = modf(l / 2)
+    r, b = modf(r / 2)
+    if a ~= b then n = n + 2 ^ i end
+    i = i + 1
+  end
+  return n
 end
 
 --- normalize integer to bitfield
