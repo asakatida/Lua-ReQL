@@ -4,6 +4,14 @@
 -- @license Apache
 -- @copyright Adam Grandquist 2016
 
+if string.pack then
+  local function int_to_bytes(num, bytes)
+    return string.pack('>I' .. bytes, num)
+  end
+
+  return int_to_bytes
+end
+
 local unpack = _G.unpack or table.unpack
 
 local function int_to_bytes(num, bytes)
