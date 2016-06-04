@@ -6,7 +6,7 @@
 
 if string.pack then
   local function int_to_bytes(num, bytes)
-    return string.pack('>I' .. bytes, num)
+    return string.pack('!1>I' .. bytes, num)
   end
 
   return int_to_bytes
