@@ -1,26 +1,36 @@
+local function reql_error_formatter(err)
+  if err.ReQLError then
+    return err.message()
+  end
+end
+
 describe('connection', function()
   local r
 
   setup(function()
+    assert:add_formatter(reql_error_formatter)
     r = require('rethinkdb')
   end)
 
   teardown(function()
     r = nil
+    assert:remove_formatter(reql_error_formatter)
   end)
 
   it('basic', function()
     r.connect(function(err, c)
-      if err then error(err.message()) end
+      assert.is_nil(err)
       assert.is_not_nil(c)
     end)
   end)
 
   it('return conn', function()
-    local conn = r.connect()
+    local conn, err = r.connect()
+    assert.is_nil(err)
     assert.is_not_nil(conn)
     assert.is_true(conn.is_open())
-    conn.close()
+    err = conn.close()
+    assert.is_nil(err)
     assert.is_false(conn.is_open())
   end)
 
