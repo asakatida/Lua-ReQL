@@ -34,13 +34,6 @@ describe('connection', function()
     assert.is_false(conn.is_open())
   end)
 
-  it('basic pool', function()
-    r.connect({pool = 2}, function(err, p)
-      if err then error(err.message()) end
-      assert.is_not_nil(p)
-    end)
-  end)
-
   it('fails to insert eventually', function()
     local reql_db = 'connection'
     local reql_table = 'tests'
