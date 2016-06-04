@@ -125,7 +125,8 @@ local function socket(r, host, port, ssl_params, timeout)
     if suppress_write_error(raw_socket, err) then
       return nil, errors.ReQLDriverError(err)
     end
-    return err_idx, string.sub(data, idx + 1)
+    idx = idx or err_idx
+    return idx, string.sub(data, idx + 1)
   end
 
   function inst.get_message(buffer)
