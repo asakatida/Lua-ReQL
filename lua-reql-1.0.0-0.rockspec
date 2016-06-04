@@ -38,10 +38,10 @@ Rethinkdb driver in Lua
 }
 dependencies = {
   'lua >= 5.1, < 5.4',
-  'luacrypto',
-  'luasocket ~> 3',
-  'luasec',
-  'luajson ~> 1',
+  'luacrypto ~> 0.3',
+  'luasocket ~> 3.0',
+  'luasec ~> 0.6',
+  'luajson ~> 1.3',
 }
 build = {
   type = 'builtin',
