@@ -156,6 +156,8 @@ local function current_protocol(r, raw_socket, auth_key, user)
     return nil, errors.ReQLDriverError'Invalid nonce'
   end
 
+  authentication.i = tonumber(authentication.i)
+
   local client_final_message_without_proof = 'c=biws,r=' .. authentication.r
 
   local salt = unb64(r, authentication.s)
