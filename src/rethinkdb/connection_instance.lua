@@ -347,8 +347,6 @@ local function connection_instance(r, auth_key, db, host, port, proto_version, s
     local function error_(err)
       raw_socket.close()
       buffer = ''
-      err = errors.ReQLDriverError(
-        'Could not connect to ' .. host .. ':' .. port .. '.\n' .. err)
       if callback then
         return callback(err)
       end
