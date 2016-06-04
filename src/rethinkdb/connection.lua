@@ -27,7 +27,7 @@ local function pool_instance(builder, size, _callback)
       end
     end
     local good_conn = pool[key]
-    if good_conn == nil then
+    if not good_conn then
       key = 1
       good_conn = next(pool)
     end

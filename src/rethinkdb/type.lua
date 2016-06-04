@@ -12,7 +12,7 @@ local function type_(obj)
   end
 
   if type(obj._start) == 'function' and type(obj.use) == 'function' then
-    if obj.connect == nil then
+    if not obj.connect then
       return 'pool'
     end
 

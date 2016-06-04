@@ -54,7 +54,7 @@ local function socket(r, host, port, ssl_params, timeout)
 
   local function shutdown(client)
     if client then
-      if ngx == nil and ssl_params == nil then  --luacheck: globals ngx
+      if not ngx and not ssl_params then  --luacheck: globals ngx
         client:shutdown()
       end
       client:close()
@@ -148,7 +148,7 @@ local function socket(r, host, port, ssl_params, timeout)
     local message
     message, buffer = inst.get_message(buffer)
 
-    if message == nil then
+    if not message then
       return nil, errors.ReQLDriverError(buffer)
     end
 

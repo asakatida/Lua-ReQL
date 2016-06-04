@@ -38,7 +38,7 @@ local r_meta_table = {}
 -- @raise Cannot insert userdata object into query
 -- @raise Cannot insert thread object into query
 function r_meta_table.__call(r, val, nesting_depth)
-  if nesting_depth == nil then
+  if not nesting_depth then
     nesting_depth = 20
   end
   if type(nesting_depth) ~= 'number' then
@@ -208,7 +208,7 @@ end
 function meta_table.__index(cls, st)
   if st == 'datum' then return datum end
   local tt = rawget(Term, st)
-  if tt == nil then
+  if not tt then
     return nil
   end
 
@@ -263,7 +263,7 @@ function meta_table.__index(cls, st)
       end
       -- else we suppose that we have run(connection[, options][, callback])
 
-      if connection == nil then
+      if not connection then
         --[[ TODO
         if r.pool then
           connection = r.pool
