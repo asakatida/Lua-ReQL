@@ -276,8 +276,8 @@ function meta_table.__index(cls, st)
     end
 
     --- get debug represention of query
-    -- @tab debug represention of arguments
-    -- @tab[opt] debug represention of options
+    -- @tab _args represention of arguments
+    -- @tab[opt] _optargs represention of options
     -- @treturn string
     function inst.compose(_args, _optargs)
       if st == 'make_array' then
