@@ -153,10 +153,10 @@ local function socket(r, host, port, ssl_params, timeout)
       return nil, errors.ReQLDriverError(buffer)
     end
 
-    local success, response = decode(r, message)
+    local response = decode(r, message)
 
-    if not success then
-      return nil, errors.ReQLDriverError(response)
+    if not response then
+      return nil, errors.ReQLDriverError(message)
     end
 
     return response, buffer
