@@ -13,10 +13,6 @@ describe('int to bytes', function()
     assert.same('\1\0\0', int_to_bytes(1, 3))
   end)
 
-  it('empty', function()
-    assert.same('', int_to_bytes(0, 0))
-  end)
-
   it('bom', function()
     assert.same('\239\255', int_to_bytes(0xFFEF, 2))
   end)
