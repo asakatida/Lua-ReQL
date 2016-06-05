@@ -62,13 +62,17 @@ local function __pbkdf2_hmac(hash_name, password, salt, iterations)
   end
 
   local t = digest(salt .. '\0\0\0\1')
-  local u = bytes_to_int(t)
+  local lo_u, hi_u =
+    bytes_to_int(string.sub(t, 1, 16)),
+    bytes_to_int(string.sub(t, 17))
   for _=1, iterations do
     t = digest(t)
-    u = bits.bxor(u, bytes_to_int(t))
+    lo_u, hi_u =
+      bits.bxor(lo_u, bytes_to_int(string.sub(t, 1, 16))),
+      bits.bxor(hi_u, bytes_to_int(string.sub(t, 17)))
   end
 
-  u = int_to_bytes(u, 8)
+  local u = int_to_bytes(lo_u, 8) .. int_to_bytes(hi_u, 8)
   pbkdf2_cache[cache_string] = u
   return u
 end
