@@ -13,10 +13,6 @@ describe('bytes to int', function()
     assert.same(1, bytes_to_int'\1\0\0')
   end)
 
-  it('empty', function()
-    assert.same(0, bytes_to_int'')
-  end)
-
   it('bom', function()
     assert.same(0xFFEF, bytes_to_int'\239\255')
   end)
@@ -37,14 +33,6 @@ describe('bytes to int', function()
     assert.are_not_equal(orig, int_to_bytes(bytes_to_int(orig), 1))
   end)
 
-  it('roundtrip empty', function()
-    local int_to_bytes = require('rethinkdb.int_to_bytes')
-    local orig = ''
-    assert.same(orig, int_to_bytes(bytes_to_int(orig), #orig))
-    assert.are_not_equal(orig, int_to_bytes(bytes_to_int(orig), 6))
-    assert.are_not_equal(orig, int_to_bytes(bytes_to_int(orig), 2))
-  end)
-
   it('roundtrip bom', function()
     local int_to_bytes = require('rethinkdb.int_to_bytes')
     local orig = '\239\255'
@@ -57,7 +45,7 @@ describe('bytes to int', function()
     local int_to_bytes = require('rethinkdb.int_to_bytes')
     local orig = '\255\255\255\127'
     assert.same(orig, int_to_bytes(bytes_to_int(orig), #orig))
-    assert.are_not_equal(orig, int_to_bytes(bytes_to_int(orig), 0))
+    assert.are_not_equal(orig, int_to_bytes(bytes_to_int(orig), 8))
     assert.are_not_equal(orig, int_to_bytes(bytes_to_int(orig), 2))
   end)
 
