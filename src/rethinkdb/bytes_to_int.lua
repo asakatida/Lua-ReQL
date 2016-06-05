@@ -6,7 +6,7 @@
 
 if string.unpack then
   local function bytes_to_int(str)
-    return (string.unpack('!1<J', str))
+    return (string.unpack('!1<I' .. #str, str))
   end
 
   return bytes_to_int
