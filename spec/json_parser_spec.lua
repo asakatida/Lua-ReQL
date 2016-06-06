@@ -3,13 +3,7 @@ describe('control dkjson', function()
 
   setup(function()
     r = require('rethinkdb')
-    local enable, module = pcall(require, 'dkjson')
-
-    if enable then
-      dkjson = module
-    else
-      dkjson = nil
-    end
+    dkjson = require('dkjson')
 
     local reql_db = 'dkjson'
     reql_table = 'func'
@@ -52,6 +46,8 @@ describe('control dkjson', function()
         end)
       end
     ))
+    assert.equal(r.decode, dkjson.decode)
+    assert.equal(r.encode, dkjson.encode)
   end)
 
   it('branch num', function()
