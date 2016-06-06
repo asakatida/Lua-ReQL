@@ -24,11 +24,4 @@ function m.bxor(a, b)
   return a ~ b
 end
 
---- normalize integer to bitfield
--- @int a integer
--- @treturn int
-function m.tobit(a)
-  return a | 0
-end
-
 return m

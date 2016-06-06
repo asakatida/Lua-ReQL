@@ -40,11 +40,4 @@ function m.bxor(l, r)
   return n
 end
 
---- normalize integer to bitfield
--- @int a integer
--- @treturn int
-function m.tobit(a)
-  return m.bor(a, 0)
-end
-
 return m

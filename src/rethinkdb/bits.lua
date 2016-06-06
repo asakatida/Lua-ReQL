@@ -16,10 +16,18 @@ local function prequire(mod_name, ...)
   return prequire(...)
 end
 
-local success, bits = prequire('rethinkdb.bits53', 'bit32', 'bit')
+local success, bits = prequire(
+  'rethinkdb.bits53', 'bit32', 'bit', 'rethinkdb.bits51')
 
 if success then
+  if not bits.tobit then
+    --- normalize integer to bitfield
+    -- @int a integer
+    -- @treturn int
+    function bits.tobit(a)
+      return bits.bor(a, 0)
+    end
+  end
+
   return bits
 end
-
-return require'rethinkdb.bits51'
