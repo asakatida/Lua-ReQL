@@ -8,7 +8,6 @@
 local ast = require'rethinkdb.ast'
 local connection = require'rethinkdb.connection'
 local current_protocol = require'rethinkdb.current_protocol'
-local errors = require'rethinkdb.errors'
 local int_to_bytes = require'rethinkdb.int_to_bytes'
 local type_ = require'rethinkdb.type'
 
@@ -25,28 +24,16 @@ local function proto_V0_x(raw_socket, auth_key, magic)
   if not size then
     return nil, send_err
   end
-  if send_err ~= '' then
-    size, send_err = raw_socket.send(send_err)
-    if not size then
-      return nil, send_err
-    end
-    if send_err ~= '' then
-      return nil, errors.ReQLDriverError'Incomplete protocol sent'
-    end
-  end
 
   -- Now we have to wait for a response from the server
   -- acknowledging the connection
-  local message, buffer = raw_socket.get_message('')
+  local message, err = raw_socket.get_success()
 
-  if message == 'SUCCESS' then
-    -- We're good, finish setting up the connection
-    return buffer
-  end
   if message then
-    return nil, errors.ReQLDriverError(message)
+    -- We're good, finish setting up the connection
+    return ''
   end
-  return nil, buffer
+  return nil, err
 end
 
 local function proto_V0_3(_, raw_socket, auth_key)

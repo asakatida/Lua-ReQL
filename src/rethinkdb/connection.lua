@@ -11,7 +11,7 @@ local DEFAULT_HOST = 'localhost'
 local DEFAULT_PORT = 28015
 local DEFAULT_USER = 'admin'
 local DEFAULT_AUTH_KEY = ''
-local DEFAULT_TIMEOUT = 20 -- In seconds
+local DEFAULT_TIMEOUT = 0.1 -- In seconds
 
 --- Interface to handle a pool of connections.
 local function pool_instance(builder, size, _callback)
@@ -110,14 +110,14 @@ local function pool_instance(builder, size, _callback)
   return builder.connect(on_connection)
 end
 
-local function connection(connection_opts, _proto_version)
+local function connection(connection_opts)
   local port = connection_opts.port or DEFAULT_PORT
   local db = connection_opts.db -- left nil if this is not set
   local auth_key = connection_opts.password or connection_opts.auth_key or DEFAULT_AUTH_KEY
   local user = connection_opts.user or DEFAULT_USER
   local timeout = connection_opts.timeout or DEFAULT_TIMEOUT
   local ssl_params = connection_opts.ssl
-  local proto_version = _proto_version or current_protocol
+  local proto_version = connection_opts.proto_version or current_protocol
   local host = connection_opts.host or DEFAULT_HOST
   local r = connection_opts.r or {}
 

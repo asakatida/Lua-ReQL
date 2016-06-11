@@ -9,8 +9,8 @@ describe('cursor', function()
 
     local err
 
-    c, err = r.connect()
-    if err then error(err.message()) end
+    c, err = r.connect{proto_version = r.proto_V0_4}
+    assert.is_nil(err)
 
     r.db_create(reql_db).run(c)
     c.use(reql_db)

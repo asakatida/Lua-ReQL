@@ -1,4 +1,5 @@
 local function reql_error_formatter(err)
+  if type(err) ~= 'table' then return end
   if err.ReQLError then
     return err.message()
   end
@@ -21,7 +22,7 @@ describe('array limits', function()
 
     local err
 
-    c, err = r.connect()
+    c, err = r.connect{proto_version = r.proto_V0_4}
     assert.is_nil(err)
 
     r.db_create(reql_db).run(c)

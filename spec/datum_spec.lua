@@ -9,8 +9,8 @@ describe('datum', function()
 
     local err
 
-    c, err = r.connect()
-    if err then error(err.message()) end
+    c, err = r.connect{proto_version = r.proto_V0_4}
+    assert.is_nil(err)
 
     r.db_create(reql_db).run(c)
     c.use(reql_db)
@@ -26,146 +26,146 @@ describe('datum', function()
   end)
 
   it('false', function()
-    assert.same({false}, r(false).run(
+    r(false).run(
       c, function(_err, cur)
-        if _err then error(_err.message()) end
-        return cur.to_array(function(err, arr)
-          if err then error(err.message()) end
-          return arr
+        assert.is_nil(_err)
+        cur.to_array(function(err, arr)
+          assert.is_nil(err)
+          assert.same({false}, arr)
         end)
       end
-    ))
+    )
   end)
 
   it('true', function()
-    assert.same({true}, r(true).run(
+    r(true).run(
       c, function(_err, cur)
-        if _err then error(_err.message()) end
-        return cur.to_array(function(err, arr)
-          if err then error(err.message()) end
-          return arr
+        assert.is_nil(_err)
+        cur.to_array(function(err, arr)
+          assert.is_nil(err)
+          assert.same({true}, arr)
         end)
       end
-    ))
+    )
   end)
 
   it('nil', function()
-    assert.same({nil}, r(nil).run(
+    r(nil).run(
       c, function(_err, cur)
-        if _err then error(_err.message()) end
-        return cur.to_array(function(err, arr)
-          if err then error(err.message()) end
-          return arr
+        assert.is_nil(_err)
+        cur.to_array(function(err, arr)
+          assert.is_nil(err)
+          assert.same({nil}, arr)
         end)
       end
-    ))
+    )
   end)
 
   it('string', function()
-    assert.same({'not yap wa\' Hol'}, r('not yap wa\' Hol').run(
+    r'not yap wa\' Hol'.run(
       c, function(_err, cur)
-        if _err then error(_err.message()) end
-        return cur.to_array(function(err, arr)
-          if err then error(err.message()) end
-          return arr
+        assert.is_nil(_err)
+        cur.to_array(function(err, arr)
+          assert.is_nil(err)
+          assert.same({'not yap wa\' Hol'}, arr)
         end)
       end
-    ))
+    )
   end)
 
   it('0', function()
-    assert.same({0}, r(0).run(
+    r(0).run(
       c, function(_err, cur)
-        if _err then error(_err.message()) end
-        return cur.to_array(function(err, arr)
-          if err then error(err.message()) end
-          return arr
+        assert.is_nil(_err)
+        cur.to_array(function(err, arr)
+          assert.is_nil(err)
+          assert.same({0}, arr)
         end)
       end
-    ))
+    )
   end)
 
   it('1', function()
-    assert.same({1}, r(1).run(
+    r(1).run(
       c, function(_err, cur)
-        if _err then error(_err.message()) end
-        return cur.to_array(function(err, arr)
-          if err then error(err.message()) end
-          return arr
+        assert.is_nil(_err)
+        cur.to_array(function(err, arr)
+          assert.is_nil(err)
+          assert.same({1}, arr)
         end)
       end
-    ))
+    )
   end)
 
   it('-1', function()
-    assert.same({-1}, r(-1).run(
+    r(-1).run(
       c, function(_err, cur)
-        if _err then error(_err.message()) end
-        return cur.to_array(function(err, arr)
-          if err then error(err.message()) end
-          return arr
+        assert.is_nil(_err)
+        cur.to_array(function(err, arr)
+          assert.is_nil(err)
+          assert.same({-1}, arr)
         end)
       end
-    ))
+    )
   end)
 
   it('τ', function()
-    assert.same({6.28}, r(6.28).run(
+    r(6.28).run(
       c, function(_err, cur)
-        if _err then error(_err.message()) end
-        return cur.to_array(function(err, arr)
-          if err then error(err.message()) end
-          return arr
+        assert.is_nil(_err)
+        cur.to_array(function(err, arr)
+          assert.is_nil(err)
+          assert.same({6.28}, arr)
         end)
       end
-    ))
+    )
   end)
 
   it('𝑒', function()
-    assert.same({2.2}, r(2.2).run(
+    r(2.2).run(
       c, function(_err, cur)
-        if _err then error(_err.message()) end
-        return cur.to_array(function(err, arr)
-          if err then error(err.message()) end
-          return arr
+        assert.is_nil(_err)
+        cur.to_array(function(err, arr)
+          assert.is_nil(err)
+          assert.same({2.2}, arr)
         end)
       end
-    ))
+    )
   end)
 
   it('α', function()
-    assert.same({0.00001}, r(0.00001).run(
+    r(0.00001).run(
       c, function(_err, cur)
-        if _err then error(_err.message()) end
-        return cur.to_array(function(err, arr)
-          if err then error(err.message()) end
-          return arr
+        assert.is_nil(_err)
+        cur.to_array(function(err, arr)
+          assert.is_nil(err)
+          assert.same({0.00001}, arr)
         end)
       end
-    ))
+    )
   end)
 
   it('array', function()
-    assert.same({{[1] = 1, [2] = 2}}, r({[1] = 1, [2] = 2}).run(
+    r{[1] = 1, [2] = 2}.run(
       c, function(_err, cur)
-        if _err then error(_err.message()) end
-        return cur.to_array(function(err, arr)
-          if err then error(err.message()) end
-          return arr
+        assert.is_nil(_err)
+        cur.to_array(function(err, arr)
+          assert.is_nil(err)
+          assert.same({{[1] = 1, [2] = 2}}, arr)
         end)
       end
-    ))
+    )
   end)
 
   it('table', function()
-    assert.same({{first = 1, second = 2}}, r({first = 1, second = 2}).run(
+    r{first = 1, second = 2}.run(
       c, function(_err, cur)
-        if _err then error(_err.message()) end
-        return cur.to_array(function(err, arr)
-          if err then error(err.message()) end
-          return arr
+        assert.is_nil(_err)
+        cur.to_array(function(err, arr)
+          assert.is_nil(err)
+          assert.same({{first = 1, second = 2}}, arr)
         end)
       end
-    ))
+    )
   end)
 end)

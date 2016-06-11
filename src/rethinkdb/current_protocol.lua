@@ -7,15 +7,12 @@
 local utilities = require'rethinkdb.utilities'
 
 local bits = require'rethinkdb.bits'
-local bytes_to_int = require'rethinkdb.bytes_to_int'
 local crypto = require('crypto')
 local errors = require'rethinkdb.errors'
-local int_to_bytes = require'rethinkdb.int_to_bytes'
 
 local unb64 = utilities.unb64
 local b64 = utilities.b64
 local encode = utilities.encode
-local decode = utilities.decode
 
 local bor = bits.bor
 local bxor = bits.bxor
@@ -23,76 +20,50 @@ local tobit = bits.tobit
 local rand_bytes = crypto.rand.bytes
 local hmac = crypto.hmac
 
-local function to_int256(t)
-  return {
-    bytes_to_int(string.sub(t, 1, 8)),
-    bytes_to_int(string.sub(t, 9, 16)),
-    bytes_to_int(string.sub(t, 17, 24)),
-    bytes_to_int(string.sub(t, 25)),
-  }
-end
-
-local function to_bytes256(u)
-  return int_to_bytes(u[1], 8) .. int_to_bytes(u[2], 8) ..
-         int_to_bytes(u[3], 8) .. int_to_bytes(u[4], 8)
-end
+local unpack = _G.unpack or table.unpack
 
 local function bxor256(u, t)
-  return {
-    bits.bxor(u[1], bytes_to_int(string.sub(t, 1, 8))),
-    bits.bxor(u[2], bytes_to_int(string.sub(t, 9, 16))),
-    bits.bxor(u[3], bytes_to_int(string.sub(t, 17, 24))),
-    bits.bxor(u[4], bytes_to_int(string.sub(t, 25))),
-  }
+  local res = {}
+  for i=1, math.max(string.len(u), string.len(t)) do
+    res[i] = bxor(string.byte(u, i) or 0, string.byte(t, i) or 0)
+  end
+  return string.char(unpack(res))
 end
 
 local function __compare_digest(a, b)
-  local left, result
-  local right = b
+  local result
 
-  if #a == #b then
-    left = a
+  if string.len(a) == string.len(b) then
     result = 0
   end
-  if #a ~= #b then
-    left = b
+  if string.len(a) ~= string.len(b) then
     result = 1
   end
 
-  for i=1, #left do
-    result = bor(result, bxor(left[i], right[i]))
+  for i=1, math.max(string.len(a), string.len(b)) do
+    result = bor(result, bxor(string.byte(a, i) or 0, string.byte(b, i) or 0))
   end
 
   return tobit(result) ~= tobit(0)
 end
 
-local pbkdf2_cache = {}
-
 local function __pbkdf2_hmac(hash_name, password, salt, iterations)
-  local cache_string = password .. ',' .. salt .. ',' .. iterations
-
-  if pbkdf2_cache[cache_string] then
-    return pbkdf2_cache[cache_string]
-  end
-
-  local msg_buffer = ''
-
   local function digest(msg)
-    msg_buffer = msg_buffer .. msg
     local mac = hmac.new(hash_name, password)
-    mac:update(msg_buffer)
+    mac:update(msg)
     return mac:final(nil, true)
   end
 
   local t = digest(salt .. '\0\0\0\1')
-  local u = to_int256(t)
+  if iterations < 4096 then
+    return t
+  end
+  local u = t
   for _=1, iterations do
     t = digest(t)
     u = bxor256(u, t)
   end
 
-  u = to_bytes256(u)
-  pbkdf2_cache[cache_string] = u
   return u
 end
 
@@ -123,20 +94,14 @@ local function current_protocol(r, raw_socket, auth_key, user)
   -- acknowledging the connection
   -- this will be a null terminated json document on success
   -- or a null terminated error string on failure
-  local message, buffer = raw_socket.get_message('')
-
-  if not message then
-    return nil, buffer
-  end
-
-  local response = decode(r, message)
+  local response, err, buffer = raw_socket.decode_message('')
 
   if not response then
-    return nil, errors.ReQLDriverError(message)
+    return nil, err
   end
 
   if response.success ~= true then
-    return nil, errors.ReQLDriverError(message)
+    return nil, errors.ReQLDriverError(response.error)
   end
 
   -- when protocol versions are updated this is where we send the following
@@ -157,10 +122,10 @@ local function current_protocol(r, raw_socket, auth_key, user)
   local authentication = {}
   local server_first_message
 
-  response, buffer = raw_socket.decode_message(buffer)
+  response, err, buffer = raw_socket.decode_message(buffer)
 
   if not response then
-    return nil, buffer
+    return nil, err
   end
 
   if not response.success then
@@ -205,7 +170,7 @@ local function current_protocol(r, raw_socket, auth_key, user)
   -- ClientSignature := HMAC(StoredKey, AuthMessage)
   local client_signature = hmac.digest('sha256', stored_key, auth_message, true)
 
-  local client_proof = to_bytes256(bxor256(to_int256(client_key), client_signature))
+  local client_proof = bxor256(client_key, client_signature)
 
   -- ServerKey := HMAC(SaltedPassword, "Server Key")
   local server_key = hmac.digest('sha256', salted_password, 'Server Key', true)
@@ -240,10 +205,10 @@ local function current_protocol(r, raw_socket, auth_key, user)
   --   "success": <bool>,
   --   "authentication": "v=<server_signature>"
   -- }
-  response, buffer = raw_socket.decode_message(buffer)
+  response, err, buffer = raw_socket.decode_message(buffer)
 
   if not response then
-    return nil, buffer
+    return nil, err
   end
 
   if not response.success then

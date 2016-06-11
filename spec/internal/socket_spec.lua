@@ -41,10 +41,14 @@ describe('socket', function()
 
     assert.are_equal(12, client.send('\0\0', '\0\0\0\0\0\0\0\0\0\0'))
 
+    local message, err = client.get_success()
+
+    assert.is_nil(message)
+
     assert.are_equal(
       'ERROR: Received an unsupported protocol version. This port is for ' ..
       'RethinkDB queries. Does your client driver version not match the ' ..
       'server?\n\0',
-      client.recv())
+      err)
   end)
 end)

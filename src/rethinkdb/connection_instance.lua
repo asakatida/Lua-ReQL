@@ -6,12 +6,11 @@
 
 local utilities = require'rethinkdb.utilities'
 
-local bytes_to_int = require'rethinkdb.bytes_to_int'
 local convert_pseudotype = require'rethinkdb.convert_pseudotype'
 local errors = require'rethinkdb.errors'
 local int_to_bytes = require'rethinkdb.int_to_bytes'
 local proto = require'rethinkdb.protodef'
-local Socket = require'rethinkdb.socket'
+local tcp = require'rethinkdb.socket'
 
 local encode = utilities.encode
 local decode = utilities.decode
@@ -35,7 +34,7 @@ local STOP = '[' .. Query.STOP .. ']'
 local START = Query.START
 
 local function connection_instance(r, auth_key, db, host, port, proto_version, ssl_params, timeout, user)
-  local raw_socket = Socket(r, host, port, ssl_params, timeout)
+  local raw_socket = tcp(r, host, port, ssl_params, timeout)
   local outstanding_callbacks = {}
   local next_token = 1
   local buffer = ''
@@ -52,13 +51,12 @@ local function connection_instance(r, auth_key, db, host, port, proto_version, s
     if err == '' then
       return
     end
-    local buf, recv_err = raw_socket.recv()
-    if recv_err then
-      raw_socket.close()
-      buffer = ''
-      return nil, recv_err
+    token, err, buffer = raw_socket.query_response(buffer)
+    if token then
+      if err then
+        return nil, err
+      end
     end
-    buffer = buffer .. buf
     size, err = raw_socket.send(err)
     if not size then
       return nil, err
@@ -114,26 +112,15 @@ local function connection_instance(r, auth_key, db, host, port, proto_version, s
 
   local function get_response(reqest_token)
     -- Buffer data, execute return results if need be
+    local token, response
     while true do
-      local buf, err = raw_socket.recv()
-      if err then
-        raw_socket.close()
-        buffer = ''
-        return err
+      token, response, buffer = raw_socket.query_response(buffer)
+      if not token then
+        return response
       end
-      buffer = buffer .. buf
-      local buffer_len = #buffer
-      if buffer_len >= 12 then
-        local token = bytes_to_int(string.sub(buffer, 1, 8))
-        local response_length = bytes_to_int(string.sub(buffer, 9, 12)) + 13
-        if buffer_len >= response_length then
-          local response_buffer = string.sub(buffer, 13, response_length)
-          continue_query(token)
-          process_response(decode(r, response_buffer), token)
-          buffer = string.sub(buffer, response_length + 1)
-          if token == reqest_token then return end
-        end
-      end
+      continue_query(token)
+      process_response(decode(r, response), token)
+      if token == reqest_token then return end
     end
   end
 
@@ -145,6 +132,7 @@ local function connection_instance(r, auth_key, db, host, port, proto_version, s
 
     local function run_cb(cb)
       local response = responses[1]
+      if response == nil then return cb() end
       -- Behavior varies considerably based on response type
       -- Error responses are not discarded, and the error will be sent to all future callbacks
       local t = response.t

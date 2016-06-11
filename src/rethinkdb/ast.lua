@@ -77,8 +77,8 @@ end
 -- @tab r driver module
 -- @string st reql term name
 -- @treturn table reql
-function r_meta_table.__index(r, st)
-  return meta_table.__index(r, st)
+function r_meta_table.__index(_, st)
+  return meta_table.__index(nil, st)
 end
 
 --- module export
@@ -207,6 +207,9 @@ end
 -- @treturn nil if there is no known term
 function meta_table.__index(cls, st)
   if st == 'datum' then return datum end
+  if st == 'run' or st == 'build' or st == 'compose' then
+    return rawget(cls, st)
+  end
   local tt = rawget(Term, st)
   if not tt then
     return nil
@@ -235,7 +238,7 @@ function meta_table.__index(cls, st)
       end
       local _args = {}
       for i, arg in ipairs(inst.args) do
-        _args[i] = arg.build()
+        _args[i] = r(arg).build()
       end
       local res = {tt, _args}
       if next(inst.optargs) then
