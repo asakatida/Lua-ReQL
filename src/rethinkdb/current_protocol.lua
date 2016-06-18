@@ -62,12 +62,14 @@ local function __pbkdf2_hmac(hash_name, password, salt, iterations)
 end
 
 local function current_protocol(raw_socket, auth_key, user)
-  local nonce = raw_socket.r.b64(rand_bytes(18))
+  local r = raw_socket.r
+
+  local nonce = r.b64(rand_bytes(18))
 
   local client_first_message_bare = 'n=' .. user .. ',r=' .. nonce
 
   local size, send_err = raw_socket.send(
-    '\195\189\194\52', raw_socket.r.encode{
+    '\195\189\194\52', r.encode{
       protocol_version = 0,
       authentication_method = 'SCRAM-SHA-256',
       authentication = 'n,,' .. client_first_message_bare
@@ -144,7 +146,7 @@ local function current_protocol(raw_socket, auth_key, user)
 
   local client_final_message_without_proof = 'c=biws,r=' .. authentication.r
 
-  local salt = raw_socket.r.unb64(authentication.s)
+  local salt = r.unb64(authentication.s)
 
   -- SaltedPassword := Hi(Normalize(password), salt, i)
   local salted_password = __pbkdf2_hmac('sha256', auth_key, salt, authentication.i)
@@ -178,9 +180,9 @@ local function current_protocol(raw_socket, auth_key, user)
   -- {
   --   "authentication": "c=biws,r=<nonce><server_nonce>,p=<proof>"
   -- }
-  size, send_err = raw_socket.send(raw_socket.r.encode{
+  size, send_err = raw_socket.send(r.encode{
     authentication =
-    table.concat({client_final_message_without_proof, raw_socket.r.b64(client_proof)}, ',p=')
+    table.concat({client_final_message_without_proof, r.b64(client_proof)}, ',p=')
   }, '\0')
   if not size then
     return nil, send_err
