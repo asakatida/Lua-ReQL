@@ -1,22 +1,14 @@
 describe('current protocol', function()
-  local socket
+  local r, socket, current_protocol
 
   setup(function()
+    r = require('rethinkdb')
     socket = require('rethinkdb.socket')
+    current_protocol = require('rethinkdb.current_protocol')
   end)
 
   teardown(function()
     socket = nil
-  end)
-
-  local r, current_protocol
-
-  setup(function()
-    current_protocol = require('rethinkdb.current_protocol')
-    r = {}
-  end)
-
-  teardown(function()
     current_protocol = nil
     r = nil
   end)
@@ -30,7 +22,7 @@ describe('current protocol', function()
 
     finally(function() client.close() end)
 
-    local one, two, three = current_protocol(r, client, '', 'admin')
+    local one, two, three = current_protocol(client, '', 'admin')
     assert.is_nil(one)
     assert.is_nil(two.message())
     assert.is_nil(three)

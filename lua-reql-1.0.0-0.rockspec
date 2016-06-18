@@ -52,7 +52,6 @@ build = {
     ['rethinkdb.bits51'] = 'src/rethinkdb/bits51.lua',
     ['rethinkdb.bits53'] = 'src/rethinkdb/bits53.lua',
     ['rethinkdb.bytes_to_int'] = 'src/rethinkdb/bytes_to_int.lua',
-    ['rethinkdb.connection'] = 'src/rethinkdb/connection.lua',
     ['rethinkdb.connection_instance'] = 'src/rethinkdb/connection_instance.lua',
     ['rethinkdb.convert_pseudotype'] = 'src/rethinkdb/convert_pseudotype.lua',
     ['rethinkdb.current_protocol'] = 'src/rethinkdb/current_protocol.lua',
@@ -61,7 +60,6 @@ build = {
     ['rethinkdb.protodef'] = 'src/rethinkdb/protodef.lua',
     ['rethinkdb.semver'] = 'src/rethinkdb/semver.lua',
     ['rethinkdb.socket'] = 'src/rethinkdb/socket.lua',
-    ['rethinkdb.type'] = 'src/rethinkdb/type.lua',
     ['rethinkdb.utilities'] = 'src/rethinkdb/utilities.lua',
   }
 }

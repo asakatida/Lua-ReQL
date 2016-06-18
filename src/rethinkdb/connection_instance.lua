@@ -4,16 +4,11 @@
 -- @license Apache
 -- @copyright Adam Grandquist 2016
 
-local utilities = require'rethinkdb.utilities'
-
 local convert_pseudotype = require'rethinkdb.convert_pseudotype'
 local errors = require'rethinkdb.errors'
 local int_to_bytes = require'rethinkdb.int_to_bytes'
 local proto = require'rethinkdb.protodef'
-local tcp = require'rethinkdb.socket'
-
-local encode = utilities.encode
-local decode = utilities.decode
+local socket = require'rethinkdb.socket'
 
 local Query = proto.Query
 local Response = proto.Response
@@ -34,7 +29,7 @@ local STOP = '[' .. Query.STOP .. ']'
 local START = Query.START
 
 local function connection_instance(r, auth_key, db, host, port, proto_version, ssl_params, timeout, user)
-  local raw_socket = tcp(r, host, port, ssl_params, timeout)
+  local raw_socket = socket(r, host, port, ssl_params, timeout)
   local outstanding_callbacks = {}
   local next_token = 1
   local buffer = ''
@@ -70,7 +65,7 @@ local function connection_instance(r, auth_key, db, host, port, proto_version, s
   end
 
   local function send_query(token, query)
-    local data = encode(r, query)
+    local data = r.encode(query)
     return write_socket(token, data)
   end
 
@@ -80,8 +75,7 @@ local function connection_instance(r, auth_key, db, host, port, proto_version, s
 
   local function del_query(token)
     -- This query is done, delete this cursor
-    if not outstanding_callbacks[token] then return end
-    outstanding_callbacks[token] = {} -- @todo this should set to nil
+    outstanding_callbacks[token] = nil
   end
 
   local function end_query(token)
@@ -100,7 +94,7 @@ local function connection_instance(r, auth_key, db, host, port, proto_version, s
     end
   end
 
-  local conn_inst = {}
+  local conn_inst = {r = r}
 
   conn_inst.is_open = raw_socket.is_open
 
@@ -119,7 +113,7 @@ local function connection_instance(r, auth_key, db, host, port, proto_version, s
         return response
       end
       continue_query(token)
-      process_response(decode(r, response), token)
+      process_response(r.decode(response), token)
       if token == reqest_token then return end
     end
   end
@@ -128,11 +122,11 @@ local function connection_instance(r, auth_key, db, host, port, proto_version, s
     local responses = {}
     local _cb, end_flag, _type
 
-    local inst = {}
+    local inst = {r = r}
 
     local function run_cb(cb)
       local response = responses[1]
-      if response == nil then return cb() end
+      if not response then return cb() end
       -- Behavior varies considerably based on response type
       -- Error responses are not discarded, and the error will be sent to all future callbacks
       local t = response.t

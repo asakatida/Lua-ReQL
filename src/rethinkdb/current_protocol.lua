@@ -4,15 +4,9 @@
 -- @license Apache
 -- @copyright Adam Grandquist 2016
 
-local utilities = require'rethinkdb.utilities'
-
 local bits = require'rethinkdb.bits'
 local crypto = require('crypto')
 local errors = require'rethinkdb.errors'
-
-local unb64 = utilities.unb64
-local b64 = utilities.b64
-local encode = utilities.encode
 
 local bor = bits.bor
 local bxor = bits.bxor
@@ -67,15 +61,17 @@ local function __pbkdf2_hmac(hash_name, password, salt, iterations)
   return u
 end
 
-local function current_protocol(r, raw_socket, auth_key, user)
-  local nonce = b64(r, rand_bytes(18))
+local function current_protocol(raw_socket, auth_key, user)
+  local nonce = raw_socket.r.b64(rand_bytes(18))
 
   local client_first_message_bare = 'n=' .. user .. ',r=' .. nonce
 
   local size, send_err = raw_socket.send(
-    '\195\189\194\52{"protocol_version":0,',
-    '"authentication_method":"SCRAM-SHA-256",',
-    '"authentication":"n,,', client_first_message_bare, '"}\0'
+    '\195\189\194\52', raw_socket.r.encode{
+      protocol_version = 0,
+      authentication_method = 'SCRAM-SHA-256',
+      authentication = 'n,,' .. client_first_message_bare
+    }, '\0'
   )
   if not size then
     return nil, send_err
@@ -148,7 +144,7 @@ local function current_protocol(r, raw_socket, auth_key, user)
 
   local client_final_message_without_proof = 'c=biws,r=' .. authentication.r
 
-  local salt = unb64(r, authentication.s)
+  local salt = raw_socket.r.unb64(authentication.s)
 
   -- SaltedPassword := Hi(Normalize(password), salt, i)
   local salted_password = __pbkdf2_hmac('sha256', auth_key, salt, authentication.i)
@@ -182,10 +178,10 @@ local function current_protocol(r, raw_socket, auth_key, user)
   -- {
   --   "authentication": "c=biws,r=<nonce><server_nonce>,p=<proof>"
   -- }
-  size, send_err = raw_socket.send(encode(r, {
+  size, send_err = raw_socket.send(raw_socket.r.encode{
     authentication =
-    table.concat({client_final_message_without_proof, b64(r, client_proof)}, ',p=')
-  }), '\0')
+    table.concat({client_final_message_without_proof, raw_socket.r.b64(client_proof)}, ',p=')
+  }, '\0')
   if not size then
     return nil, send_err
   end

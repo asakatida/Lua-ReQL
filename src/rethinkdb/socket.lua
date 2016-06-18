@@ -4,17 +4,55 @@
 -- @license Apache
 -- @copyright Adam Grandquist 2016
 
-local utilities = require'rethinkdb.utilities'
-
 local bytes_to_int = require'rethinkdb.bytes_to_int'
 local errors = require'rethinkdb.errors'
 local ssl = require('ssl')
 
-local decode = utilities.decode
-local socket = utilities.socket
-local _select = utilities._select
+local function receive(connection, pattern)
+  connection:timeout(0)
+  local s, status = connection:receive(pattern)
+  if status == 'timeout' then
+    coroutine.yield(connection)
+  end
+  return s, status
+end
 
-local function tcp(r, host, port, ssl_params, timeout)
+local function download(connection)
+  while true do
+    local s, status = receive(connection)
+    if status == 'closed' then break end
+  end
+  connection:close()
+end
+
+local function get(threads, connection)
+  local co = coroutine.create(function ()
+    download(connection)
+  end)
+  table.insert(threads, co)
+end
+
+local function dispatcher(r, threads)
+  local n = table.getn(threads)
+  if n == 0 then return end
+  local connections = {}
+  for i=1, n do
+    local status, res = coroutine.resume(threads[i])
+    if not res then
+      table.remove(threads, i)
+      break
+    else
+      table.insert(connections, res)
+    end
+  end
+  if table.getn(connections) == n then
+    r.select(connections)
+  end
+end
+
+local threads = {}
+
+local function socket(r, host, port, ssl_params, timeout)
   local raw_socket = nil
 
   local function shutdown(client)
@@ -26,7 +64,7 @@ local function tcp(r, host, port, ssl_params, timeout)
     end
   end
 
-  local inst = {}
+  local inst = {r = r}
 
   function inst.send(...)
     if not raw_socket then return nil, errors.ReQLDriverError'closed' end
@@ -38,12 +76,12 @@ local function tcp(r, host, port, ssl_params, timeout)
     if err == 'closed' then
       raw_socket = nil
     elseif err == 'wantread' then
-      local recvt, _, sel_err = _select(r, {raw_socket}, nil, timeout)
+      local recvt, _, sel_err = r.select({raw_socket}, nil, timeout)
       if sel_err == 'timeout' or not recvt[raw_socket] then
         return nil, errors.ReQLDriverError(err)
       end
     elseif err == 'timeout' or err == 'wantwrite' then
-      local _, sendt, sel_err = _select(r, nil, {raw_socket}, timeout)
+      local _, sendt, sel_err = r.select(nil, {raw_socket}, timeout)
       if sel_err == 'timeout' or not sendt[raw_socket] then
         return nil, errors.ReQLDriverError(err)
       end
@@ -66,7 +104,7 @@ local function tcp(r, host, port, ssl_params, timeout)
   end
 
   function inst.open()
-    local client = socket(r)
+    local client = r.socket()
     shutdown(raw_socket)
     raw_socket = nil
     local function defer(err)
@@ -88,12 +126,12 @@ local function tcp(r, host, port, ssl_params, timeout)
       if err == 'closed' then
         return defer(err)
       elseif err == 'wantread' then
-        local recvt, _, sel_err = _select(r, {raw_socket}, nil, timeout)
+        local recvt, _, sel_err = r.select({raw_socket}, nil, timeout)
         if sel_err == 'timeout' or not recvt[raw_socket] then
           return defer(err)
         end
       elseif err == 'timeout' or err == 'wantwrite' then
-        local _, sendt, sel_err = _select(r, nil, {raw_socket}, timeout)
+        local _, sendt, sel_err = r.select(nil, {raw_socket}, timeout)
         if sel_err == 'timeout' or not sendt[raw_socket] then
           return defer(err)
         end
@@ -111,12 +149,12 @@ local function tcp(r, host, port, ssl_params, timeout)
           if err == 'closed' then
             return defer(err)
           elseif err == 'timeout' or err == 'wantread' then
-            local recvt, _, sel_err = _select(r, {client}, nil, timeout)
+            local recvt, _, sel_err = r.select({client}, nil, timeout)
             if sel_err == 'timeout' or not recvt[client] then
               return defer(err)
             end
           elseif err == 'wantwrite' then
-            local _, sendt, sel_err = _select(r, nil, {client}, timeout)
+            local _, sendt, sel_err = r.select(nil, {client}, timeout)
             if sel_err == 'timeout' or not sendt[client] then
               return defer(err)
             end
@@ -133,13 +171,12 @@ local function tcp(r, host, port, ssl_params, timeout)
   local function recv(pat)
     if not raw_socket then return nil, errors.ReQLDriverError'closed' end
     local function defer(t, ...)
-      if t == nil then
+      if not t then
         inst.close()
         return nil, errors.ReQLDriverError(...)
-      else
-        raw_socket:settimeout(0, 't')
-        raw_socket:settimeout(0, 'b')
       end
+      raw_socket:settimeout(0, 't')
+      raw_socket:settimeout(0, 'b')
       return t, ...
     end
     raw_socket:settimeout(timeout, 't')
@@ -154,12 +191,12 @@ local function tcp(r, host, port, ssl_params, timeout)
     if err == 'closed' then
       return defer(partial or '')
     elseif err == 'timeout' or err == 'wantread' then
-      local recvt, _, sel_err = _select(r, {raw_socket}, nil, timeout)
+      local recvt, _, sel_err = r.select({raw_socket}, nil, timeout)
       if sel_err == 'timeout' or not recvt[raw_socket] then
         return defer(nil, err)
       end
     elseif err == 'wantwrite' then
-      local _, sendt, sel_err = _select(r, nil, {raw_socket}, timeout)
+      local _, sendt, sel_err = r.select(nil, {raw_socket}, timeout)
       if sel_err == 'timeout' or not sendt[raw_socket] then
         return defer(nil, err)
       end
@@ -197,7 +234,7 @@ local function tcp(r, host, port, ssl_params, timeout)
 
     local message = string.sub(buffer, 1, i - 1)
 
-    local response = decode(r, message)
+    local response = r.decode(message)
 
     if not response then
       return nil, errors.ReQLDriverError(message), ''
@@ -232,4 +269,4 @@ local function tcp(r, host, port, ssl_params, timeout)
   return inst
 end
 
-return tcp
+return socket

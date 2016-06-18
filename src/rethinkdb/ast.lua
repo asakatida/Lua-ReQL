@@ -5,13 +5,8 @@
 -- @copyright Adam Grandquist 2016
 -- @alias r
 
-local utilities = require'rethinkdb.utilities'
-
 local errors = require'rethinkdb.errors'
 local proto = require'rethinkdb.protodef'
-
-local b64 = utilities.b64
-local encode = utilities.encode
 
 local Term = proto.Term
 
@@ -178,7 +173,7 @@ local function datum(val)
 
   local function build()
     if val == nil then
-      return encode(r)
+      return r.encode()
     end
     return val
   end
@@ -187,7 +182,7 @@ local function datum(val)
     if val == nil then
       return 'nil'
     end
-    return encode(r, val)
+    return r.encode(val)
   end
 
   return setmetatable({
@@ -217,9 +212,9 @@ function meta_table.__index(cls, st)
 
   --- instantiates a chained term
   local function reql_term(...)
-    local __optargs, args = (arg_wrappers[st] or no_opts)(cls, ...)
+    local __optargs, __args = (arg_wrappers[st] or no_opts)(cls, ...)
 
-    local inst = setmetatable({tt = tt, st = st}, meta_table)
+    local inst = setmetatable({r = r, st = st, tt = tt}, meta_table)
 
     --- convert from internal represention to JSON
     function inst.build()
@@ -282,28 +277,32 @@ function meta_table.__index(cls, st)
     -- @tab _args represention of arguments
     -- @tab[opt] _optargs represention of options
     -- @treturn string
-    function inst.compose(_args, _optargs)
+    function inst.compose(args, optargs)
       if st == 'make_array' then
-        return '{' .. table.concat(_args, ', ') .. '}'
+        local res = {}
+        for i, v in ipairs(args) do
+          res[i] = v .. ','
+        end
+        return {'{', res, '\n}'}
       end
-      local function kved(optargs)
+      local function kved()
         local res = {}
         for k, v in pairs(optargs) do
           table.insert(res, k .. ' = ' .. v)
         end
-        return '{' .. table.concat(res, ', ') .. '}'
+        return '{\n  ' .. table.concat(res, ',\n  ') .. '\n}'
       end
       if st == 'make_obj' then
-        return kved(_optargs)
+        return kved()
       end
       if st == 'var' then
-        return 'var_' .. _args[1]
+        return 'var_' .. args[1]
       end
       if st == 'binary' and not inst.args[1] then
         return 'r.binary(<data>)'
       end
       if st == 'bracket' then
-        return table.concat{_args[1], '(', _args[2], ')'}
+        return table.concat{args[1], '(', args[2], ')'}
       end
       if st == 'func' then
         local res = {}
@@ -313,27 +312,27 @@ function meta_table.__index(cls, st)
         return table.concat{
           'function(',
           table.concat(res, ', '),
-          ') return ', _args[2], ' end'
+          ') return ', args[2], ' end'
         }
       end
       if st == 'do_' then
-        local func = table.remove(_args, 1)
+        local func = table.remove(args, 1)
         if func then
-          table.insert(_args, func)
+          table.insert(args, func)
         end
       end
       local argrepr = {}
-      if _args and next(_args) then
-        table.insert(argrepr, table.concat(_args, ', '))
+      if args and next(args) then
+        table.insert(argrepr, table.concat(args, ','))
       end
-      if _optargs and next(_optargs) then
-        table.insert(argrepr, kved(_optargs))
+      if optargs and next(optargs) then
+        table.insert(argrepr, kved())
       end
       return table.concat{'r.', st, '(', table.concat(argrepr, ', '), ')'}
     end
 
     if st == 'func' then
-      local func = args[1]
+      local func = __args[1]
       local anon_args = {}
       local arg_nums = {}
       if debug.getinfo then
@@ -352,28 +351,28 @@ function meta_table.__index(cls, st)
         return nil, errors.ReQLDriverError'Anonymous function returned `nil`. Did you forget a `return`?'
       end
       __optargs.arity = nil
-      args = {arg_nums, func}
+      __args = {arg_nums, func}
     elseif st == 'binary' then
-      local data = args[1]
+      local data = __args[1]
       if type(data) == 'string' then
-        inst.base64_data = b64(r, table.remove(args, 1))
+        inst.base64_data = r.b64(table.remove(__args, 1))
       elseif getmetatable(data) ~= meta_table then
         return nil, errors.ReQLDriverError'Parameter to `r.binary` must be a string or ReQL query.'
       end
     elseif st == 'funcall' then
-      local func = table.remove(args)
+      local func = table.remove(__args)
       if type(func) == 'function' then
-        func = r.func({arity = #args}, func)
+        func = r.func({arity = #__args}, func)
       end
-      table.insert(args, 1, func)
+      table.insert(__args, 1, func)
     elseif st == 'reduce' then
-      args[#args] = r.func({arity = 2}, args[#args])
+      __args[#__args] = r.func({arity = 2}, __args[#__args])
     end
 
     inst.args = {cls}
     inst.optargs = {}
 
-    for _, a in ipairs(args) do
+    for _, a in ipairs(__args) do
       table.insert(inst.args, r(a))
     end
 

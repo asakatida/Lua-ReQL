@@ -29,7 +29,7 @@ describe('change feeds', function()
   end)
 
   teardown(function()
-    r = nil
+    c.close()
   end)
 
   it('all', function()
@@ -45,7 +45,7 @@ describe('change feeds', function()
         cur.each(function(row)
           table.insert(res, row.new_val.id)
         end, function(err)
-          if err then error(err.message()) end
+          assert.is_nil(err)
         end)
         return res
       end
@@ -71,7 +71,7 @@ describe('change feeds', function()
         cur.each(function(row)
           table.insert(res, row.new_val.id)
         end, function(err)
-          if err then error(err.message()) end
+          assert.is_nil(err)
         end)
         return res
       end

@@ -4,11 +4,7 @@
 -- @license Apache
 -- @copyright Adam Grandquist 2016
 
-local utilities = require'rethinkdb.utilities'
-
 local errors = require'rethinkdb.errors'
-
-local unb64 = utilities.unb64
 
 --- native conversion from reql grouped data to Lua
 -- @tab obj reql group pseudo-type table
@@ -65,7 +61,7 @@ local time_table = {
 local function convert_pseudotype(r, _obj, opts)
   local function native_binary(obj)
     assert(obj.data, 'pseudo-type BINARY table missing expected field `data`')
-    return unb64(r, obj.data)
+    return r.unb64(obj.data)
   end
 
   local binary_table = {
