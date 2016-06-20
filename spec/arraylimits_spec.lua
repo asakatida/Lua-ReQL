@@ -15,7 +15,7 @@ describe('array limits', function()
     local reql_db = 'array'
     reql_table = 'limits'
 
-    local ten_l = r{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+    local ten_l = r.reql{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
     local function ten_f() return ten_l end
     huge_l = ten_l.concat_map(ten_f).concat_map(ten_f).concat_map(
       ten_f).concat_map(ten_f)
@@ -25,18 +25,17 @@ describe('array limits', function()
     c, err = r.connect{proto_version = r.proto_V0_4}
     assert.is_nil(err)
 
-    r.db_create(reql_db).run(c)
+    r.reql.db_create(reql_db).run(c)
     c.use(reql_db)
-    r.table_create(reql_table).run(c)
-  end)
-
-  after_each(function()
-    r.table(reql_table).delete().run(c)
+    r.reql.table_create(reql_table).run(c)
   end)
 
   teardown(function()
-    assert:remove_formatter(reql_error_formatter)
+    r.reql.table(reql_table).delete().run(c)
+    c.close()
+    c = nil
     r = nil
+    assert:remove_formatter(reql_error_formatter)
   end)
 
   it('create', function()
@@ -56,7 +55,7 @@ describe('array limits', function()
   end)
 
   it('equal', function()
-    assert.same({{1, 2, 3, 4, 5, 6, 7, 8}}, r{1, 2, 3, 4}.union{5, 6, 7, 8}.run(
+    assert.same({{1, 2, 3, 4, 5, 6, 7, 8}}, r.reql{1, 2, 3, 4}.union{5, 6, 7, 8}.run(
       c, {array_limit = 8}, function(_err, cur)
         if _err then error(_err.message()) end
         return cur.to_array(function(err, arr)
@@ -80,7 +79,7 @@ describe('array limits', function()
   end)
 
   it('huge read', function()
-    r.table(reql_table).insert{id = 0, array = huge_l.append(1)}.run(
+    r.reql.table(reql_table).insert{id = 0, array = huge_l.append(1)}.run(
       c, {array_limit = 100001}, function(_err, cur)
         if _err then error(_err.message()) end
         return cur.to_array(function(err, arr)
@@ -90,7 +89,7 @@ describe('array limits', function()
       end
     )
     assert.same(
-      {}, r.table(reql_table).get(0).run(
+      {}, r.reql.table(reql_table).get(0).run(
         c, {array_limit = 100001}, function(_err, cur)
           if _err then error(_err.message()) end
           return cur.to_array(function(err, arr)
@@ -110,7 +109,7 @@ describe('array limits', function()
         first_error =
         'Array too large for disk writes (limit 100,000 elements).'
       }},
-      r.table(reql_table).insert{id = 0, array = huge_l.append(1)}.run(
+      r.reql.table(reql_table).insert{id = 0, array = huge_l.append(1)}.run(
         c, {array_limit = 100001}, function(_err, cur)
           if _err then error(_err.message()) end
           return cur.to_array(function(err, arr)

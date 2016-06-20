@@ -1,7 +1,15 @@
+local function reql_error_formatter(err)
+  if type(err) ~= 'table' then return end
+  if err.ReQLError then
+    return err.message()
+  end
+end
+
 describe('change feeds', function()
   local r, reql_db, reql_table, c
 
   setup(function()
+    assert:add_formatter(reql_error_formatter)
     r = require('rethinkdb')
 
     reql_db = 'changefeeds'
@@ -12,24 +20,28 @@ describe('change feeds', function()
     c, err = r.connect{proto_version = r.proto_V0_4}
     assert.is_nil(err)
 
-    r.db_create(reql_db).run(c)
+    r.reql.db_create(reql_db).run(c)
     c.use(reql_db)
-    r.table_create(reql_table).run(c)
+    r.reql.table_create(reql_table).run(c)
   end)
 
   before_each(function()
-    r.table(reql_table).insert{
+    r.reql.table(reql_table).insert{
       {id = 1}, {id = 2}, {id = 3},
       {id = 4}, {id = 5}, {id = 6}
     }.run(c)
   end)
 
   after_each(function()
-    r.table(reql_table).delete().run(c)
+    r.reql.table(reql_table).delete().run(c)
   end)
 
   teardown(function()
+    r.reql.table(reql_table).delete().run(c)
     c.close()
+    c = nil
+    r = nil
+    assert:remove_formatter(reql_error_formatter)
   end)
 
   it('all', function()

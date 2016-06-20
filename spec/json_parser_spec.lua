@@ -1,7 +1,15 @@
+local function reql_error_formatter(err)
+  if type(err) ~= 'table' then return end
+  if err.ReQLError then
+    return err.message()
+  end
+end
+
 describe('control dkjson', function()
   local r, reql_table, c, dkjson
 
   setup(function()
+    assert:add_formatter(reql_error_formatter)
     dkjson = require('dkjson')
     r = require('rethinkdb').new{json_parser = dkjson}
 
@@ -19,8 +27,12 @@ describe('control dkjson', function()
   end)
 
   teardown(function()
-    r.table(reql_table).delete().run(c)
+    r.reql.table(reql_table).delete().run(c)
     c.close()
+    dkjson = nil
+    c = nil
+    r = nil
+    assert:remove_formatter(reql_error_formatter)
   end)
 
   it('branch false', function()

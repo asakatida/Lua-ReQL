@@ -1,7 +1,15 @@
+local function reql_error_formatter(err)
+  if type(err) ~= 'table' then return end
+  if err.ReQLError then
+    return err.message()
+  end
+end
+
 describe('control', function()
   local r, reql_db, reql_table, c
 
   setup(function()
+    assert:add_formatter(reql_error_formatter)
     r = require('rethinkdb')
 
     reql_db = 'control'
@@ -17,12 +25,12 @@ describe('control', function()
     r.table_create(reql_table).run(c)
   end)
 
-  after_each(function()
-    r.table(reql_table).delete().run(c)
-  end)
-
   teardown(function()
+    r.reql.table(reql_table).delete().run(c)
+    c.close()
+    c = nil
     r = nil
+    assert:remove_formatter(reql_error_formatter)
   end)
 
   it('branch db', function()

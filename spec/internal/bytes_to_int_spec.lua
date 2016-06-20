@@ -1,12 +1,21 @@
+local function reql_error_formatter(err)
+  if type(err) ~= 'table' then return end
+  if err.ReQLError then
+    return err.message()
+  end
+end
+
 describe('bytes to int', function()
   local bytes_to_int
 
   setup(function()
+    assert:add_formatter(reql_error_formatter)
     bytes_to_int = require('rethinkdb.bytes_to_int')
   end)
 
   teardown(function()
     bytes_to_int = nil
+    assert:remove_formatter(reql_error_formatter)
   end)
 
   it('endian', function()

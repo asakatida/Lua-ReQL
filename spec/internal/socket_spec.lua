@@ -1,16 +1,27 @@
+local function reql_error_formatter(err)
+  if type(err) ~= 'table' then return end
+  if err.ReQLError then
+    return err.message()
+  end
+end
+
 describe('socket', function()
-  local socket
+  local r, socket
 
   setup(function()
+    assert:add_formatter(reql_error_formatter)
+    r = require('rethinkdb')
     socket = require('rethinkdb.socket')
   end)
 
   teardown(function()
     socket = nil
+    r = nil
+    assert:remove_formatter(reql_error_formatter)
   end)
 
   it('closes repeatedly', function()
-    local client = assert.is_not_nil(socket({}, 'localhost', 28015, nil, 1))
+    local client = assert.is_not_nil(socket(r, 'localhost', 28015, nil, 1))
     assert.is_false(client.is_open())
 
     client.close()
@@ -31,7 +42,7 @@ describe('socket', function()
   end)
 
   it('connects', function()
-    local client = assert.is_not_nil(socket({}, 'localhost', 28015, nil, 1))
+    local client = assert.is_not_nil(socket(r, 'localhost', 28015, nil, 1))
 
     client.open()
 
