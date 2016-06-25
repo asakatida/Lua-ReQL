@@ -5,18 +5,18 @@ local function reql_error_formatter(err)
   end
 end
 
-describe('current protocol', function()
-  local r, socket, current_protocol
+describe('current handshake', function()
+  local r, socket, current_handshake
 
   setup(function()
     assert:add_formatter(reql_error_formatter)
     r = require('rethinkdb')
     socket = require('rethinkdb.socket')
-    current_protocol = require('rethinkdb.current_protocol')
+    current_handshake = require('rethinkdb.current_handshake')
   end)
 
   teardown(function()
-    current_protocol = nil
+    current_handshake = nil
     socket = nil
     r = nil
     assert:remove_formatter(reql_error_formatter)
@@ -31,9 +31,8 @@ describe('current protocol', function()
 
     finally(function() client.close() end)
 
-    local one, two, three = current_protocol(client, '', 'admin')
+    local one, two = current_handshake(client, '', 'admin')
     assert.is_nil(one)
     assert.is_nil(two.message())
-    assert.is_nil(three)
   end)
 end)

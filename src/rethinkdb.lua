@@ -9,7 +9,8 @@ local utilities = require'rethinkdb.utilities'
 
 local ast = require'rethinkdb.ast'
 local connection_instance = require'rethinkdb.connection_instance'
-local current_protocol = require'rethinkdb.current_protocol'
+local current_handshake = require'rethinkdb.current_handshake'
+local handshake = require'rethinkdb.handshake'
 local int_to_bytes = require'rethinkdb.int_to_bytes'
 
 local v = require('rethinkdb.semver')
@@ -54,7 +55,7 @@ local function new(options)
   r.decode = utilities.decode(options)
   r.encode = utilities.encode(options)
   r.new = new
-  r.proto_V1_0 = current_protocol
+  r.proto_V1_0 = current_handshake
   r.r = r
   r.reql = ast
   r.select = utilities._select(options)
@@ -75,21 +76,51 @@ local function new(options)
 
   --- Interface to handle default connection construction.
   function r.Connection(connection_opts)
-    local port = connection_opts.port or DEFAULT_PORT
-    local db = connection_opts.db -- left nil if this is not set
     local auth_key = connection_opts.password or connection_opts.auth_key or DEFAULT_AUTH_KEY
-    local user = connection_opts.user or DEFAULT_USER
-    local timeout = connection_opts.timeout or DEFAULT_TIMEOUT
-    local ssl_params = connection_opts.ssl
-    local proto_version = connection_opts.proto_version or current_protocol
+    local db = connection_opts.db -- left nil if this is not set
     local host = connection_opts.host or DEFAULT_HOST
+    local port = connection_opts.port or DEFAULT_PORT
+    local proto_version = connection_opts.proto_version or current_handshake
+    local ssl_params = connection_opts.ssl
+    local timeout = connection_opts.timeout or DEFAULT_TIMEOUT
+    local user = connection_opts.user or DEFAULT_USER
+
+    local handshake_inst = handshake(auth_key, proto_version, user)
 
     local inst = {r = r}
 
     function inst.connect(callback)
-      return connection_instance(
-        inst.r, auth_key, db, host, port, proto_version, ssl_params, timeout, user
-        ).connect(callback)
+      if callback then
+        local function cb(err, conn)
+          if err then
+            return callback(err)
+          end
+          conn.use(db)
+          return callback(nil, conn)
+        end
+        return connection_instance(
+          inst.r,
+          handshake_inst,
+          host,
+          port,
+          ssl_params,
+          timeout
+        ).connect(cb)
+      end
+
+      local conn, err = connection_instance(
+        inst.r,
+        handshake_inst,
+        host,
+        port,
+        ssl_params,
+        timeout
+      ).connect()
+      if err then
+        return nil, err
+      end
+      conn.use(db)
+      return conn
     end
 
     function inst._start(term, callback, opts)
@@ -100,6 +131,7 @@ local function new(options)
           end
           return nil, err
         end
+        conn.use(db)
         return conn._start(term, callback, opts)
       end
       return inst.connect(cb)

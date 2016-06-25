@@ -1,5 +1,5 @@
 --- Handler implementing latest RethinkDB handshake.
--- @module rethinkdb.current_protocol
+-- @module rethinkdb.current_handshake
 -- @author Adam Grandquist
 -- @license Apache
 -- @copyright Adam Grandquist 2016
@@ -61,7 +61,7 @@ local function __pbkdf2_hmac(hash_name, password, salt, iterations)
   return u
 end
 
-local function current_protocol(raw_socket, auth_key, user)
+local function current_handshake(raw_socket, auth_key, user)
   local r = raw_socket.r
 
   local nonce = r.b64(rand_bytes(18))
@@ -223,4 +223,4 @@ local function current_protocol(raw_socket, auth_key, user)
   return buffer
 end
 
-return current_protocol
+return current_handshake
