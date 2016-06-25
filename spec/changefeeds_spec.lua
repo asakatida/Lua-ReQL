@@ -45,10 +45,10 @@ describe('change feeds', function()
   end)
 
   it('all', function()
-    local res = r.table(reql_table).changes().limit(4).run(
+    local res = r.reql.table(reql_table).changes().limit(4).run(
       c, function(_err, cur)
         assert.is_nil(_err)
-        r.table(reql_table).insert(
+        r.reql.table(reql_table).insert(
           {{id = 7}, {id = 8}, {id = 9}, {id = 10}}
         ).run(c, function(err)
           assert.is_nil(err)
@@ -67,14 +67,14 @@ describe('change feeds', function()
   end)
 
   it('even', function()
-    local res = r.table(reql_table).changes().filter(
+    local res = r.reql.table(reql_table).changes().filter(
       function(row)
-        return (row('new_val')('id') % 2).eq(0)
+        return (row'new_val'('id') % 2).eq(0)
       end
     ).limit(2).run(
       c, function(_err, cur)
         assert.is_nil(_err)
-        r.table(reql_table).insert(
+        r.reql.table(reql_table).insert(
           {{id = 7}, {id = 8}, {id = 9}, {id = 10}}
         ).run(c, function(err)
           assert.is_nil(err)

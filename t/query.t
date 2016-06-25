@@ -36,22 +36,22 @@ __DATA__
       
           local function setup(callback)
             -- init db
-            r.db_create(reql_db):run(c)
+            r.reql.db_create(reql_db):run(c)
             c:use(reql_db)
-            r.table_create(reql_table):run(c, function()
+            r.reql.table_create(reql_table):run(c, function()
               -- remove data
-              r.table(reql_table):delete():run(c, callback)
+              r.reql.table(reql_table):delete():run(c, callback)
             end)
           end
         
           setup(function()
             -- insert doc
-            r.table(reql_table):insert(document):run(c, function(err)
+            r.reql.table(reql_table):insert(document):run(c, function(err)
               if err then 
                 error(err.message())
               end
               
-              r.table(reql_table):run(c, function(err, cur)
+              r.reql.table(reql_table):run(c, function(err, cur)
                 if err then 
                   error(err.message())
                 end

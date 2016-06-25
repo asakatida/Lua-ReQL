@@ -51,7 +51,7 @@ describe('cursor', function()
   it('type', function()
     assert.are.equal(
       'cursor',
-      r.table(reql_table).run(
+      r.reql.table(reql_table).run(
         c, function(err, cur)
           assert.is_nil(err)
           return r.type(cur)
@@ -63,7 +63,7 @@ describe('cursor', function()
   it('count', function()
     assert.are.equal(
       num_rows,
-      r.table(reql_table).run(
+      r.reql.table(reql_table).run(
         c, function(_err, cur)
           assert.is_nil(_err)
           return cur.to_array(function(err, arr)
@@ -77,7 +77,7 @@ describe('cursor', function()
 
   it('close', function()
     assert.has_no.errors(function()
-      r.table(reql_table).run(
+      r.reql.table(reql_table).run(
         c, function(_err, cur)
           assert.is_nil(_err)
           cur.close(function(err) assert.is_nil(err) end)

@@ -92,7 +92,7 @@ local function current_handshake(raw_socket, auth_key, user)
   -- acknowledging the connection
   -- this will be a null terminated json document on success
   -- or a null terminated error string on failure
-  local response, err, buffer = raw_socket.decode_message('')
+  local response, err = raw_socket.decode_message()
 
   if not response then
     return nil, err
@@ -120,7 +120,7 @@ local function current_handshake(raw_socket, auth_key, user)
   local authentication = {}
   local server_first_message
 
-  response, err, buffer = raw_socket.decode_message(buffer)
+  response, err = raw_socket.decode_message()
 
   if not response then
     return nil, err
@@ -203,7 +203,7 @@ local function current_handshake(raw_socket, auth_key, user)
   --   "success": <bool>,
   --   "authentication": "v=<server_signature>"
   -- }
-  response, err, buffer = raw_socket.decode_message(buffer)
+  response, err = raw_socket.decode_message()
 
   if not response then
     return nil, err
@@ -220,7 +220,7 @@ local function current_handshake(raw_socket, auth_key, user)
     return nil, errors.ReQLDriverError(response)
   end
 
-  return buffer
+  return true
 end
 
 return current_handshake

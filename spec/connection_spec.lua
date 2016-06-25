@@ -52,19 +52,19 @@ describe('connection', function()
     local c, _err = r.connect{proto_version = r.proto_V0_4}
     assert.is_nil(_err)
 
-    r.db_create(reql_db).run(c)
+    r.reql.db_create(reql_db).run(c)
     c.use(reql_db)
-    r.table_create(reql_table).run(c)
+    r.reql.table_create(reql_table).run(c)
 
     for _id=1,500000 do
-      local cur, err = r.table(reql_table).insert{id=_id}.run(c)
+      local cur, err = r.reql.table(reql_table).insert{id=_id}.run(c)
       assert.is_nil(err)
       assert.is_nil(cur)
     end
 
     c.reconnect(function(err, conn)
       assert.is_nil(err)
-      r.table(reql_table).delete().run(conn)
+      r.reql.table(reql_table).delete().run(conn)
     end)
   end)
 end)

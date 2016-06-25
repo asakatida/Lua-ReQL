@@ -34,7 +34,7 @@ describe('datum', function()
   end)
 
   it('false', function()
-    r(false).run(
+    r.reql(false).run(
       c, function(_err, cur)
         assert.is_nil(_err)
         cur.to_array(function(err, arr)
@@ -46,7 +46,7 @@ describe('datum', function()
   end)
 
   it('true', function()
-    r(true).run(
+    r.reql(true).run(
       c, function(_err, cur)
         assert.is_nil(_err)
         cur.to_array(function(err, arr)
@@ -58,7 +58,7 @@ describe('datum', function()
   end)
 
   it('nil', function()
-    r(nil).run(
+    r.reql().run(
       c, function(_err, cur)
         assert.is_nil(_err)
         cur.to_array(function(err, arr)
@@ -82,7 +82,7 @@ describe('datum', function()
   end)
 
   it('0', function()
-    r(0).run(
+    r.reql(0).run(
       c, function(_err, cur)
         assert.is_nil(_err)
         cur.to_array(function(err, arr)
@@ -94,7 +94,7 @@ describe('datum', function()
   end)
 
   it('1', function()
-    r(1).run(
+    r.reql(1).run(
       c, function(_err, cur)
         assert.is_nil(_err)
         cur.to_array(function(err, arr)
@@ -106,7 +106,7 @@ describe('datum', function()
   end)
 
   it('-1', function()
-    r(-1).run(
+    r.reql(-1).run(
       c, function(_err, cur)
         assert.is_nil(_err)
         cur.to_array(function(err, arr)
@@ -118,7 +118,7 @@ describe('datum', function()
   end)
 
   it('τ', function()
-    r(6.28).run(
+    r.reql(6.28).run(
       c, function(_err, cur)
         assert.is_nil(_err)
         cur.to_array(function(err, arr)
@@ -130,7 +130,7 @@ describe('datum', function()
   end)
 
   it('𝑒', function()
-    r(2.2).run(
+    r.reql(2.2).run(
       c, function(_err, cur)
         assert.is_nil(_err)
         cur.to_array(function(err, arr)
@@ -142,7 +142,7 @@ describe('datum', function()
   end)
 
   it('α', function()
-    r(0.00001).run(
+    r.reql(0.00001).run(
       c, function(_err, cur)
         assert.is_nil(_err)
         cur.to_array(function(err, arr)
@@ -154,7 +154,7 @@ describe('datum', function()
   end)
 
   it('array', function()
-    r{[1] = 1, [2] = 2}.run(
+    r.reql{[1] = 1, [2] = 2}.run(
       c, function(_err, cur)
         assert.is_nil(_err)
         cur.to_array(function(err, arr)
@@ -166,7 +166,7 @@ describe('datum', function()
   end)
 
   it('table', function()
-    r{first = 1, second = 2}.run(
+    r.reql{first = 1, second = 2}.run(
       c, function(_err, cur)
         assert.is_nil(_err)
         cur.to_array(function(err, arr)

@@ -39,7 +39,7 @@ local function proto_V0_x(raw_socket, auth_key, magic)
 
   if message then
     -- We're good, finish setting up the connection
-    return ''
+    return true
   end
   return nil, err
 end

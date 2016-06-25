@@ -117,7 +117,7 @@ describe('array limits', function()
     )
   end)
   it('less than', function()
-    r{1, 2, 3, 4}.union{5, 6, 7, 8}.run(
+    r.reql{1, 2, 3, 4}.union{5, 6, 7, 8}.run(
       c, {array_limit = 4}, function(_err, cur)
         assert.is_nil(_err)
         cur.to_array(function(err, arr)
@@ -129,7 +129,7 @@ describe('array limits', function()
   end)
 
   it('less than read', function()
-    r.table(reql_table).insert(
+    r.reql.table(reql_table).insert(
       {id = 1, array = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}}
     ).run(
       c, function(_err, cur)
@@ -142,7 +142,7 @@ describe('array limits', function()
     )
     assert.same(
       {{array = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}, id = 1}},
-      r.table(reql_table).get(1).run(
+      r.reql.table(reql_table).get(1).run(
         c, {array_limit = 4}, function(_err, cur)
           assert.is_nil(_err)
           return cur.to_array(function(err, arr)
@@ -155,7 +155,7 @@ describe('array limits', function()
   end)
 
   it('negative', function()
-    r{1, 2, 3, 4, 5, 6, 7, 8}.run(
+    r.reql{1, 2, 3, 4, 5, 6, 7, 8}.run(
       c, {array_limit = -1}, function(_err, cur)
         assert.is_nil(_err)
         cur.to_array(function(err, arr)
@@ -167,7 +167,7 @@ describe('array limits', function()
   end)
 
   it('zero', function()
-    r{1, 2, 3, 4, 5, 6, 7, 8}.run(
+    r.reql{1, 2, 3, 4, 5, 6, 7, 8}.run(
       c, {array_limit = 0}, function(_err, cur)
         assert.is_nil(_err)
         cur.to_array(function(err, arr)

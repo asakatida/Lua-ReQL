@@ -57,7 +57,7 @@ local function connection_instance(r, handshake, host, port, ssl_params, timeout
   end
 
   function inst.use(_db)
-    db = r.db(_db).build()
+    db = r.reql.db(_db).build()
   end
 
   local function get_response(reqest_token)
@@ -223,11 +223,11 @@ local function connection_instance(r, handshake, host, port, ssl_params, timeout
     local global_opts = {}
 
     for k, v in pairs(opts) do
-      global_opts[k] = r(v).build()
+      global_opts[k] = r.reql(v).build()
     end
 
     if opts.db then
-      global_opts.db = opts.db.db().build()
+      global_opts.db = r.reql.db(opts.db).build()
     elseif db then
       global_opts.db = db
     end
