@@ -4,9 +4,34 @@
 -- @license Apache
 -- @copyright Adam Grandquist 2016
 
-local bits = require'rethinkdb.bits'
 local crypto = require('crypto')
-local errors = require'rethinkdb.errors'
+
+--- Helper for bitwise operations.
+local function prequire(mod_name, ...)
+  if not mod_name then return end
+
+  local success, bits = pcall(require, mod_name)
+
+  if success then
+    return true, bits
+  end
+
+  return prequire(...)
+end
+
+local success, bits = prequire(
+  'rethinkdb.bits53', 'bit32', 'bit', 'rethinkdb.bits51')
+
+if success then
+  if not bits.tobit then
+    --- normalize integer to bitfield
+    -- @int a integer
+    -- @treturn int
+    function bits.tobit(a)
+      return bits.bor(a, 0)
+    end
+  end
+end
 
 local bor = bits.bor
 local bxor = bits.bxor
@@ -84,7 +109,7 @@ local function current_handshake(raw_socket, auth_key, user)
       return nil, send_err
     end
     if send_err ~= '' then
-      return nil, errors.ReQLDriverError'Incomplete protocol sent'
+      return nil, 'Incomplete protocol sent'
     end
   end
 
@@ -98,8 +123,8 @@ local function current_handshake(raw_socket, auth_key, user)
     return nil, err
   end
 
-  if response.success ~= true then
-    return nil, errors.ReQLDriverError(response.error)
+  if not response.success then
+    return nil, response
   end
 
   -- when protocol versions are updated this is where we send the following
@@ -127,11 +152,9 @@ local function current_handshake(raw_socket, auth_key, user)
   end
 
   if not response.success then
-    if 10 <= response.error_code and response.error_code <= 20 then
-      return nil, errors.ReQLAuthError(response.error)
-    end
-    return nil, errors.ReQLDriverError(response.error)
+    return nil, response
   end
+
   server_first_message = response.authentication
   local response_authentication = server_first_message .. ','
   for k, v in string.gmatch(response_authentication, '([rsi])=(.-),') do
@@ -139,7 +162,7 @@ local function current_handshake(raw_socket, auth_key, user)
   end
 
   if string.sub(authentication.r, 1, #nonce) ~= nonce then
-    return nil, errors.ReQLDriverError'Invalid nonce'
+    return nil, 'Invalid nonce'
   end
 
   authentication.i = tonumber(authentication.i)
@@ -193,7 +216,7 @@ local function current_handshake(raw_socket, auth_key, user)
       return nil, send_err
     end
     if send_err ~= '' then
-      return nil, errors.ReQLDriverError'Incomplete protocol sent'
+      return nil, 'Incomplete protocol sent'
     end
   end
 
@@ -210,14 +233,11 @@ local function current_handshake(raw_socket, auth_key, user)
   end
 
   if not response.success then
-    if 10 <= response.error_code and response.error_code <= 20 then
-      return nil, errors.ReQLAuthError(response.error)
-    end
-    return nil, errors.ReQLDriverError(response.error)
+    return nil, response
   end
 
   if not __compare_digest(response.v, server_signature) then
-    return nil, errors.ReQLDriverError(response)
+    return nil, response
   end
 
   return true

@@ -29,6 +29,6 @@ describe('current handshake', function()
 
     local one, two = current_handshake(client, '', 'admin')
     assert.is_nil(one)
-    assert.is_nil(two.message())
+    assert.is_nil(two)
   end)
 end)

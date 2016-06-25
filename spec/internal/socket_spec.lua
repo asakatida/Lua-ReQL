@@ -29,22 +29,20 @@ describe('socket', function()
   it('connects', function()
     local client = assert.is_not_nil(socket(r, 'localhost', 28015, nil, 1))
 
-    client.open()
-
     assert.is_true(client.is_open())
 
     finally(function() client.close() end)
 
     assert.are_equal(12, client.send('\0\0', '\0\0\0\0\0\0\0\0\0\0'))
 
-    local message, err = client.get_success()
+    local message, err = client.recv'*a'
 
-    assert.is_nil(message)
+    assert.is_nil(err)
 
     assert.are_equal(
       'ERROR: Received an unsupported protocol version. This port is for ' ..
       'RethinkDB queries. Does your client driver version not match the ' ..
       'server?\n\0',
-      err)
+      message)
   end)
 end)

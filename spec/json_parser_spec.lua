@@ -108,7 +108,7 @@ describe('control dkjson', function()
   it('do append', function()
     assert.equal(r.decode, dkjson.decode)
     assert.equal(r.encode, dkjson.encode)
-    assert.same({{0, 1, 2, 3}}, r{0, 1, 2}.do_(function(v) return v.append(3) end).run(
+    assert.same({{0, 1, 2, 3}}, r.reql{0, 1, 2}.do_(function(v) return v.append(3) end).run(
       c, function(_err, cur)
         assert.is_nil(_err)
         return cur.to_array(function(err, arr)

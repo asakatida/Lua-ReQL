@@ -1,21 +1,12 @@
-local function reql_error_formatter(err)
-  if type(err) ~= 'table' then return end
-  if err.ReQLError then
-    return err.message()
-  end
-end
-
 describe('bits', function()
   local bits
 
   setup(function()
-    assert:add_formatter(reql_error_formatter)
-    bits = require('rethinkdb.bits')
+    bits = require('rethinkdb.bits51')
   end)
 
   teardown(function()
     bits = nil
-    assert:remove_formatter(reql_error_formatter)
   end)
 
   it('tobit', function()

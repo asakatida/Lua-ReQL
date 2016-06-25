@@ -6,10 +6,10 @@
 
 local bytes_to_int = require'rethinkdb.bytes_to_int'
 local int_to_bytes = require'rethinkdb.int_to_bytes'
-local proto = require'rethinkdb.protodef'
+local protodef = require'rethinkdb.protodef'
 local socket = require'rethinkdb.socket'
 
-local Query = proto.Query
+local Query = protodef.Query
 
 local CONTINUE = '[' .. Query.CONTINUE .. ']'
 local NOREPLY_WAIT = '[' .. Query.NOREPLY_WAIT .. ']'
@@ -17,6 +17,43 @@ local SERVER_INFO = '[' .. Query.SERVER_INFO .. ']'
 local STOP = '[' .. Query.STOP .. ']'
 
 local START = Query.START
+
+--- convert from internal represention to JSON
+local function build(term)
+  if type(term) ~= 'table' then return term end
+  if term.st == 'binary' and (not term.args[1]) then
+    return {
+      ['$reql_type$'] = 'BINARY',
+      data = term.base64_data
+    }
+  end
+  if term.st == 'datum' then
+    if term.args[1] == nil then
+      return term.r.encode()
+    end
+    return term.args[1]
+  end
+  if term.st == 'make_obj' then
+    local res = {}
+    for key, val in pairs(term.optargs) do
+      res[key] = build(val)
+    end
+    return res
+  end
+  local _args = {}
+  for i, arg in ipairs(term.args) do
+    _args[i] = build(arg)
+  end
+  local res = {term.tt, _args}
+  if next(term.optargs) then
+    local opts = {}
+    for key, val in pairs(term.optargs) do
+      opts[key] = build(val)
+    end
+    table.insert(res, opts)
+  end
+  return res
+end
 
 local function protocol(r, handshake, host, port, ssl_params, timeout)
   local buffer = ''
@@ -84,8 +121,12 @@ local function protocol(r, handshake, host, port, ssl_params, timeout)
   end
 
   function inst.send_query(term, global_opts)
+    for k, v in pairs(global_opts) do
+      global_opts[k] = build(v)
+    end
+
     -- Assign token
-    local data = r.encode{START, term.build(), global_opts}
+    local data = r.encode{START, build(term), global_opts}
     return write_socket(get_token(), data)
   end
 

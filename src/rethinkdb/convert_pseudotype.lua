@@ -4,8 +4,6 @@
 -- @license Apache
 -- @copyright Adam Grandquist 2016
 
-local errors = require'rethinkdb.errors'
-
 --- native conversion from reql grouped data to Lua
 -- @tab obj reql group pseudo-type table
 -- @treturn table
@@ -81,15 +79,15 @@ local function convert_pseudotype(r, _obj, opts)
     time_table[time_format]
 
   if not BINARY then
-    return nil, errors.ReQLDriverError('Unknown binary_format run option ' .. binary_format)
+    return nil, 'Unknown binary_format run option ' .. binary_format
   end
 
   if not GROUPED_DATA then
-    return nil, errors.ReQLDriverError('Unknown group_format run option ' .. group_format)
+    return nil, 'Unknown group_format run option ' .. group_format
   end
 
   if not TIME then
-    return nil, errors.ReQLDriverError('Unknown time_format run option ' .. time_format)
+    return nil, 'Unknown time_format run option ' .. time_format
   end
 
   local conversion = {
@@ -121,7 +119,7 @@ local function convert_pseudotype(r, _obj, opts)
     return res
   end
 
-  return nil, errors.ReQLDriverError(res)
+  return nil, res
 end
 
 return convert_pseudotype
