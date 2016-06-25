@@ -53,7 +53,7 @@ describe('cursor', function()
       'cursor',
       r.table(reql_table).run(
         c, function(err, cur)
-          if err then error(err.message()) end
+          assert.is_nil(err)
           return r.type(cur)
         end
       )
@@ -65,9 +65,9 @@ describe('cursor', function()
       num_rows,
       r.table(reql_table).run(
         c, function(_err, cur)
-          if _err then error(_err.message()) end
+          assert.is_nil(_err)
           return cur.to_array(function(err, arr)
-            if err then error(err.message()) end
+            assert.is_nil(err)
             return #arr
           end)
         end
@@ -79,8 +79,8 @@ describe('cursor', function()
     assert.has_no.errors(function()
       r.table(reql_table).run(
         c, function(_err, cur)
-          if _err then error(_err.message()) end
-          cur.close(function(err) if err then error(err.message()) end end)
+          assert.is_nil(_err)
+          cur.close(function(err) assert.is_nil(err) end)
         end
       )
     end)

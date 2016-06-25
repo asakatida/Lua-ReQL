@@ -56,19 +56,14 @@ describe('connection', function()
     c.use(reql_db)
     r.table_create(reql_table).run(c)
 
-    -- assert.has_error(
-    --   function()
-    --     for _id=1,500000 do
-    --       local cur, err = r.table(reql_table).insert{id=_id}.run(c)
-    --       assert.is_nil(err)
-    --       assert.is_nil(cur)
-    --     end
-    --   end,
-    --   'ReQLDriverError Connection is closed.'
-    -- )
+    for _id=1,500000 do
+      local cur, err = r.table(reql_table).insert{id=_id}.run(c)
+      assert.is_nil(err)
+      assert.is_nil(cur)
+    end
 
     c.reconnect(function(err, conn)
-      if err then error(err.message()) end
+      assert.is_nil(err)
       r.table(reql_table).delete().run(conn)
     end)
   end)

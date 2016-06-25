@@ -34,43 +34,35 @@ describe('control', function()
   end)
 
   it('branch db', function()
-    assert.has_error(
-      function()
-        r.db(reql_db).branch(1, 2).run(
-          c, function(_err, cur)
-            if _err then error(_err.message()) end
-            cur.to_array(function(err, arr)
-              if err then error(err.msg) end
-              error(arr)
-            end)
-          end
-        )
-      end, 'Expected type DATUM but found DATABASE.'
+    r.db(reql_db).branch(1, 2).run(
+      c, function(_err, cur)
+        assert.is_nil(_err)
+        cur.to_array(function(err, arr)
+          assert.is_nil(arr)
+          assert.is_not_nil(err)
+        end)
+      end
     )
   end)
 
   it('branch error', function()
-    assert.has_error(
-      function()
-        r.branch(r.error_('a'), 1, 2).run(
-          c, function(_err, cur)
-            if _err then error(_err.message()) end
-            cur.to_array(function(err, arr)
-              if err then error(err.msg) end
-              error(arr)
-            end)
-          end
-        )
-      end, 'a'
+    r.branch(r.error_('a'), 1, 2).run(
+      c, function(_err, cur)
+        assert.is_nil(_err)
+        cur.to_array(function(err, arr)
+          assert.is_nil(arr)
+          assert.is_not_nil(err)
+        end)
+      end
     )
   end)
 
   it('branch false', function()
     assert.same({2}, r.branch(false, 1, 2).run(
       c, function(_err, cur)
-        if _err then error(_err.message()) end
+        assert.is_nil(_err)
         return cur.to_array(function(err, arr)
-          if err then error(err.message()) end
+          assert.is_nil(err)
           return arr
         end)
       end
@@ -80,9 +72,9 @@ describe('control', function()
   it('branch nil', function()
     assert.same({2}, r().branch(1, 2).run(
       c, function(_err, cur)
-        if _err then error(_err.message()) end
+        assert.is_nil(_err)
         return cur.to_array(function(err, arr)
-          if err then error(err.message()) end
+          assert.is_nil(err)
           return arr
         end)
       end
@@ -92,9 +84,9 @@ describe('control', function()
   it('branch num', function()
     assert.same({'c'}, r.branch(1, 'c', false).run(
       c, function(_err, cur)
-        if _err then error(_err.message()) end
+        assert.is_nil(_err)
         return cur.to_array(function(err, arr)
-          if err then error(err.message()) end
+          assert.is_nil(err)
           return arr
         end)
       end
@@ -102,27 +94,23 @@ describe('control', function()
   end)
 
   it('branch table', function()
-    assert.has_error(
-      function()
-        r.table(reql_table).branch(1, 2).run(
-          c, function(_err, cur)
-            if _err then error(_err.message()) end
-            cur.to_array(function(err, arr)
-              if err then error(err.msg) end
-              error(arr)
-            end)
-          end
-        )
-      end, 'Expected type DATUM but found TABLE.'
+    r.table(reql_table).branch(1, 2).run(
+      c, function(_err, cur)
+        assert.is_nil(_err)
+        cur.to_array(function(err, arr)
+          assert.is_nil(arr)
+          assert.is_not_nil(err)
+        end)
+      end
     )
   end)
 
   it('branch true', function()
     assert.same({1}, r.branch(true, 1, 2).run(
       c, function(_err, cur)
-        if _err then error(_err.message()) end
+        assert.is_nil(_err)
         return cur.to_array(function(err, arr)
-          if err then error(err.message()) end
+          assert.is_nil(err)
           return arr
         end)
       end
@@ -132,9 +120,9 @@ describe('control', function()
   it('do', function()
     assert.same({1}, r.do_(function() return 1 end).run(
       c, function(_err, cur)
-        if _err then error(_err.message()) end
+        assert.is_nil(_err)
         return cur.to_array(function(err, arr)
-          if err then error(err.message()) end
+          assert.is_nil(err)
           return arr
         end)
       end
@@ -144,9 +132,9 @@ describe('control', function()
   it('do add', function()
     assert.same({3}, r.do_(1, 2, function(x, y) return x.add(y) end).run(
       c, function(_err, cur)
-        if _err then error(_err.message()) end
+        assert.is_nil(_err)
         return cur.to_array(function(err, arr)
-          if err then error(err.message()) end
+          assert.is_nil(err)
           return arr
         end)
       end
@@ -156,9 +144,9 @@ describe('control', function()
   it('do append', function()
     assert.same({{0, 1, 2, 3}}, r{0, 1, 2}.do_(function(v) return v.append(3) end).run(
       c, function(_err, cur)
-        if _err then error(_err.message()) end
+        assert.is_nil(_err)
         return cur.to_array(function(err, arr)
-          if err then error(err.message()) end
+          assert.is_nil(err)
           return arr
         end)
       end
@@ -167,34 +155,26 @@ describe('control', function()
 
   if string.match(_VERSION, '5.[23]') then
     it('do extra arg', function()
-      assert.has_error(
-        function()
-          r.do_(1, function(x, y) return x + y end).run(
-            c, function(_err, cur)
-              if _err then error(_err.message()) end
-              cur.to_array(function(err, arr)
-                if err then error(err.msg) end
-                error(arr)
-              end)
-            end
-          )
-        end, 'Expected function with 1 arguments but found function with 2 argument.'
+      r.do_(1, function(x, y) return x + y end).run(
+        c, function(_err, cur)
+          assert.is_nil(_err)
+          cur.to_array(function(err, arr)
+            assert.is_nil(arr)
+            assert.is_not_nil(err)
+          end)
+        end
       )
     end)
 
     it('do missing arg', function()
-      assert.has_error(
-        function()
-          r.do_(1, 2, function(x) return x end).run(
-            c, function(_err, cur)
-              if _err then error(_err.message()) end
-              cur.to_array(function(err, arr)
-                if err then error(err.msg) end
-                error(arr)
-              end)
-            end
-          )
-        end, 'Expected function with 2 arguments but found function with 1 argument.'
+      r.do_(1, 2, function(x) return x end).run(
+        c, function(_err, cur)
+          assert.is_nil(_err)
+          cur.to_array(function(err, arr)
+            assert.is_nil(arr)
+            assert.is_not_nil(err)
+          end)
+        end
       )
     end)
   end
@@ -202,9 +182,9 @@ describe('control', function()
   it('do mul', function()
     assert.same({2}, r(1).do_(function(v) return v.mul(2) end).run(
       c, function(_err, cur)
-        if _err then error(_err.message()) end
+        assert.is_nil(_err)
         return cur.to_array(function(err, arr)
-          if err then error(err.message()) end
+          assert.is_nil(err)
           return arr
         end)
       end
@@ -212,27 +192,23 @@ describe('control', function()
   end)
 
   it('do no args', function()
-    assert.has_error(
-      function()
-        r.do_().run(
-          c, function(_err, cur)
-            if _err then error(_err.message()) end
-            cur.to_array(function(err, arr)
-              if err then error(err.msg) end
-              error(arr)
-            end)
-          end
-        )
-      end, 'Expected 1 or more arguments but found 0.'
+    r.do_().run(
+      c, function(_err, cur)
+        assert.is_nil(_err)
+        cur.to_array(function(err, arr)
+          assert.is_nil(arr)
+          assert.is_not_nil(err)
+        end)
+      end
     )
   end)
 
   it('do no func', function()
     assert.same({1}, r.do_(1).run(
       c, function(_err, cur)
-        if _err then error(_err.message()) end
+        assert.is_nil(_err)
         return cur.to_array(function(err, arr)
-          if err then error(err.message()) end
+          assert.is_nil(err)
           return arr
         end)
       end
@@ -240,91 +216,67 @@ describe('control', function()
   end)
 
   it('do no return', function()
-    assert.has_error(
-      function()
-        r.do_(1, function() end)
-      end, 'Anonymous function returned `nil`. Did you forget a `return`?'
-    )
+    r.do_(1, function() end)
   end)
 
   it('do return nil', function()
-    assert.has_error(
-      function()
-        r.do_(1, function() return nil end)
-      end, 'Anonymous function returned `nil`. Did you forget a `return`?'
-    )
+    r.do_(1, function() return nil end)
   end)
 
   it('do str add num', function()
-    assert.has_error(
-      function()
-        r('abc').do_(function(v) return v.add(3) end).run(
-          c, function(_err, cur)
-            if _err then error(_err.message()) end
-            cur.to_array(function(err, arr)
-              if err then error(err.msg) end
-              error(arr)
-            end)
-          end
-        )
-      end, 'Expected type STRING but found NUMBER.'
+    r('abc').do_(function(v) return v.add(3) end).run(
+      c, function(_err, cur)
+        assert.is_nil(_err)
+        cur.to_array(function(err, arr)
+          assert.is_nil(arr)
+          assert.is_not_nil(err)
+        end)
+      end
     )
   end)
 
   it('do str add str add num', function()
-    assert.has_error(
-      function()
-        r('abc').do_(function(v) return v.add('def') end).add(3).run(
-          c, function(_err, cur)
-            if _err then error(_err.message()) end
-            cur.to_array(function(err, arr)
-              if err then error(err.msg) end
-              error(arr)
-            end)
-          end
-        )
-      end, 'Expected type STRING but found NUMBER.'
+    r('abc').do_(function(v) return v.add('def') end).add(3).run(
+      c, function(_err, cur)
+        assert.is_nil(_err)
+        cur.to_array(function(err, arr)
+          assert.is_nil(arr)
+          assert.is_not_nil(err)
+        end)
+      end
     )
   end)
 
   it('do str append', function()
-    assert.has_error(
-      function()
-        r('abc').do_(function(v) return v.append(3) end).run(
-          c, function(_err, cur)
-            if _err then error(_err.message()) end
-            cur.to_array(function(err, arr)
-              if err then error(err.msg) end
-              error(arr)
-            end)
-          end
-        )
-      end, 'Expected type ARRAY but found STRING.'
+    r('abc').do_(function(v) return v.append(3) end).run(
+      c, function(_err, cur)
+        assert.is_nil(_err)
+        cur.to_array(function(err, arr)
+          assert.is_nil(arr)
+          assert.is_not_nil(err)
+        end)
+      end
     )
   end)
 
   it('error', function()
-    assert.has_error(
-      function()
-        r.error_('Hello World').run(
-          c, function(_err, cur)
-            if _err then error(_err.message()) end
-            cur.to_array(function(err, arr)
-              if err then error(err.msg) end
-              error(arr)
-            end)
-          end
-        )
-      end, 'Hello World'
+    r.error_('Hello World').run(
+      c, function(_err, cur)
+        assert.is_nil(_err)
+        cur.to_array(function(err, arr)
+          assert.is_nil(arr)
+          assert.is_not_nil(err)
+        end)
+      end
     )
   end)
 
   it('js', function()
     assert.same({2}, r.js('1 + 1').run(
       c, function(_err, cur)
-        if _err then error(_err.message()) end
+        assert.is_nil(_err)
         return cur.to_array(function(err, arr)
-          if err then error(err.message()) end
+          assert.is_nil(err)
           return arr
         end)
       end
@@ -334,9 +286,9 @@ describe('control', function()
   it('js add add', function()
     assert.same({4}, r.js('1 + 1; 2 + 2').run(
       c, function(_err, cur)
-        if _err then error(_err.message()) end
+        assert.is_nil(_err)
         return cur.to_array(function(err, arr)
-          if err then error(err.message()) end
+          assert.is_nil(err)
           return arr
         end)
       end
@@ -346,9 +298,9 @@ describe('control', function()
   it('do js function add', function()
     assert.same({3}, r.do_(1, 2, r.js('(function(a, b) { return a + b; })')).run(
       c, function(_err, cur)
-        if _err then error(_err.message()) end
+        assert.is_nil(_err)
         return cur.to_array(function(err, arr)
-          if err then error(err.message()) end
+          assert.is_nil(err)
           return arr
         end)
       end
@@ -358,9 +310,9 @@ describe('control', function()
   it('do js function', function()
     assert.same({2}, r.do_(1, r.js('(function(x) { return x + 1; })')).run(
       c, function(_err, cur)
-        if _err then error(_err.message()) end
+        assert.is_nil(_err)
         return cur.to_array(function(err, arr)
-          if err then error(err.message()) end
+          assert.is_nil(err)
           return arr
         end)
       end
@@ -369,9 +321,9 @@ describe('control', function()
   it('do js function add str', function()
     assert.same({'foobar'}, r.do_('foo', r.js('(function(x) { return x + "bar"; })')).run(
       c, function(_err, cur)
-        if _err then error(_err.message()) end
+        assert.is_nil(_err)
         return cur.to_array(function(err, arr)
-          if err then error(err.message()) end
+          assert.is_nil(err)
           return arr
         end)
       end
@@ -381,9 +333,9 @@ describe('control', function()
   it('do js no timeout', function()
     assert.same({3}, r.js('1 + 2', {timeout = 1.2}).run(
       c, function(_err, cur)
-        if _err then error(_err.message()) end
+        assert.is_nil(_err)
         return cur.to_array(function(err, arr)
-          if err then error(err.message()) end
+          assert.is_nil(err)
           return arr
         end)
       end
@@ -391,43 +343,35 @@ describe('control', function()
   end)
 
   it('js function result', function()
-    assert.has_error(
-      function()
-        r.js('(function() { return 1; })').run(
-          c, function(_err, cur)
-            if _err then error(_err.message()) end
-            cur.to_array(function(err, arr)
-              if err then error(err.msg) end
-              error(arr)
-            end)
-          end
-        )
-      end, 'Query result must be of type DATUM, GROUPED_DATA, or STREAM (got FUNCTION).'
+    r.js('(function() { return 1; })').run(
+      c, function(_err, cur)
+        assert.is_nil(_err)
+        cur.to_array(function(err, arr)
+          assert.is_nil(arr)
+          assert.is_not_nil(err)
+        end)
+      end
     )
   end)
 
   it('js function no wrap', function()
-    assert.has_error(
-      function()
-        r.js('function() { return 1; }').run(
-          c, function(_err, cur)
-            if _err then error(_err.message()) end
-            cur.to_array(function(err, arr)
-              if err then error(err.msg) end
-              error(arr)
-            end)
-          end
-        )
-      end, 'SyntaxError. Unexpected token ('
+    r.js('function() { return 1; }').run(
+      c, function(_err, cur)
+        assert.is_nil(_err)
+        cur.to_array(function(err, arr)
+          assert.is_nil(arr)
+          assert.is_not_nil(err)
+        end)
+      end
     )
   end)
 
   it('do js function missing arg', function()
     assert.same({1}, r.do_(1, 2, r.js('(function(a) { return a; })')).run(
       c, function(_err, cur)
-        if _err then error(_err.message()) end
+        assert.is_nil(_err)
         return cur.to_array(function(err, arr)
-          if err then error(err.message()) end
+          assert.is_nil(err)
           return arr
         end)
       end
@@ -437,9 +381,9 @@ describe('control', function()
   it('do js function extra arg', function()
     assert.same({1}, r.do_(1, 2, r.js('(function(a, b, c) { return a; })')).run(
       c, function(_err, cur)
-        if _err then error(_err.message()) end
+        assert.is_nil(_err)
         return cur.to_array(function(err, arr)
-          if err then error(err.message()) end
+          assert.is_nil(err)
           return arr
         end)
       end
@@ -447,27 +391,23 @@ describe('control', function()
   end)
 
   it('do js function return undefined', function()
-    assert.has_error(
-      function()
-        r.do_(1, 2, r.js('(function(a, b, c) { return c; })')).run(
-          c, function(_err, cur)
-            if _err then error(_err.message()) end
-            cur.to_array(function(err, arr)
-              if err then error(err.msg) end
-              error(arr)
-            end)
-          end
-        )
-      end, 'Cannot convert javascript `undefined` to ql..datum_t.'
+    r.do_(1, 2, r.js('(function(a, b, c) { return c; })')).run(
+      c, function(_err, cur)
+        assert.is_nil(_err)
+        cur.to_array(function(err, arr)
+          assert.is_nil(arr)
+          assert.is_not_nil(err)
+        end)
+      end
     )
   end)
 
   it('filter js', function()
     assert.same({{2, 3}}, r.filter({1, 2, 3}, r.js('(function(a) { return a >= 2; })')).run(
       c, function(_err, cur)
-        if _err then error(_err.message()) end
+        assert.is_nil(_err)
         return cur.to_array(function(err, arr)
-          if err then error(err.message()) end
+          assert.is_nil(err)
           return arr
         end)
       end
@@ -477,9 +417,9 @@ describe('control', function()
   it('map js', function()
     assert.same({{2, 3, 4}}, r.map({1, 2, 3}, r.js('(function(a) { return a + 1; })')).run(
       c, function(_err, cur)
-        if _err then error(_err.message()) end
+        assert.is_nil(_err)
         return cur.to_array(function(err, arr)
-          if err then error(err.message()) end
+          assert.is_nil(err)
           return arr
         end)
       end
@@ -487,59 +427,47 @@ describe('control', function()
   end)
 
   it('map js constant', function()
-    assert.has_error(
-      function()
-        r.map({1, 2, 3}, r.js('1')).run(
-          c, function(_err, cur)
-            if _err then error(_err.message()) end
-            cur.to_array(function(err, arr)
-              if err then error(err.msg) end
-              error(arr)
-            end)
-          end
-        )
-      end, 'Expected type FUNCTION but found DATUM.'
+    r.map({1, 2, 3}, r.js('1')).run(
+      c, function(_err, cur)
+        assert.is_nil(_err)
+        cur.to_array(function(err, arr)
+          assert.is_nil(arr)
+          assert.is_not_nil(err)
+        end)
+      end
     )
   end)
 
   it('filter js undefined', function()
-    assert.has_error(
-      function()
-        r.filter({1, 2, 3}, r.js('(function(a) {})')).run(
-          c, function(_err, cur)
-            if _err then error(_err.message()) end
-            cur.to_array(function(err, arr)
-              if err then error(err.msg) end
-              error(arr)
-            end)
-          end
-        )
-      end, 'Cannot convert javascript `undefined` to ql..datum_t.'
+    r.filter({1, 2, 3}, r.js('(function(a) {})')).run(
+      c, function(_err, cur)
+        assert.is_nil(_err)
+        cur.to_array(function(err, arr)
+          assert.is_nil(arr)
+          assert.is_not_nil(err)
+        end)
+      end
     )
   end)
 
   it('map constant', function()
-    assert.has_error(
-      function()
-        r.map({1, 2, 3}, 1).run(
-          c, function(_err, cur)
-            if _err then error(_err.message()) end
-            cur.to_array(function(err, arr)
-              if err then error(err.msg) end
-              error(arr)
-            end)
-          end
-        )
-      end, 'Expected type FUNCTION but found DATUM.'
+    r.map({1, 2, 3}, 1).run(
+      c, function(_err, cur)
+        assert.is_nil(_err)
+        cur.to_array(function(err, arr)
+          assert.is_nil(arr)
+          assert.is_not_nil(err)
+        end)
+      end
     )
   end)
 
   it('filter constant str', function()
     assert.same({{1, 2, 3}}, r.filter({1, 2, 3}, 'foo').run(
       c, function(_err, cur)
-        if _err then error(_err.message()) end
+        assert.is_nil(_err)
         return cur.to_array(function(err, arr)
-          if err then error(err.message()) end
+          assert.is_nil(err)
           return arr
         end)
       end
@@ -549,9 +477,9 @@ describe('control', function()
   it('filter constant obj', function()
     assert.same({{1, 2, 3}}, r.filter({1, 2, 3}, {}).run(
       c, function(_err, cur)
-        if _err then error(_err.message()) end
+        assert.is_nil(_err)
         return cur.to_array(function(err, arr)
-          if err then error(err.message()) end
+          assert.is_nil(err)
           return arr
         end)
       end
@@ -561,9 +489,9 @@ describe('control', function()
   it('filter nil', function()
     assert.same({{}}, r.filter({1, 2, 3}, r()).run(
       c, function(_err, cur)
-        if _err then error(_err.message()) end
+        assert.is_nil(_err)
         return cur.to_array(function(err, arr)
-          if err then error(err.message()) end
+          assert.is_nil(err)
           return arr
         end)
       end
@@ -573,9 +501,9 @@ describe('control', function()
   it('filter false', function()
     assert.same({{}}, r.filter({1, 2, 3}, false).run(
       c, function(_err, cur)
-        if _err then error(_err.message()) end
+        assert.is_nil(_err)
         return cur.to_array(function(err, arr)
-          if err then error(err.message()) end
+          assert.is_nil(err)
           return arr
         end)
       end
@@ -585,9 +513,9 @@ describe('control', function()
   it('for each insert', function()
     assert.same({{deleted = 0, replaced = 0, unchanged = 0, errors = 0, skipped = 0, inserted = 3}}, r.for_each({1, 2, 3}, function(row) return r.table(reql_table).insert({id = row}) end).run(
       c, function(_err, cur)
-        if _err then error(_err.message()) end
+        assert.is_nil(_err)
         return cur.to_array(function(err, arr)
-          if err then error(err.message()) end
+          assert.is_nil(err)
           return arr
         end)
       end
@@ -597,18 +525,18 @@ describe('control', function()
   it('count for each insert', function()
     r.for_each({1, 2, 3}, function(row) return r.table(reql_table).insert({id = row}) end).run(
       c, function(_err, cur)
-        if _err then error(_err.message()) end
+        assert.is_nil(_err)
         return cur.to_array(function(err, arr)
-          if err then error(err.message()) end
+          assert.is_nil(err)
           return arr
         end)
       end
     )
     assert.same(r.table(reql_table).count().run(
       c, function(_err, cur)
-        if _err then error(_err.message()) end
+        assert.is_nil(_err)
         return cur.to_array(function(err, arr)
-          if err then error(err.message()) end
+          assert.is_nil(err)
           return arr
         end)
       end
@@ -618,18 +546,18 @@ describe('control', function()
   it('for each update', function()
     r.for_each({1, 2, 3}, function(row) return r.table(reql_table).insert({id = row}) end).run(
       c, function(_err, cur)
-        if _err then error(_err.message()) end
+        assert.is_nil(_err)
         return cur.to_array(function(err, arr)
-          if err then error(err.message()) end
+          assert.is_nil(err)
           return arr
         end)
       end
     )
     assert.same(r.for_each({1, 2, 3}, function(row) return r.table(reql_table).update({foo = row}) end).run(
       c, function(_err, cur)
-        if _err then error(_err.message()) end
+        assert.is_nil(_err)
         return cur.to_array(function(err, arr)
-          if err then error(err.message()) end
+          assert.is_nil(err)
           return arr
         end)
       end
@@ -639,27 +567,27 @@ describe('control', function()
   it('for each insert with duplicates', function()
     r.for_each({1, 2, 3}, function(row) return r.table(reql_table).insert({id = row}) end).run(
       c, function(_err, cur)
-        if _err then error(_err.message()) end
+        assert.is_nil(_err)
         return cur.to_array(function(err, arr)
-          if err then error(err.message()) end
+          assert.is_nil(err)
           return arr
         end)
       end
     )
     r.for_each({1, 2, 3}, function(row) return r.table(reql_table).update({foo = row}) end).run(
       c, function(_err, cur)
-        if _err then error(_err.message()) end
+        assert.is_nil(_err)
         return cur.to_array(function(err, arr)
-          if err then error(err.message()) end
+          assert.is_nil(err)
           return arr
         end)
       end
     )
     assert.same(r.for_each({1, 2, 3}, function(row) return {r.table(reql_table).insert({id = row}), r.table(reql_table).insert({id = row * 10})} end).run(
       c, function(_err, cur)
-        if _err then error(_err.message()) end
+        assert.is_nil(_err)
         return cur.to_array(function(err, arr)
-          if err then error(err.message()) end
+          assert.is_nil(err)
           return arr
         end)
       end
@@ -669,36 +597,36 @@ describe('control', function()
   it('for each update many', function()
     r.for_each({1, 2, 3}, function(row) return r.table(reql_table).insert({id = row}) end).run(
       c, function(_err, cur)
-        if _err then error(_err.message()) end
+        assert.is_nil(_err)
         return cur.to_array(function(err, arr)
-          if err then error(err.message()) end
+          assert.is_nil(err)
           return arr
         end)
       end
     )
     r.for_each({1, 2, 3}, function(row) return r.table(reql_table).update({foo = row}) end).run(
       c, function(_err, cur)
-        if _err then error(_err.message()) end
+        assert.is_nil(_err)
         return cur.to_array(function(err, arr)
-          if err then error(err.message()) end
+          assert.is_nil(err)
           return arr
         end)
       end
     )
     r.for_each({1, 2, 3}, function(row) return {r.table(reql_table).insert({id = row}), r.table(reql_table).insert({id = row * 10})} end).run(
       c, function(_err, cur)
-        if _err then error(_err.message()) end
+        assert.is_nil(_err)
         return cur.to_array(function(err, arr)
-          if err then error(err.message()) end
+          assert.is_nil(err)
           return arr
         end)
       end
     )
     assert.same(r.for_each({1, 2, 3}, function(row) return {r.table(reql_table).update({foo = row}), r.table(reql_table).update({bar = row})} end).run(
       c, function(_err, cur)
-        if _err then error(_err.message()) end
+        assert.is_nil(_err)
         return cur.to_array(function(err, arr)
-          if err then error(err.message()) end
+          assert.is_nil(err)
           return arr
         end)
       end

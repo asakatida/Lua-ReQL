@@ -39,27 +39,23 @@ describe('array limits', function()
   end)
 
   it('create', function()
-    assert.has_error(
-      function()
-        r{1, 2, 3, 4, 5, 6, 7, 8}.run(
-          c, {array_limit = 4}, function(_err, cur)
-            assert.is_nil(_err)
-            cur.to_array(function(err, arr)
-              assert.is_nil(arr)
-              if err then error(err.msg) end
-            end)
-          end
-        )
-      end, 'Array over size limit `4`.'
+    r{1, 2, 3, 4, 5, 6, 7, 8}.run(
+      c, {array_limit = 4}, function(_err, cur)
+        assert.is_nil(_err)
+        cur.to_array(function(err, arr)
+          assert.is_nil(arr)
+          assert.is_not_nil(err)
+        end)
+      end
     )
   end)
 
   it('equal', function()
     assert.same({{1, 2, 3, 4, 5, 6, 7, 8}}, r.reql{1, 2, 3, 4}.union{5, 6, 7, 8}.run(
       c, {array_limit = 8}, function(_err, cur)
-        if _err then error(_err.message()) end
+        assert.is_nil(_err)
         return cur.to_array(function(err, arr)
-          if err then error(err.message()) end
+          assert.is_nil(err)
           return arr
         end)
       end
@@ -69,9 +65,9 @@ describe('array limits', function()
   it('huge', function()
     assert.same({100001}, huge_l.append(1).count().run(
       c, {array_limit = 100001}, function(_err, cur)
-        if _err then error(_err.message()) end
+        assert.is_nil(_err)
         return cur.to_array(function(err, arr)
-          if err then error(err.message()) end
+          assert.is_nil(err)
           return arr
         end)
       end
@@ -81,9 +77,9 @@ describe('array limits', function()
   it('huge read', function()
     r.reql.table(reql_table).insert{id = 0, array = huge_l.append(1)}.run(
       c, {array_limit = 100001}, function(_err, cur)
-        if _err then error(_err.message()) end
+        assert.is_nil(_err)
         return cur.to_array(function(err, arr)
-          if err then error(err.message()) end
+          assert.is_nil(err)
           return arr
         end)
       end
@@ -91,9 +87,9 @@ describe('array limits', function()
     assert.same(
       {}, r.reql.table(reql_table).get(0).run(
         c, {array_limit = 100001}, function(_err, cur)
-          if _err then error(_err.message()) end
+          assert.is_nil(_err)
           return cur.to_array(function(err, arr)
-            if err then error(err.message()) end
+            assert.is_nil(err)
             return arr
           end)
         end
@@ -111,9 +107,9 @@ describe('array limits', function()
       }},
       r.reql.table(reql_table).insert{id = 0, array = huge_l.append(1)}.run(
         c, {array_limit = 100001}, function(_err, cur)
-          if _err then error(_err.message()) end
+          assert.is_nil(_err)
           return cur.to_array(function(err, arr)
-            if err then error(err.message()) end
+            assert.is_nil(err)
             return arr
           end)
         end
@@ -121,18 +117,14 @@ describe('array limits', function()
     )
   end)
   it('less than', function()
-    assert.has_error(
-      function()
-        r{1, 2, 3, 4}.union{5, 6, 7, 8}.run(
-          c, {array_limit = 4}, function(_err, cur)
-            if _err then error(_err.message()) end
-            cur.to_array(function(err, arr)
-              if err then error(err.msg) end
-              error(arr)
-            end)
-          end
-        )
-      end, 'Array over size limit `4`.'
+    r{1, 2, 3, 4}.union{5, 6, 7, 8}.run(
+      c, {array_limit = 4}, function(_err, cur)
+        assert.is_nil(_err)
+        cur.to_array(function(err, arr)
+          assert.is_nil(arr)
+          assert.is_not_nil(err)
+        end)
+      end
     )
   end)
 
@@ -141,9 +133,9 @@ describe('array limits', function()
       {id = 1, array = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}}
     ).run(
       c, function(_err, cur)
-        if _err then error(_err.message()) end
+        assert.is_nil(_err)
         return cur.to_array(function(err, arr)
-          if err then error(err.message()) end
+          assert.is_nil(err)
           return arr
         end)
       end
@@ -152,9 +144,9 @@ describe('array limits', function()
       {{array = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}, id = 1}},
       r.table(reql_table).get(1).run(
         c, {array_limit = 4}, function(_err, cur)
-          if _err then error(_err.message()) end
+          assert.is_nil(_err)
           return cur.to_array(function(err, arr)
-            if err then error(err.message()) end
+            assert.is_nil(err)
             return arr
           end)
         end
@@ -163,34 +155,26 @@ describe('array limits', function()
   end)
 
   it('negative', function()
-    assert.has_error(
-      function()
-        r{1, 2, 3, 4, 5, 6, 7, 8}.run(
-          c, {array_limit = -1}, function(_err, cur)
-            if _err then error(_err.message()) end
-            cur.to_array(function(err, arr)
-              if err then error(err.msg) end
-              error(arr)
-            end)
-          end
-        )
-      end, 'Illegal array size limit `-1`.  (Must be >= 1.)'
+    r{1, 2, 3, 4, 5, 6, 7, 8}.run(
+      c, {array_limit = -1}, function(_err, cur)
+        assert.is_nil(_err)
+        cur.to_array(function(err, arr)
+          assert.is_nil(arr)
+          assert.is_not_nil(err)
+        end)
+      end
     )
   end)
 
   it('zero', function()
-    assert.has_error(
-      function()
-        r{1, 2, 3, 4, 5, 6, 7, 8}.run(
-          c, {array_limit = 0}, function(_err, cur)
-            if _err then error(_err.message()) end
-            cur.to_array(function(err, arr)
-              if err then error(err.msg) end
-              error(arr)
-            end)
-          end
-        )
-      end, 'Illegal array size limit `0`.  (Must be >= 1.)'
+    r{1, 2, 3, 4, 5, 6, 7, 8}.run(
+      c, {array_limit = 0}, function(_err, cur)
+        assert.is_nil(_err)
+        cur.to_array(function(err, arr)
+          assert.is_nil(arr)
+          assert.is_not_nil(err)
+        end)
+      end
     )
   end)
 end)

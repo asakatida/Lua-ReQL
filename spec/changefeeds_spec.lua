@@ -47,11 +47,11 @@ describe('change feeds', function()
   it('all', function()
     local res = r.table(reql_table).changes().limit(4).run(
       c, function(_err, cur)
-        if _err then error(_err.message()) end
+        assert.is_nil(_err)
         r.table(reql_table).insert(
           {{id = 7}, {id = 8}, {id = 9}, {id = 10}}
         ).run(c, function(err)
-          if err then error(err.message()) end
+          assert.is_nil(err)
         end)
         local res = {}
         cur.each(function(row)
@@ -73,11 +73,11 @@ describe('change feeds', function()
       end
     ).limit(2).run(
       c, function(_err, cur)
-        if _err then error(_err.message()) end
+        assert.is_nil(_err)
         r.table(reql_table).insert(
           {{id = 7}, {id = 8}, {id = 9}, {id = 10}}
         ).run(c, function(err)
-          if err then error(err.message()) end
+          assert.is_nil(err)
         end)
         local res = {}
         cur.each(function(row)
