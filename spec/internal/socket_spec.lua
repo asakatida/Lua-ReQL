@@ -22,23 +22,8 @@ describe('socket', function()
 
   it('closes repeatedly', function()
     local client = assert.is_not_nil(socket(r, 'localhost', 28015, nil, 1))
-    assert.is_false(client.is_open())
-
     client.close()
-    assert.is_false(client.is_open())
-
-    client.open()
-    assert.is_true(client.is_open())
-
     client.close()
-    assert.is_false(client.is_open())
-
-    client.close()
-    client.open()
-    assert.is_true(client.is_open())
-
-    client.open()
-    assert.is_true(client.is_open())
   end)
 
   it('connects', function()

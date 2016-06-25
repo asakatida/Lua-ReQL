@@ -25,10 +25,6 @@ describe('current handshake', function()
   it('no password', function()
     local client = assert.is_not_nil(socket(r, 'localhost', 28015, nil, 1))
 
-    client.open()
-
-    assert.is_true(client.is_open())
-
     finally(function() client.close() end)
 
     local one, two = current_handshake(client, '', 'admin')
