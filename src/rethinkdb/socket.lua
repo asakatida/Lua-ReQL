@@ -50,39 +50,39 @@ local function socket(r, host, port, ssl_params, timeout)
     return nil, init_err
   end
 
-  local inst = {r = r}
+  local socket_inst = {r = r}
 
-  function inst.send(...)
+  function socket_inst.send(...)
     local data = table.concat{...}
     local idx, err = raw_socket:send(data)
     if not idx then
-      inst.close()
+      socket_inst.close()
       return nil, err
     end
     if idx == #data then
       return idx
     end
-    inst.close()
+    socket_inst.close()
     return nil, 'incomplete write'
   end
 
-  function inst.close()
+  function socket_inst.close()
     if not ngx and not ssl_params then  --luacheck: globals ngx
       raw_socket:shutdown()
     end
     raw_socket:close()
   end
 
-  function inst.recv(pat)
+  function socket_inst.recv(pat)
     local buf, err = raw_socket:receive(pat)
     if not buf then
-      inst.close()
+      socket_inst.close()
       return nil, err
     end
     return buf
   end
 
-  return inst
+  return socket_inst
 end
 
 return socket

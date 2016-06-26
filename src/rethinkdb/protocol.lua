@@ -87,7 +87,7 @@ local function protocol(r, handshake, host, port, ssl_params, timeout)
     return nil, init_err
   end
 
-  local inst = {r = r}
+  local protocol_inst = {r = r}
 
   local function buffer_response()
     while string.len(buffer) < 12 do
@@ -120,7 +120,7 @@ local function protocol(r, handshake, host, port, ssl_params, timeout)
     return token
   end
 
-  function inst.send_query(term, global_opts)
+  function protocol_inst.send_query(term, global_opts)
     for k, v in pairs(global_opts) do
       global_opts[k] = build(v)
     end
@@ -130,23 +130,23 @@ local function protocol(r, handshake, host, port, ssl_params, timeout)
     return write_socket(get_token(), data)
   end
 
-  function inst.continue_query()
+  function protocol_inst.continue_query()
     return write_socket(get_token(), CONTINUE)
   end
 
-  function inst.end_query()
+  function protocol_inst.end_query()
     return write_socket(get_token(), STOP)
   end
 
-  function inst.noreply_wait()
+  function protocol_inst.noreply_wait()
     return write_socket(get_token(), NOREPLY_WAIT)
   end
 
-  function inst.server_info()
+  function protocol_inst.server_info()
     return write_socket(get_token(), SERVER_INFO)
   end
 
-  function inst.query_response()
+  function protocol_inst.query_response()
     while string.len(buffer) < 12 do
       local buf, err = socket_inst.recv(12 - string.len(buffer))
       if err then
@@ -169,7 +169,7 @@ local function protocol(r, handshake, host, port, ssl_params, timeout)
     return token, response
   end
 
-  return inst
+  return protocol_inst
 end
 
 return protocol
