@@ -70,7 +70,7 @@ describe('datum', function()
   end)
 
   it('string', function()
-    r'not yap wa\' Hol'.run(
+    r.reql'not yap wa\' Hol'.run(
       c, function(_err, cur)
         assert.is_nil(_err)
         cur.to_array(function(err, arr)
