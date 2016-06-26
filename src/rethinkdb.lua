@@ -811,7 +811,10 @@ local function new(driver_options)
       elseif st == 'binary' then
         local data = __args[1]
         if type(data) == 'string' then
-          __args[1] = r.b64(table.remove(__args, 1))
+          __args[1] = {
+            ['$reql_type$'] = 'BINARY',
+            data = r.b64(data)
+          }
         elseif r.type(data) ~= 'reql' then
           return nil, errors.ReQLDriverError'Parameter to `r.binary` must be a string or ReQL query.'
         end

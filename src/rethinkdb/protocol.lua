@@ -21,12 +21,6 @@ local START = Query.START
 --- convert from internal represention to JSON
 local function build(term)
   if type(term) ~= 'table' then return term end
-  if term.st == 'binary' and (not term.args[1]) then
-    return {
-      ['$reql_type$'] = 'BINARY',
-      data = term.base64_data
-    }
-  end
   if term.st == 'datum' then
     if term.args[1] == nil then
       return term.r.encode()
