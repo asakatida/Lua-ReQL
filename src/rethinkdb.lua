@@ -234,26 +234,26 @@ local errors = setmetatable({}, errors_meta_table)
 
 function errors_meta_table.__index(r, name)
   local function ReQLError(msg, term, frames)
-    local inst = setmetatable({r = r, msg = msg}, error_inst_meta_table)
+    local error_inst = setmetatable({r = r, msg = msg}, error_inst_meta_table)
 
     local _name = name
     while _name do
-      inst[_name] = inst
+      error_inst[_name] = error_inst
       _name = rawget(heiarchy, _name)
     end
 
-    function inst.message()
-      local _message = name .. ' ' .. inst.msg
+    function error_inst.message()
+      local _message = name .. ' ' .. error_inst.msg
       if term then
         _message = _message .. ' in:\n' .. print_query(term, frames)
       end
-      function inst.message()
+      function error_inst.message()
         return _message
       end
       return _message
     end
 
-    return inst
+    return error_inst
   end
 
   return ReQLError
@@ -267,8 +267,11 @@ local function connection_instance(r, handshake_inst, host, port, ssl_params, ti
 
   local function reset(err)
     db = nil
-    outstanding_callbacks = {}
     protocol_inst = nil
+    for _, cursor_inst in ipairs(outstanding_callbacks) do
+      cursor_inst.close()
+    end
+    outstanding_callbacks = {}
     if type(err) == 'string' then
       return nil, errors.ReQLDriverError(err)
     end
@@ -291,27 +294,40 @@ local function connection_instance(r, handshake_inst, host, port, ssl_params, ti
     end
   end
 
-  local inst = {r = r}
+  local conn_inst_meta_table = {}
 
-  function inst.is_open()
+  function conn_inst_meta_table.__tostring()
+    return (
+      protocol_inst and 'open' or 'closed'
+    ) .. ' rethinkdb connection to ' .. host .. ':' .. port
+  end
+
+  local conn_inst = setmetatable(
+    {host = host, port = port, r = r}, conn_inst_meta_table)
+
+  function conn_inst.is_open()
     return protocol_inst and true or false
   end
 
-  function inst.use(_db)
+  function conn_inst.use(_db)
     db = r.reql.db(_db)
   end
 
   local function get_response(reqest_token)
     -- Buffer data, execute return results if need be
-    local token, response
+    local token, response, err
     while true do
       token, response = protocol_inst.get_response()
       if not token then
         return response
       end
       protocol_inst.continue_query(token)
-      process_response(r.decode(response), token)
-      if token == reqest_token then return end
+      response, err = r.decode(response)
+      if err and not response then
+        return nil, err
+      end
+      if token == reqest_token then return response end
+      process_response(response, token)
     end
   end
 
@@ -352,63 +368,6 @@ local function connection_instance(r, handshake_inst, host, port, ssl_params, ti
       return callback(errors.ReQLDriverError('Unknown response type ' .. t))
     end
 
-    function cursor_inst.set(callback)
-      _callback = callback
-    end
-
-    function cursor_inst.close(callback)
-      if not end_flag then
-        end_flag = true
-        protocol_inst.end_query(token)
-        del_query(token)
-      end
-      if callback then return callback() end
-    end
-
-    function cursor_inst.each(callback, on_finished)
-      local e
-      local function cb(err, data)
-        e = err
-        return callback(data)
-      end
-      cursor_inst.set(cb)
-      while not end_flag do
-        get_response(token)
-      end
-      if on_finished then
-        return on_finished(e)
-      end
-    end
-
-    function cursor_inst.next(callback)
-      if end_flag then
-        return callback(errors.ReQLDriverError'No more rows in the cursor.')
-      end
-      local old_callback = nil
-      local function cb(err, res)
-        cursor_inst.set(old_callback)
-        return callback(err, res)
-      end
-      old_callback, _callback = _callback, old_callback
-      cursor_inst.set(cb)
-      get_response(token)
-      return run_cb(cb)
-    end
-
-    function cursor_inst.to_array(callback)
-      local arr = {}
-
-      local function cb(row)
-        table.insert(arr, row)
-      end
-
-      local function on_finished(err)
-        return callback(err, arr)
-      end
-
-      return cursor_inst.each(cb, on_finished)
-    end
-
     local function add_response(response)
       local t = response.t
       if not _type then
@@ -431,6 +390,73 @@ local function connection_instance(r, handshake_inst, host, port, ssl_params, ti
       end
     end
 
+    function cursor_inst.set(callback)
+      _callback = callback
+    end
+
+    function cursor_inst.close(callback)
+      if not end_flag then
+        end_flag = true
+        if protocol_inst then
+          protocol_inst.end_query(token)
+          del_query(token)
+        end
+      end
+      if callback then return callback() end
+    end
+
+    function cursor_inst.each(callback, on_finished)
+      local e
+      local function cb(err, data)
+        if err then
+          e = err
+          return
+        end
+        return callback(data)
+      end
+      cursor_inst.set(cb)
+      while not end_flag do
+        local response, err = get_response(token)
+        if err and not response then
+          cb(errors.ReQLDriverError(err))
+          break
+        end
+        add_response(response)
+      end
+      if on_finished then
+        return on_finished(e)
+      end
+    end
+
+    function cursor_inst.next(callback)
+      local old_callback = _callback
+      local res = nil
+      local function on_data(data)
+        cursor_inst.set(old_callback)
+        res = {callback(nil, data)}
+      end
+      local function on_err(err)
+        cursor_inst.set(old_callback)
+        if res and not err then return unpack(res) end
+        return callback(err)
+      end
+      return cursor_inst.each(on_data, on_err)
+    end
+
+    function cursor_inst.to_array(callback)
+      local arr = {}
+
+      local function cb(row)
+        table.insert(arr, row)
+      end
+
+      local function on_finished(err)
+        return callback(err, arr)
+      end
+
+      return cursor_inst.each(cb, on_finished)
+    end
+
     return cursor_inst, add_response
   end
 
@@ -445,7 +471,7 @@ local function connection_instance(r, handshake_inst, host, port, ssl_params, ti
     return cursor_inst
   end
 
-  function inst._start(term, callback, opts)
+  function conn_inst._start(term, callback, opts)
     local function cb(err, cur)
       local res
       if type(callback) == 'function' then
@@ -487,7 +513,7 @@ local function connection_instance(r, handshake_inst, host, port, ssl_params, ti
     return cb(nil, make_cursor(token, opts, term))
   end
 
-  function inst.close(opts_or_callback, callback)
+  function conn_inst.close(opts_or_callback, callback)
     local opts = {}
     if callback or type(opts_or_callback) == 'table' then
       opts = opts_or_callback
@@ -495,10 +521,10 @@ local function connection_instance(r, handshake_inst, host, port, ssl_params, ti
       callback = opts_or_callback
     end
 
-    local noreply_wait = (opts.noreply_wait ~= false) and inst.is_open()
+    local noreply_wait = (opts.noreply_wait ~= false) and conn_inst.is_open()
 
     if noreply_wait then
-      inst.noreply_wait()
+      conn_inst.noreply_wait()
     end
 
     if callback then
@@ -506,7 +532,7 @@ local function connection_instance(r, handshake_inst, host, port, ssl_params, ti
     end
   end
 
-  function inst.connect(callback)
+  function conn_inst.connect(callback)
     local err
 
     protocol_inst, err = protocol(r, handshake_inst, host, port, ssl_params, timeout)
@@ -527,20 +553,20 @@ local function connection_instance(r, handshake_inst, host, port, ssl_params, ti
         reset()
         return ...
       end
-      return with(callback(nil, inst))
+      return with(callback(nil, conn_inst))
     end
 
-    return inst
+    return conn_inst
   end
 
-  function inst.noreply_wait(callback)
+  function conn_inst.noreply_wait(callback)
     local function cb(err)
       if callback then
         return callback(err)
       end
       return nil, err
     end
-    if not inst.is_open() then return cb(errors.ReQLDriverError'Connection is closed.') end
+    if not conn_inst.is_open() then return cb(errors.ReQLDriverError'Connection is closed.') end
 
     -- Construct query
     local token, err = protocol_inst.noreply_wait()
@@ -552,25 +578,25 @@ local function connection_instance(r, handshake_inst, host, port, ssl_params, ti
     return make_cursor(token).next(callback)
   end
 
-  function inst.reconnect(opts_or_callback, callback)
+  function conn_inst.reconnect(opts_or_callback, callback)
     local opts = {}
     if callback or not type(opts_or_callback) == 'function' then
       opts = opts_or_callback
     else
       callback = opts_or_callback
     end
-    inst.close(opts)
-    return inst.connect(callback)
+    conn_inst.close(opts)
+    return conn_inst.connect(callback)
   end
 
-  function inst.server(callback)
+  function conn_inst.server(callback)
     local function cb(err)
       if callback then
         return callback(err)
       end
       return nil, err
     end
-    if not inst.is_open() then return cb(errors.ReQLDriverError'Connection is closed.') end
+    if not conn_inst.is_open() then return cb(errors.ReQLDriverError'Connection is closed.') end
 
     -- Construct query
     local token, err = protocol_inst.server_info()
@@ -582,7 +608,7 @@ local function connection_instance(r, handshake_inst, host, port, ssl_params, ti
     return make_cursor(token).next(callback)
   end
 
-  return inst
+  return conn_inst
 end
 
 local function new(driver_options)
@@ -761,26 +787,6 @@ local function new(driver_options)
     local function reql_term(...)
       local __optargs, __args = (arg_wrappers[st] or no_opts)(cls, ...)
 
-      local inst = setmetatable({r = r, st = st, tt = tt}, meta_table)
-
-      --- send term to server for evaluation
-      -- @tab connection
-      -- @tab[opt] options
-      -- @func[opt] callback
-      function inst.run(connection, options, callback)
-        -- Handle run(connection, callback)
-        if type(options) == 'function' then
-          if callback ~= nil then
-            return nil, errors.ReQLDriverError'Second argument to `run` cannot be a function if a third argument is provided.'
-          end
-          callback = options
-          options = {}
-        end
-        -- else we suppose that we have run(connection[, options][, callback])
-
-        return connection._start(inst, callback, options or {})
-      end
-
       if st == 'func' then
         local func = __args[1]
         local anon_args = {}
@@ -805,8 +811,8 @@ local function new(driver_options)
       elseif st == 'binary' then
         local data = __args[1]
         if type(data) == 'string' then
-          inst.base64_data = inst.r.b64(table.remove(__args, 1))
-        elseif getmetatable(data) ~= meta_table then
+          __args[1] = r.b64(table.remove(__args, 1))
+        elseif r.type(data) ~= 'reql' then
           return nil, errors.ReQLDriverError'Parameter to `r.binary` must be a string or ReQL query.'
         end
       elseif st == 'datum' then
@@ -828,18 +834,36 @@ local function new(driver_options)
         __args[#__args] = r.reql.func({arity = 2}, __args[#__args])
       end
 
-      inst.args = {cls}
-      inst.optargs = {}
+      local reql_inst = setmetatable({
+        args = {cls}, optargs = {}, r = r, st = st, tt = tt}, meta_table)
 
       for _, a in ipairs(__args) do
-        table.insert(inst.args, r.reql(a))
+        table.insert(reql_inst.args, r.reql(a))
       end
 
       for first, second in pairs(__optargs) do
-        inst.optargs[first] = r.reql(second)
+        reql_inst.optargs[first] = r.reql(second)
       end
 
-      return inst
+      --- send term to server for evaluation
+      -- @tab connection
+      -- @tab[opt] options
+      -- @func[opt] callback
+      function reql_inst.run(connection, options, callback)
+        -- Handle run(connection, callback)
+        if type(options) == 'function' then
+          if callback ~= nil then
+            return nil, errors.ReQLDriverError'Second argument to `run` cannot be a function if a third argument is provided.'
+          end
+          callback = options
+          options = {}
+        end
+        -- else we suppose that we have run(connection[, options][, callback])
+
+        return connection._start(reql_inst, callback, options or {})
+      end
+
+      return reql_inst
     end
 
     return reql_term
@@ -887,11 +911,11 @@ local function new(driver_options)
     elseif type(host) == 'string' then
       host = {host = host}
     end
-    return r.Connection(host).connect(callback)
+    return r.Connector(host).connect(callback)
   end
 
   --- Interface to handle default connection construction.
-  function r.Connection(connection_opts)
+  function r.Connector(connection_opts)
     local auth_key = connection_opts.password or connection_opts.auth_key or DEFAULT_AUTH_KEY
     local db = connection_opts.db -- left nil if this is not set
     local host = connection_opts.host or DEFAULT_HOST
@@ -903,9 +927,15 @@ local function new(driver_options)
 
     local handshake_inst = handshake(auth_key, proto_version, user)
 
-    local inst = {r = r}
+    local connector_inst_meta_table = {}
 
-    function inst.connect(callback)
+    function connector_inst_meta_table.__tostring()
+      return 'rethinkdb connection to ' .. host .. ':' .. port
+    end
+
+    local connector_inst = setmetatable({r = r}, connector_inst_meta_table)
+
+    function connector_inst.connect(callback)
       if callback then
         local function cb(err, conn)
           if err then
@@ -915,7 +945,7 @@ local function new(driver_options)
           return callback(nil, conn)
         end
         return connection_instance(
-          inst.r,
+          connector_inst.r,
           handshake_inst,
           host,
           port,
@@ -925,7 +955,7 @@ local function new(driver_options)
       end
 
       local conn, err = connection_instance(
-        inst.r,
+        connector_inst.r,
         handshake_inst,
         host,
         port,
@@ -939,7 +969,7 @@ local function new(driver_options)
       return conn
     end
 
-    function inst._start(term, callback, opts)
+    function connector_inst._start(term, callback, opts)
       local function cb(err, conn)
         if err then
           if callback then
@@ -950,14 +980,14 @@ local function new(driver_options)
         conn.use(db)
         return conn._start(term, callback, opts)
       end
-      return inst.connect(cb)
+      return connector_inst.connect(cb)
     end
 
-    function inst.use(_db)
+    function connector_inst.use(_db)
       db = _db
     end
 
-    return inst
+    return connector_inst
   end
 
   function r.proto_V0_3(raw_socket, auth_key)
@@ -974,7 +1004,7 @@ local function new(driver_options)
     if not getmetatable(obj) then return nil end
     if type(obj.r) ~= 'table' then return nil end
 
-    if type(obj.build) == 'function' and type(obj.compose) == 'function' then
+    if type(obj.run) == 'function' then
       return 'reql'
     end
 
@@ -990,7 +1020,7 @@ local function new(driver_options)
       return 'cursor'
     end
 
-    if type(obj.msg) == 'string' and type(obj.message) == 'function' then
+    if obj.ReQLError then
       return 'error'
     end
 
