@@ -6,7 +6,7 @@
 
 local function new(auth_key, proto_version, user)
   local function handshake(socket_inst)
-    local fake_socket = {send = socket_inst.send}
+    local fake_socket = {r = socket_inst.r, send = socket_inst.send}
 
     function fake_socket.get_success()
       local buffer, err = socket_inst.recv(8)
