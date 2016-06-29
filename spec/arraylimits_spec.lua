@@ -39,7 +39,7 @@ describe('array limits', function()
   end)
 
   it('create', function()
-    r{1, 2, 3, 4, 5, 6, 7, 8}.run(
+    r.reql{1, 2, 3, 4, 5, 6, 7, 8}.run(
       c, {array_limit = 4}, function(_err, cur)
         assert.is_nil(_err)
         cur.to_array(function(err, arr)

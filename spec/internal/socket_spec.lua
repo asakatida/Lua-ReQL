@@ -29,8 +29,6 @@ describe('socket', function()
   it('connects', function()
     local client = assert.is_not_nil(socket(r, 'localhost', 28015, nil, 1))
 
-    assert.is_true(client.is_open())
-
     finally(function() client.close() end)
 
     assert.are_equal(12, client.send('\0\0', '\0\0\0\0\0\0\0\0\0\0'))

@@ -9,10 +9,6 @@ describe('bits', function()
     bits = nil
   end)
 
-  it('tobit', function()
-    assert.same(7, bits.tobit(7))
-  end)
-
   it('or 1', function()
     assert.same(5, bits.bor(5, 4))
   end)
