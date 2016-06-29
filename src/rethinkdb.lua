@@ -317,9 +317,9 @@ local function connection_instance(r, handshake_inst, host, port, ssl_params, ti
     -- Buffer data, execute return results if need be
     local token, response, err
     while true do
-      token, response = protocol_inst.get_response()
+      token, response = protocol_inst.query_response()
       if not token then
-        return response
+        return nil, response
       end
       protocol_inst.continue_query(token)
       response, err = r.decode(response)
