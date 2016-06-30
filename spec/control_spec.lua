@@ -46,7 +46,7 @@ describe('control', function()
   end)
 
   it('branch error', function()
-    r.reql.branch(r.error_'a', 1, 2).run(
+    r.reql.branch(r.reql.error_'a', 1, 2).run(
       c, function(_err, cur)
         assert.is_nil(_err)
         cur.to_array(function(err, arr)
