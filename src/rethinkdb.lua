@@ -473,16 +473,15 @@ local function connection_instance(r, handshake_inst, host, port, ssl_params, ti
 
   function conn_inst._start(term, callback, opts)
     local function cb(err, cur)
-      local res
       if type(callback) == 'function' then
+        local res
         res = callback(err, cur)
-      else
-        if err then
-          return nil, err
+        if cur then
+          cur.close()
         end
+        return res
       end
-      cur.close()
-      return res
+      return cur, err
     end
     if not protocol_inst then return cb(errors.ReQLDriverError'Connection is closed.') end
 
