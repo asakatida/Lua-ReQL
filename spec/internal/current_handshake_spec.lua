@@ -16,9 +16,9 @@ describe('current handshake', function()
   end)
 
   teardown(function()
-    current_handshake = nil
-    socket = nil
-    r = nil
+    -- current_handshake = nil
+    -- socket = nil
+    -- r = nil
     assert:remove_formatter(reql_error_formatter)
   end)
 

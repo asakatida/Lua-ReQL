@@ -6,174 +6,154 @@ local function reql_error_formatter(err)
 end
 
 describe('datum', function()
-  local r, reql_table, c
+  local r
 
   setup(function()
     assert:add_formatter(reql_error_formatter)
     r = require('rethinkdb')
 
+    function r.run(query)
+      return query.run(query.r.c, function(err, cur)
+        return cur, err
+      end)
+    end
+
     local reql_db = 'roundtrip'
-    reql_table = 'datum'
+    r.reql_table = r.reql.table'datum'
 
     local err
 
-    c, err = r.connect{proto_version = r.proto_V0_4}
+    r.c, err = r.connect{proto_version = r.proto_V0_4}
     assert.is_nil(err)
 
-    r.reql.db_create(reql_db).run(c)
-    c.use(reql_db)
-    r.reql.table_create(reql_table).run(c)
+    r.run(r.reql.db_create(reql_db))
+    r.c.use(reql_db)
+    r.run(r.reql.table_create'datum')
   end)
 
   teardown(function()
-    r.reql.table(reql_table).delete().run(c)
-    c.close()
-    c = nil
+    r.run(r.reql_table.delete())
     r = nil
     assert:remove_formatter(reql_error_formatter)
   end)
 
   it('false', function()
-    r.reql(false).run(
-      c, function(_err, cur)
-        assert.is_nil(_err)
-        cur.to_array(function(err, arr)
-          assert.is_nil(err)
-          assert.same({false}, arr)
-        end)
-      end
-    )
+    local var = false
+    local cur, _err = r.run(r.reql(var))
+    assert.is_nil(_err)
+    cur.to_array(function(err, arr)
+      assert.is_nil(err)
+      assert.same({var}, arr)
+    end)
   end)
 
   it('true', function()
-    r.reql(true).run(
-      c, function(_err, cur)
-        assert.is_nil(_err)
-        cur.to_array(function(err, arr)
-          assert.is_nil(err)
-          assert.same({true}, arr)
-        end)
-      end
-    )
+    local var = true
+    local cur, _err = r.run(r.reql(var))
+    assert.is_nil(_err)
+    cur.to_array(function(err, arr)
+      assert.is_nil(err)
+      assert.same({var}, arr)
+    end)
   end)
 
   it('nil', function()
-    r.reql().run(
-      c, function(_err, cur)
-        assert.is_nil(_err)
-        cur.to_array(function(err, arr)
-          assert.is_nil(err)
-          assert.same({nil}, arr)
-        end)
-      end
-    )
+    local var = nil
+    local cur, _err = r.run(r.reql(var))
+    assert.is_nil(_err)
+    cur.to_array(function(err, arr)
+      assert.is_nil(err)
+      assert.same({var}, arr)
+    end)
   end)
 
   it('string', function()
-    r.reql'not yap wa\' Hol'.run(
-      c, function(_err, cur)
-        assert.is_nil(_err)
-        cur.to_array(function(err, arr)
-          assert.is_nil(err)
-          assert.same({'not yap wa\' Hol'}, arr)
-        end)
-      end
-    )
+    local var = 'not yap wa\' Hol'
+    local cur, _err = r.run(r.reql(var))
+    assert.is_nil(_err)
+    cur.to_array(function(err, arr)
+      assert.is_nil(err)
+      assert.same({var}, arr)
+    end)
   end)
 
   it('0', function()
-    r.reql(0).run(
-      c, function(_err, cur)
-        assert.is_nil(_err)
-        cur.to_array(function(err, arr)
-          assert.is_nil(err)
-          assert.same({0}, arr)
-        end)
-      end
-    )
+    local var = 0
+    local cur, _err = r.run(r.reql(var))
+    assert.is_nil(_err)
+    cur.to_array(function(err, arr)
+      assert.is_nil(err)
+      assert.same({var}, arr)
+    end)
   end)
 
   it('1', function()
-    r.reql(1).run(
-      c, function(_err, cur)
-        assert.is_nil(_err)
-        cur.to_array(function(err, arr)
-          assert.is_nil(err)
-          assert.same({1}, arr)
-        end)
-      end
-    )
+    local var = 1
+    local cur, _err = r.run(r.reql(var))
+    assert.is_nil(_err)
+    cur.to_array(function(err, arr)
+      assert.is_nil(err)
+      assert.same({var}, arr)
+    end)
   end)
 
   it('-1', function()
-    r.reql(-1).run(
-      c, function(_err, cur)
-        assert.is_nil(_err)
-        cur.to_array(function(err, arr)
-          assert.is_nil(err)
-          assert.same({-1}, arr)
-        end)
-      end
-    )
+    local var = -1
+    local cur, _err = r.run(r.reql(var))
+    assert.is_nil(_err)
+    cur.to_array(function(err, arr)
+      assert.is_nil(err)
+      assert.same({var}, arr)
+    end)
   end)
 
   it('τ', function()
-    r.reql(6.28).run(
-      c, function(_err, cur)
-        assert.is_nil(_err)
-        cur.to_array(function(err, arr)
-          assert.is_nil(err)
-          assert.same({6.28}, arr)
-        end)
-      end
-    )
+    local var = 6.28
+    local cur, _err = r.run(r.reql(var))
+    assert.is_nil(_err)
+    cur.to_array(function(err, arr)
+      assert.is_nil(err)
+      assert.same({var}, arr)
+    end)
   end)
 
   it('𝑒', function()
-    r.reql(2.2).run(
-      c, function(_err, cur)
-        assert.is_nil(_err)
-        cur.to_array(function(err, arr)
-          assert.is_nil(err)
-          assert.same({2.2}, arr)
-        end)
-      end
-    )
+    local var = 2.2
+    local cur, _err = r.run(r.reql(var))
+    assert.is_nil(_err)
+    cur.to_array(function(err, arr)
+      assert.is_nil(err)
+      assert.same({var}, arr)
+    end)
   end)
 
   it('α', function()
-    r.reql(0.00001).run(
-      c, function(_err, cur)
-        assert.is_nil(_err)
-        cur.to_array(function(err, arr)
-          assert.is_nil(err)
-          assert.same({0.00001}, arr)
-        end)
-      end
-    )
+    local var = 0.00001
+    local cur, _err = r.run(r.reql(var))
+    assert.is_nil(_err)
+    cur.to_array(function(err, arr)
+      assert.is_nil(err)
+      assert.same({var}, arr)
+    end)
   end)
 
   it('array', function()
-    r.reql{[1] = 1, [2] = 2}.run(
-      c, function(_err, cur)
-        assert.is_nil(_err)
-        cur.to_array(function(err, arr)
-          assert.is_nil(err)
-          assert.same({{[1] = 1, [2] = 2}}, arr)
-        end)
-      end
-    )
+    local var = {[1] = 1, [2] = 2}
+    local cur, _err = r.run(r.reql(var))
+    assert.is_nil(_err)
+    cur.to_array(function(err, arr)
+      assert.is_nil(err)
+      assert.same({var}, arr)
+    end)
   end)
 
   it('table', function()
-    r.reql{first = 1, second = 2}.run(
-      c, function(_err, cur)
-        assert.is_nil(_err)
-        cur.to_array(function(err, arr)
-          assert.is_nil(err)
-          assert.same({{first = 1, second = 2}}, arr)
-        end)
-      end
-    )
+    local var = {first = 1, second = 2}
+    local cur, _err = r.run(r.reql(var))
+    assert.is_nil(_err)
+    cur.to_array(function(err, arr)
+      assert.is_nil(err)
+      assert.same({var}, arr)
+    end)
   end)
 end)

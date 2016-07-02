@@ -6,88 +6,81 @@ local function reql_error_formatter(err)
 end
 
 describe('change feeds', function()
-  local r, reql_db, reql_table, c
+  local r
 
   setup(function()
     assert:add_formatter(reql_error_formatter)
     r = require('rethinkdb')
 
-    reql_db = 'changefeeds'
-    reql_table = 'watched'
+    function r.run(query)
+      return query.run(query.r.c, function(err, cur)
+        return cur, err
+      end)
+    end
+
+    r.reql_db = r.reql.db'changefeeds'
+    r.reql_table = r.reql.table'watched'
 
     local err
 
-    c, err = r.connect{proto_version = r.proto_V0_4}
+    r.c, err = r.connect{proto_version = r.proto_V0_4}
     assert.is_nil(err)
 
-    r.reql.db_create(reql_db).run(c)
-    c.use(reql_db)
-    r.reql.table_create(reql_table).run(c)
+    r.run(r.reql.db_create'changefeeds')
+    r.c.use'changefeeds'
+    r.run(r.reql.table_create'watched')
   end)
 
   before_each(function()
-    r.reql.table(reql_table).insert{
+    r.run(r.reql_table.insert{
       {id = 1}, {id = 2}, {id = 3},
       {id = 4}, {id = 5}, {id = 6}
-    }.run(c)
+    })
   end)
 
   after_each(function()
-    r.reql.table(reql_table).delete().run(c)
+    r.run(r.reql_table.delete())
   end)
 
   teardown(function()
-    r.reql.table(reql_table).delete().run(c)
-    c.close()
-    c = nil
     r = nil
     assert:remove_formatter(reql_error_formatter)
   end)
 
   it('all', function()
-    local res = r.reql.table(reql_table).changes().limit(4).run(
-      c, function(_err, cur)
-        assert.is_nil(_err)
-        r.reql.table(reql_table).insert(
-          {{id = 7}, {id = 8}, {id = 9}, {id = 10}}
-        ).run(c, function(err)
-          assert.is_nil(err)
-        end)
-        local res = {}
-        cur.each(function(row)
-          table.insert(res, row.new_val.id)
-        end, function(err)
-          assert.is_nil(err)
-        end)
-        return res
-      end
-    )
+    local cur, _err = r.run(r.reql_table.changes().limit(4))
+    assert.is_nil(_err)
+    _err = select(1, r.run(r.reql_table.insert(
+      {{id = 7}, {id = 8}, {id = 9}, {id = 10}}
+    )))
+    assert.is_nil(_err)
+    local res = {}
+    cur.each(function(row)
+      table.insert(res, row.new_val.id)
+    end, function(err)
+      assert.is_nil(err)
+    end)
     table.sort(res)
     assert.same(res, {7, 8, 9, 10})
   end)
 
   it('even', function()
-    local res = r.reql.table(reql_table).changes().filter(
+    local cur, _err = r.run(r.reql_table.changes().filter(
       function(row)
-        return (row'new_val'('id') % 2).eq(0)
+        return (row'new_val''id' % 2).eq(0)
       end
-    ).limit(2).run(
-      c, function(_err, cur)
-        assert.is_nil(_err)
-        r.reql.table(reql_table).insert(
-          {{id = 7}, {id = 8}, {id = 9}, {id = 10}}
-        ).run(c, function(err)
-          assert.is_nil(err)
-        end)
-        local res = {}
-        cur.each(function(row)
-          table.insert(res, row.new_val.id)
-        end, function(err)
-          assert.is_nil(err)
-        end)
-        return res
-      end
-    )
+    ).limit(2))
+    assert.is_nil(_err)
+    _err = select(1, r.run(r.reql_table.insert(
+      {{id = 7}, {id = 8}, {id = 9}, {id = 10}}
+    )))
+    assert.is_nil(_err)
+    local res = {}
+    cur.each(function(row)
+      table.insert(res, row.new_val.id)
+    end, function(err)
+      assert.is_nil(err)
+    end)
     table.sort(res)
     assert.same(res, {8, 10})
   end)
