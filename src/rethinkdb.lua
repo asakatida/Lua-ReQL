@@ -49,13 +49,15 @@ local function proto_V0_x(raw_socket, auth_key, magic)
 
   -- Now we have to wait for a response from the server
   -- acknowledging the connection
-  local message, err = raw_socket.get_success()
-
-  if message then
+  local message, err = raw_socket.recv(8)
+  if err then
+    return nil, err
+  end
+  if message == 'SUCCESS\0' then
     -- We're good, finish setting up the connection
     return true
   end
-  return nil, err
+  return nil, message .. ((raw_socket.recv'*a') or '')
 end
 
 --- Interface to the ReQL error heiarchy.

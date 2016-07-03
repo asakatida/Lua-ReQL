@@ -87,7 +87,32 @@ local function __pbkdf2_hmac(hash_name, password, salt, iterations)
 end
 
 local function current_handshake(raw_socket, auth_key, user)
+  local buffer = ''
+
   local r = raw_socket.r
+
+  local function decode_message()
+    local i = nil
+    while not i do
+      local buf, err = raw_socket.recv(32)
+      if err then
+        return nil, err
+      end
+      buffer = buffer .. buf
+      i = string.find(buffer, '\0')
+    end
+
+    local message = string.sub(buffer, 1, i - 1)
+    buffer = string.sub(buffer, i + 1)
+
+    local response = r.decode(message)
+
+    if not response then
+      return nil, message
+    end
+
+    return response, nil
+  end
 
   local nonce = r.b64(rand_bytes(18))
 
@@ -103,12 +128,12 @@ local function current_handshake(raw_socket, auth_key, user)
   if not size then
     return nil, send_err
   end
-  if send_err ~= '' then
+  if send_err and send_err ~= '' then
     size, send_err = raw_socket.send(send_err)
     if not size then
       return nil, send_err
     end
-    if send_err ~= '' then
+    if send_err and send_err ~= '' then
       return nil, 'Incomplete protocol sent'
     end
   end
@@ -117,7 +142,7 @@ local function current_handshake(raw_socket, auth_key, user)
   -- acknowledging the connection
   -- this will be a null terminated json document on success
   -- or a null terminated error string on failure
-  local response, err = raw_socket.decode_message()
+  local response, err = decode_message()
 
   if not response then
     return nil, err
@@ -145,7 +170,7 @@ local function current_handshake(raw_socket, auth_key, user)
   local authentication = {}
   local server_first_message
 
-  response, err = raw_socket.decode_message()
+  response, err = decode_message()
 
   if not response then
     return nil, err
@@ -210,12 +235,12 @@ local function current_handshake(raw_socket, auth_key, user)
   if not size then
     return nil, send_err
   end
-  if send_err ~= '' then
+  if send_err and send_err ~= '' then
     size, send_err = raw_socket.send(send_err)
     if not size then
       return nil, send_err
     end
-    if send_err ~= '' then
+    if send_err and send_err ~= '' then
       return nil, 'Incomplete protocol sent'
     end
   end
@@ -226,7 +251,7 @@ local function current_handshake(raw_socket, auth_key, user)
   --   "success": <bool>,
   --   "authentication": "v=<server_signature>"
   -- }
-  response, err = raw_socket.decode_message()
+  response, err = decode_message()
 
   if not response then
     return nil, err
