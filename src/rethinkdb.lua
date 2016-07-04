@@ -6,6 +6,7 @@
 -- @alias r
 
 local connection = require'rethinkdb.connection'
+local connector = require'rethinkdb.connector'
 local current_handshake = require'rethinkdb.internal.current_handshake'
 local depreciate = require'rethinkdb.depreciate'
 local utilities = require'rethinkdb.internal.utilities'
@@ -33,6 +34,7 @@ local function new(driver_options)
   r._VERSION = r.version
 
   connection.init(r)
+  connector.init(r)
   depreciate.init(r)
   reql.init(r)
   rtype.init(r)
