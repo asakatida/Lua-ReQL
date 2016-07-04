@@ -1,5 +1,5 @@
 --- Interface to handle socket timeouts and recoverable errors.
--- @module rethinkdb.socket
+-- @module rethinkdb.internal.socket
 -- @author Adam Grandquist
 -- @license Apache
 -- @copyright Adam Grandquist 2016
@@ -55,14 +55,13 @@ local function socket(r, host, port, ssl_params, timeout)
   function socket_inst.send(...)
     local data = table.concat{...}
     local idx, err = raw_socket:send(data)
-    if not idx then
-      socket_inst.close()
-      return nil, err
-    end
     if idx == #data then
       return idx
     end
     socket_inst.close()
+    if not idx then
+      return nil, err
+    end
     return nil, 'incomplete write'
   end
 
@@ -74,7 +73,13 @@ local function socket(r, host, port, ssl_params, timeout)
   end
 
   function socket_inst.recv(pat)
-    local buf, err = raw_socket:receive(pat)
+    local buf, err, partial = raw_socket:receive(pat)
+    if err == 'timeout' and partial then
+      if string.len(partial) > 0 then
+        return partial
+      end
+      return nil, err
+    end
     if not buf then
       socket_inst.close()
       return nil, err

@@ -1,13 +1,13 @@
 --- Interface to handle single message protocol details.
--- @module rethinkdb.protocol
+-- @module rethinkdb.internal.protocol
 -- @author Adam Grandquist
 -- @license Apache
 -- @copyright Adam Grandquist 2016
 
-local bytes_to_int = require'rethinkdb.bytes_to_int'
-local int_to_bytes = require'rethinkdb.int_to_bytes'
-local protodef = require'rethinkdb.protodef'
-local socket = require'rethinkdb.socket'
+local bytes_to_int = require'rethinkdb.internal.bytes_to_int'
+local int_to_bytes = require'rethinkdb.internal.int_to_bytes'
+local protodef = require'rethinkdb.internal.protodef'
+local socket = require'rethinkdb.internal.socket'
 
 local Query = protodef.Query
 

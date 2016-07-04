@@ -1,5 +1,5 @@
 --- Helpers to allow overriding driver internals.
--- @module rethinkdb.utilities
+-- @module rethinkdb.internal.utilities
 -- @author Adam Grandquist
 -- @license Apache
 -- @copyright Adam Grandquist 2016

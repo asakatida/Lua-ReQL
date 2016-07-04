@@ -2,7 +2,7 @@ describe('utilities', function()
   local utilities
 
   setup(function()
-    utilities = require('rethinkdb.utilities')
+    utilities = require('rethinkdb.internal.utilities')
   end)
 
   teardown(function()

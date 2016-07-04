@@ -1,5 +1,5 @@
 --- Helper for converting an int to a string of bytes.
--- @module rethinkdb.int_to_bytes
+-- @module rethinkdb.internal.int_to_bytes
 -- @author Adam Grandquist
 -- @license Apache
 -- @copyright Adam Grandquist 2016

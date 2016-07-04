@@ -1,7 +1,7 @@
 --- Helper for bitwise operations.
 -- valid where the vm supports bitops
 -- only includes functions used by lua-reql
--- @module rethinkdb.bits
+-- @module rethinkdb.internal.bits
 -- @author Adam Grandquist
 -- @license Apache
 -- @copyright Adam Grandquist 2016

@@ -11,7 +11,7 @@ describe('socket', function()
   setup(function()
     assert:add_formatter(reql_error_formatter)
     r = require('rethinkdb')
-    socket = require('rethinkdb.socket')
+    socket = require('rethinkdb.internal.socket')
   end)
 
   teardown(function()

@@ -2,7 +2,7 @@ describe('bits', function()
   local bits
 
   setup(function()
-    bits = require('rethinkdb.bits51')
+    bits = require('rethinkdb.internal.bits51')
   end)
 
   teardown(function()

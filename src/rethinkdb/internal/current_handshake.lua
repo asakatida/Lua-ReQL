@@ -1,5 +1,5 @@
 --- Handler implementing latest RethinkDB handshake.
--- @module rethinkdb.current_handshake
+-- @module rethinkdb.internal.current_handshake
 -- @author Adam Grandquist
 -- @license Apache
 -- @copyright Adam Grandquist 2016
@@ -20,7 +20,7 @@ local function prequire(mod_name, ...)
 end
 
 local success, bits = prequire(
-  'rethinkdb.bits53', 'bit32', 'bit', 'rethinkdb.bits51')
+  'rethinkdb.internal.bits53', 'bit32', 'bit', 'rethinkdb.internal.bits51')
 
 if success then
   if not bits.tobit then
@@ -92,7 +92,7 @@ local function current_handshake(raw_socket, auth_key, user)
   local r = raw_socket.r
 
   local function decode_message()
-    local i = nil
+    local i = string.find(buffer, '\0')
     while not i do
       local buf, err = raw_socket.recv(32)
       if err then
@@ -127,15 +127,6 @@ local function current_handshake(raw_socket, auth_key, user)
   )
   if not size then
     return nil, send_err
-  end
-  if send_err and send_err ~= '' then
-    size, send_err = raw_socket.send(send_err)
-    if not size then
-      return nil, send_err
-    end
-    if send_err and send_err ~= '' then
-      return nil, 'Incomplete protocol sent'
-    end
   end
 
   -- Now we have to wait for a response from the server
@@ -234,15 +225,6 @@ local function current_handshake(raw_socket, auth_key, user)
   }, '\0')
   if not size then
     return nil, send_err
-  end
-  if send_err and send_err ~= '' then
-    size, send_err = raw_socket.send(send_err)
-    if not size then
-      return nil, send_err
-    end
-    if send_err and send_err ~= '' then
-      return nil, 'Incomplete protocol sent'
-    end
   end
 
   -- wait for the third server challenge

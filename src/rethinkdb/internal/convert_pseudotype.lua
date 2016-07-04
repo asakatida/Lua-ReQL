@@ -1,5 +1,5 @@
 --- Helper for converting ReQL extensions into lua types.
--- @module rethinkdb.convert_pseudotype
+-- @module rethinkdb.internal.convert_pseudotype
 -- @author Adam Grandquist
 -- @license Apache
 -- @copyright Adam Grandquist 2016

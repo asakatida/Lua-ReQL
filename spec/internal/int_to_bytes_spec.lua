@@ -2,7 +2,7 @@ describe('int to bytes', function()
   local int_to_bytes
 
   setup(function()
-    int_to_bytes = require('rethinkdb.int_to_bytes')
+    int_to_bytes = require('rethinkdb.internal.int_to_bytes')
   end)
 
   teardown(function()
@@ -30,14 +30,14 @@ describe('int to bytes', function()
   end)
 
   it('roundtrip endian', function()
-    local bytes_to_int = require('rethinkdb.bytes_to_int')
+    local bytes_to_int = require('rethinkdb.internal.bytes_to_int')
     local orig = 1
     local bytes = int_to_bytes(orig, 3)
     assert.same(orig, bytes_to_int(bytes))
   end)
 
   it('roundtrip empty', function()
-    local bytes_to_int = require('rethinkdb.bytes_to_int')
+    local bytes_to_int = require('rethinkdb.internal.bytes_to_int')
     local orig = 0
     local bytes = int_to_bytes(orig, 1)
     assert.same(orig, bytes_to_int(bytes))
@@ -46,28 +46,28 @@ describe('int to bytes', function()
   end)
 
   it('roundtrip bom', function()
-    local bytes_to_int = require('rethinkdb.bytes_to_int')
+    local bytes_to_int = require('rethinkdb.internal.bytes_to_int')
     local orig = 0xFFEF
     local bytes = int_to_bytes(orig, 2)
     assert.same(orig, bytes_to_int(bytes))
   end)
 
   it('roundtrip large number', function()
-    local bytes_to_int = require('rethinkdb.bytes_to_int')
+    local bytes_to_int = require('rethinkdb.internal.bytes_to_int')
     local orig = 2 ^ 31 - 1
     local bytes = int_to_bytes(orig, 4)
     assert.same(orig, bytes_to_int(bytes))
   end)
 
   it('roundtrip long bytes', function()
-    local bytes_to_int = require('rethinkdb.bytes_to_int')
+    local bytes_to_int = require('rethinkdb.internal.bytes_to_int')
     local orig = 0
     local bytes = int_to_bytes(orig, 8)
     assert.same(orig, bytes_to_int(bytes))
   end)
 
   it('roundtrip insuficient length', function()
-    local bytes_to_int = require('rethinkdb.bytes_to_int')
+    local bytes_to_int = require('rethinkdb.internal.bytes_to_int')
     local orig = 2 ^ 31 - 1
     local bytes = int_to_bytes(orig, 3)
     assert.are_not_equal(orig, bytes_to_int(bytes))
