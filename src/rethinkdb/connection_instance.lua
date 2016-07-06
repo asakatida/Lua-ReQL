@@ -161,7 +161,10 @@ local function connection_instance(r, handshake_inst, host, port, ssl_params, ti
       if callback then
         return callback(err)
       end
-      return nil, err
+      if err then
+        return false, err
+      end
+      return true
     end
     if not conn_inst.is_open() then return cb(errors.ReQLDriverError'Connection is closed.') end
 
