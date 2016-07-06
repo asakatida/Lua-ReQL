@@ -24,7 +24,13 @@ local function cursor(token, del_query, opts, process_response, protocol_inst, r
   local responses = {}
   local _callback, end_flag, _type
 
-  local cursor_inst = {r = protocol_inst.r}
+  local meta_table = {}
+
+  function meta_table.__tostring()
+    return "RethinkDB Cursor"
+  end
+
+  local cursor_inst = setmetatable({r = protocol_inst.r}, meta_table)
 
   local function get_response(reqest_token)
     -- Buffer data, execute return results if need be
