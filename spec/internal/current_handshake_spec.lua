@@ -5,6 +5,20 @@ local function reql_error_formatter(err)
   end
 end
 
+local ltn12 = require('ltn12')
+
+local log, buffer = ltn12.sink.table()
+
+local function filter(chunk)
+  if chunk then
+    local success, err = ltn12.pump.all(ltn12.source.string(chunk), log)
+    if not success then
+      return nil, err
+    end
+  end
+  return chunk
+end
+
 describe('current handshake', function()
   local r, socket, current_handshake
 
@@ -16,19 +30,31 @@ describe('current handshake', function()
   end)
 
   teardown(function()
-    -- current_handshake = nil
-    -- socket = nil
-    -- r = nil
+    current_handshake = nil
+    socket = nil
+    r = nil
     assert:remove_formatter(reql_error_formatter)
+    assert.is_nil(string.gsub(table.concat(buffer), '[^%g]', function(s)
+      return string.format('\\u%d', string.byte(s))
+    end))
   end)
 
   it('no password', function()
-    local client = assert.is_not_nil(socket(r, 'localhost', 28015, nil, 1))
+    local client, err = socket(r, 'localhost', 28015, nil, 20)
+    assert.is_nil(err)
+    assert.is_not_nil(client)
+    finally(client.close)
 
-    finally(function() client.close() end)
+    client.sink = ltn12.sink.chain(filter, client.sink)
+    local source = client.source
+    function client.source(length)
+      return ltn12.source.chain(source(length), filter)
+    end
 
-    local one, two = current_handshake(client, '', 'admin')
-    assert.is_nil(one)
-    assert.is_nil(two)
+    local success
+
+    success, err = current_handshake(client, '', 'admin')
+    assert.is_nil(err)
+    assert.is_true(success)
   end)
 end)

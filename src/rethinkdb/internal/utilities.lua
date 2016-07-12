@@ -4,96 +4,59 @@
 -- @license Apache
 -- @copyright Adam Grandquist 2016
 
-local utilities = {}
+local mime = require('mime')
 
---- convert ASCII base64 to 8bit
-function utilities.unb64(r)
-  if r.unb64 then
-    return r.unb64
-  end
-  local lib_mime = require('mime')
-  r.unb64 = lib_mime.unb64
-  if not r.b64 then
-    r.b64 = lib_mime.b64
-  end
-  return r.unb64
+local json, socket
+
+if ngx == nil then  --luacheck: globals ngx
+  json = require('json')
+  socket = require('socket')
+else
+  json = require('cjson')
+  socket = ngx.socket  --luacheck: globals ngx
 end
 
---- convert 8bit to ASCII base64
-function utilities.b64(r)
-  if r.b64 then
-    return r.unb64
+local m = {}
+
+function m.init(r, driver_options)
+  if not driver_options.mime then
+    driver_options.mime = mime
   end
-  local lib_mime = require('mime')
-  r.b64 = lib_mime.b64
-  if not r.unb64 then
-    r.unb64 = lib_mime.unb64
+  if not driver_options.b64 then
+    driver_options.b64 = driver_options.mime.b64
   end
-  return r.b64
+  if not driver_options.unb64 then
+    driver_options.unb64 = driver_options.mime.unb64
+  end
+
+  if not driver_options.json then
+    driver_options.json = json
+  end
+  if not driver_options.decode then
+    driver_options.decode = driver_options.json.decode
+  end
+  if not driver_options.encode then
+    driver_options.encode = driver_options.json.encode
+  end
+
+  if not driver_options.socket then
+    driver_options.socket = socket
+  end
+  if not driver_options.tcp then
+    driver_options.tcp = driver_options.socket.tcp
+  end
+
+  r.r = r
+
+  r.b64 = driver_options.b64
+  r.unb64 = driver_options.unb64
+
+  r.decode = driver_options.decode
+  r.encode = driver_options.encode
+
+  r.tcp = driver_options.tcp
+
+  r.socket = driver_options.socket
 end
 
---- convert Lua to JSON
-function utilities.encode(r)
-  if r.encode then
-    return r.encode
-  elseif r.json_parser then
-    r.encode = r.json_parser.encode
-    return r.encode
-  end
-  if ngx == nil then  --luacheck: globals ngx
-    r.json_parser = require('json')
-  else
-    r.json_parser = require('cjson')
-  end
-  r.encode = r.json_parser.encode
-  return r.encode
-end
-
---- convert JSON to Lua
-function utilities.decode(r)
-  if r.decode then
-    return r.decode
-  elseif r.json_parser then
-    r.decode = r.json_parser.decode
-    return r.decode
-  end
-  if ngx == nil then  --luacheck: globals ngx
-    r.json_parser = require('json')
-  else
-    r.json_parser = require('cjson')
-  end
-  r.decode = r.json_parser.decode
-  return r.decode
-end
-
---- create new tcp socket
-function utilities.socket(r)
-  if r.socket then
-    return r.socket
-  end
-  local lib_socket
-  if ngx == nil then  --luacheck: globals ngx
-    lib_socket = require('socket')
-  else
-    lib_socket = ngx.socket  --luacheck: globals ngx
-  end
-  r.socket = lib_socket.tcp
-  return r.socket
-end
-
---- block waiting for socket status
-function utilities._select(r)
-  if r.select then
-    return r.select
-  end
-  local lib_socket
-  if ngx == nil then  --luacheck: globals ngx
-    lib_socket = require('socket')
-  else
-    lib_socket = ngx.socket  --luacheck: globals ngx
-  end
-  r.select = lib_socket.select
-  return r.select
-end
-
-return utilities
+return m

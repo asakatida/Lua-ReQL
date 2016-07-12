@@ -20,35 +20,17 @@ local CLIENT_ERROR = Response.CLIENT_ERROR
 local RUNTIME_ERROR = Response.RUNTIME_ERROR
 local WAIT_COMPLETE = Response.WAIT_COMPLETE
 
-local function cursor(token, del_query, opts, process_response, protocol_inst, root)
+local function cursor(token, del_query, opts, step, protocol_inst, term)
   local responses = {}
-  local _callback, end_flag, _type
+  local outstanding_callback, end_flag
 
   local meta_table = {}
 
   function meta_table.__tostring()
-    return "RethinkDB Cursor"
+    return 'RethinkDB Cursor'
   end
 
   local cursor_inst = setmetatable({r = protocol_inst.r}, meta_table)
-
-  local function get_response(reqest_token)
-    -- Buffer data, execute return results if need be
-    local next_token, response, err
-    while true do
-      next_token, response = protocol_inst.query_response()
-      if not next_token then
-        return nil, response
-      end
-      protocol_inst.continue_query(next_token)
-      response, err = cursor_inst.r.decode(response)
-      if err and not response then
-        return nil, err
-      end
-      if next_token == reqest_token then return response end
-      process_response(response, next_token)
-    end
-  end
 
   local function run_cb(callback)
     local response = responses[1]
@@ -68,13 +50,13 @@ local function cursor(token, del_query, opts, process_response, protocol_inst, r
 
       return callback(err, row)
     end
-    _callback = nil
+    outstanding_callback = nil
     if t == COMPILE_ERROR then
-      return callback(errors.ReQLCompileError(response.r[1], root, response.b))
+      return callback(errors.ReQLCompileError(response.r[1], term, response.b))
     elseif t == CLIENT_ERROR then
-      return callback(errors.ReQLClientError(response.r[1], root, response.b))
+      return callback(errors.ReQLClientError(response.r[1], term, response.b))
     elseif t == RUNTIME_ERROR then
-      return callback(errors.ReQLRuntimeError(response.r[1], root, response.b))
+      return callback(errors.ReQLRuntimeError(response.r[1], term, response.b))
     elseif t == WAIT_COMPLETE then
       return callback()
     end
@@ -83,11 +65,11 @@ local function cursor(token, del_query, opts, process_response, protocol_inst, r
 
   local function add_response(response)
     local t = response.t
-    if not _type then
+    if not cursor_inst.feed_type then
       if response.n then
-        _type = response.n
+        cursor_inst.feed_type = response.n
       else
-        _type = 'finite'
+        cursor_inst.feed_type = 'finite'
       end
     end
     if response.r[1] or t == WAIT_COMPLETE then
@@ -98,13 +80,13 @@ local function cursor(token, del_query, opts, process_response, protocol_inst, r
       end_flag = true
       del_query(token)
     end
-    while _callback and responses[1] do
-      run_cb(_callback)
+    while outstanding_callback and responses[1] do
+      run_cb(outstanding_callback)
     end
   end
 
   function cursor_inst.set(callback)
-    _callback = callback
+    outstanding_callback = callback
   end
 
   function cursor_inst.close(callback)
@@ -125,24 +107,26 @@ local function cursor(token, del_query, opts, process_response, protocol_inst, r
         e = err
         return
       end
-      return callback(data)
+      callback(data)
     end
     cursor_inst.set(cb)
     while not end_flag do
-      local response, err = get_response(token)
+      local response, err = step(token)
       if err and not response then
         cb(errors.ReQLDriverError(err))
         break
       end
       add_response(response)
     end
-    if on_finished then
-      return on_finished(e)
+    if not responses[1] then
+      if on_finished then
+        return on_finished(e)
+      end
     end
   end
 
   function cursor_inst.next(callback)
-    local old_callback = _callback
+    local old_callback = outstanding_callback
     local res = nil
     local function on_data(data)
       cursor_inst.set(old_callback)

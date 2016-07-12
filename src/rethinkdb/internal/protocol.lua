@@ -6,8 +6,11 @@
 
 local bytes_to_int = require'rethinkdb.internal.bytes_to_int'
 local int_to_bytes = require'rethinkdb.internal.int_to_bytes'
+local ltn12 = require('ltn12')
 local protodef = require'rethinkdb.internal.protodef'
 local socket = require'rethinkdb.internal.socket'
+
+local unpack = _G.unpack or table.unpack
 
 local Query = protodef.Query
 
@@ -17,6 +20,8 @@ local SERVER_INFO = '[' .. Query.SERVER_INFO .. ']'
 local STOP = '[' .. Query.STOP .. ']'
 
 local START = Query.START
+
+local nil_table = {}
 
 --- convert from internal represention to JSON
 local function build(term)
@@ -49,8 +54,7 @@ local function build(term)
   return res
 end
 
-local function protocol(r, handshake, host, port, ssl_params, timeout)
-  local buffer = ''
+local function tokens()
   local next_token = 1
 
   local function get_token()
@@ -59,60 +63,87 @@ local function protocol(r, handshake, host, port, ssl_params, timeout)
     return token
   end
 
-  local function open()
-    local socket_inst, err = socket(r, host, port, ssl_params, timeout)
+  return get_token
+end
 
-    if not socket_inst then
-      return nil, err
+local function get_response(ctx)
+  if ctx.response_length then
+    if string.len(ctx.buffer) < ctx.response_length then
+      return
     end
-
-    socket_inst, err = handshake(socket_inst)
-
-    if not socket_inst then
-      return nil, err
-    end
-
-    return socket_inst
+    local response = string.sub(ctx.buffer, 1, ctx.response_length)
+    ctx.buffer = string.sub(ctx.buffer, ctx.response_length + 1)
+    ctx.response_length = nil
+    return {ctx.token, response}
   end
+  if string.len(ctx.buffer) < 12 then
+    return
+  end
+  ctx.token = bytes_to_int(string.sub(ctx.buffer, 1, 8))
+  ctx.response_length = bytes_to_int(string.sub(ctx.buffer, 9, 12))
+  ctx.buffer = string.sub(ctx.buffer, 13)
+end
 
-  local socket_inst, init_err = open()
+local function buffer_response(ctx, chunk)
+  if chunk then
+    ctx.buffer = ctx.buffer .. chunk
+  else
+    local expected_length = ctx.response_length or 12
+    if string.len(ctx.buffer) < expected_length then
+      ctx.buffer = ''
+      ctx.response_length = nil
+      return nil, ctx
+    end
+  end
+  return get_response(ctx) or nil_table, ctx
+end
+
+local function protocol(r, handshake, host, port, ssl_params, timeout, responses)
+  local socket_inst, init_err = socket(r, host, port, ssl_params, timeout)
 
   if not socket_inst then
     return nil, init_err
   end
 
-  local protocol_inst = {r = r}
+  local init_success
 
-  local function buffer_response()
-    while string.len(buffer) < 12 do
-      local buf, err = socket_inst.recv(12 - string.len(buffer))
-      if err then
-        return nil, err
-      end
-      buffer = buffer .. buf
+  init_success, init_err = handshake(socket_inst)
+
+  if not init_success then
+    return nil, init_err
+  end
+
+  local ctx = {buffer = ''}
+  local filter = ltn12.filter.cycle(buffer_response, ctx)
+
+  local function source()
+    return ltn12.source.chain(socket_inst.source(ctx.response_length or 12), filter)
+  end
+
+  local function sink(chunk, err)
+    if not chunk then
+      return nil, err
     end
-    local response_length = bytes_to_int(string.sub(buffer, 9, 12)) + 12
-    while string.len(buffer) < response_length do
-      local buf, err = socket_inst.recv(response_length - string.len(buffer))
-      if err then
-        return nil, err
-      end
-      buffer = buffer .. buf
+    local token, response = unpack(chunk)
+    if token then
+      responses[token] = response
     end
+    return true
   end
 
   local function write_socket(token, data)
-    local size, err = socket_inst.send(
-      int_to_bytes(token, 8),
-      int_to_bytes(#data, 4),
-      data
-    )
-    if not size then
+    data = table.concat{int_to_bytes(token, 8), int_to_bytes(string.len(data), 4), data}
+    local success, err = ltn12.pump.all(ltn12.source.string(data), socket_inst.sink)
+    if not success then
       return nil, err
     end
-    buffer_response()
+    -- buffer_response()
     return token
   end
+
+  local get_token = tokens()
+
+  local protocol_inst = {r = r}
 
   function protocol_inst.send_query(term, global_opts)
     for k, v in pairs(global_opts) do
@@ -124,12 +155,12 @@ local function protocol(r, handshake, host, port, ssl_params, timeout)
     return write_socket(get_token(), data)
   end
 
-  function protocol_inst.continue_query()
-    return write_socket(get_token(), CONTINUE)
+  function protocol_inst.continue_query(token)
+    return write_socket(token, CONTINUE)
   end
 
-  function protocol_inst.end_query()
-    return write_socket(get_token(), STOP)
+  function protocol_inst.end_query(token)
+    return write_socket(token, STOP)
   end
 
   function protocol_inst.noreply_wait()
@@ -140,27 +171,12 @@ local function protocol(r, handshake, host, port, ssl_params, timeout)
     return write_socket(get_token(), SERVER_INFO)
   end
 
-  function protocol_inst.query_response()
-    while string.len(buffer) < 12 do
-      local buf, err = socket_inst.recv(12 - string.len(buffer))
-      if err then
-        return nil, err
-      end
-      buffer = buffer .. buf
+  function protocol_inst.step()
+    local success, err = ltn12.pump.step(source(), sink)
+    if success then
+      return true
     end
-    local token = bytes_to_int(string.sub(buffer, 1, 8))
-    local response_length = bytes_to_int(string.sub(buffer, 9, 12))
-    buffer = string.sub(buffer, 13)
-    while string.len(buffer) < response_length do
-      local buf, err = socket_inst.recv(response_length - string.len(buffer))
-      if err then
-        return nil, err
-      end
-      buffer = buffer .. buf
-    end
-    local response = string.sub(buffer, 1, response_length)
-    buffer = string.sub(buffer, response_length + 1)
-    return token, response
+    return nil, err
   end
 
   return protocol_inst

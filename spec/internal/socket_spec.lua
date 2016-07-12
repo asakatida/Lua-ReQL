@@ -1,3 +1,5 @@
+local ltn12 = require('ltn12')
+
 local function reql_error_formatter(err)
   if type(err) ~= 'table' then return end
   if err.ReQLError then
@@ -29,18 +31,26 @@ describe('socket', function()
   it('connects', function()
     local client = assert.is_not_nil(socket(r, 'localhost', 28015, nil, 1))
 
-    finally(function() client.close() end)
+    finally(client.close)
 
-    assert.are_equal(12, client.send('\0\0', '\0\0\0\0\0\0\0\0\0\0'))
-
-    local message, err = client.recv'*a'
-
+    local success, err = ltn12.pump.all(ltn12.source.string'\0\0\0\0\0\0\0\0\0\0\0\0', client.sink)
     assert.is_nil(err)
+    assert.is_truthy(success)
 
-    assert.are_equal(
-      'ERROR: Received an unsupported protocol version. This port is for ' ..
-      'RethinkDB queries. Does your client driver version not match the ' ..
+    local sink, buffer = ltn12.sink.table()
+
+    success, err = ltn12.pump.all(client.source, sink)
+    assert.is_nil(err)
+    assert.is_truthy(success)
+
+    local message = table.concat(buffer)
+
+    local expected = table.concat{
+      'ERROR: Received an unsupported protocol version. This port is for ',
+      'RethinkDB queries. Does your client driver version not match the ',
       'server?\n\0',
-      message)
+    }
+
+    assert.are_equal(expected, message)
   end)
 end)

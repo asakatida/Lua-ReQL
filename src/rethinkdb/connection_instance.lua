@@ -12,6 +12,7 @@ local function connection_instance(r, handshake_inst, host, port, ssl_params, ti
   local db = nil
   local outstanding_callbacks = {}
   local protocol_inst = nil
+  local responses = {}
 
   local function reset(err)
     db = nil
@@ -31,14 +32,6 @@ local function connection_instance(r, handshake_inst, host, port, ssl_params, ti
     outstanding_callbacks[token] = nil
   end
 
-  local function process_response(response, token)
-    local callback = outstanding_callbacks[token]
-    if not callback then
-      return reset('Unexpected token ' .. token)
-    end
-    return callback.add_response(response)
-  end
-
   local conn_inst_meta_table = {}
 
   function conn_inst_meta_table.__tostring()
@@ -55,16 +48,38 @@ local function connection_instance(r, handshake_inst, host, port, ssl_params, ti
   end
 
   function conn_inst.use(_db)
-    db = r.reql.db(_db)
+    db = conn_inst.r.reql.db(_db)
+  end
+
+  local function step(token)
+    -- Buffer data, execute return results if need be
+    while not responses[token] do
+      local success, err = protocol_inst.step()
+      if not success then
+        return nil, err
+      end
+    end
+    protocol_inst.continue_query(token)
+
+    local response, err = nil
+    response, responses[token] = responses[token], response
+    response, err = conn_inst.r.decode(response)
+    if err and not response then
+      return nil, err
+    end
+
+    local add_response = outstanding_callbacks[token]
+    if not add_response then
+      return reset('Unexpected token ' .. token)
+    end
+    return add_response(response)
   end
 
   local function make_cursor(token, opts, term)
-    local cursor_inst, add_response = cursor(token, del_query, opts or {}, process_response, protocol_inst, term)
+    local cursor_inst, add_response = cursor(token, del_query, opts or {}, step, protocol_inst, term)
 
     -- Save cursor
-    outstanding_callbacks[token] = {
-      add_response = add_response
-    }
+    outstanding_callbacks[token] = add_response
 
     return cursor_inst
   end
@@ -132,7 +147,7 @@ local function connection_instance(r, handshake_inst, host, port, ssl_params, ti
   function conn_inst.connect(callback)
     local err
 
-    protocol_inst, err = protocol(r, handshake_inst, host, port, ssl_params, timeout)
+    protocol_inst, err = protocol(r, handshake_inst, host, port, ssl_params, timeout, responses)
 
     if not protocol_inst then
       if type(err) == 'table' then

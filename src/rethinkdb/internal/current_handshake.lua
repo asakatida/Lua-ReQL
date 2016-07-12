@@ -5,6 +5,8 @@
 -- @copyright Adam Grandquist 2016
 
 local crypto = require('crypto')
+local ltn12 = require('ltn12')
+local pbkdf2 = require'rethinkdb.internal.pbkdf'
 
 --- Helper for bitwise operations.
 local function prequire(mod_name, ...)
@@ -19,10 +21,10 @@ local function prequire(mod_name, ...)
   return prequire(...)
 end
 
-local success, bits = prequire(
+local load_success, bits = prequire(
   'rethinkdb.internal.bits53', 'bit32', 'bit', 'rethinkdb.internal.bits51')
 
-if success then
+if load_success then
   if not bits.tobit then
     --- normalize integer to bitfield
     -- @int a integer
@@ -66,90 +68,94 @@ local function __compare_digest(a, b)
   return tobit(result) ~= tobit(0)
 end
 
-local function __pbkdf2_hmac(hash_name, password, salt, iterations)
-  local function digest(msg)
-    local mac = hmac.new(hash_name, password)
-    mac:update(msg)
-    return mac:final(nil, true)
+local function current_handshake(socket_inst, auth_key, user)
+  local function send(data)
+    local success, err = ltn12.pump.all(ltn12.source.string(data), socket_inst.sink)
+    if not success then
+      socket_inst.close()
+      return nil, err
+    end
+    return true
   end
 
-  local t = digest(salt .. '\0\0\0\1')
-  if iterations < 4096 then
-    return t
-  end
-  local u = t
-  for _=1, iterations do
-    t = digest(t)
-    u = bxor256(u, t)
-  end
-
-  return u
-end
-
-local function current_handshake(raw_socket, auth_key, user)
   local buffer = ''
 
-  local r = raw_socket.r
+  local function sink(chunk, src_err)
+    if src_err then
+      return nil, src_err
+    end
+    if chunk == nil then
+      return nil, 'closed'
+    end
+    buffer = buffer .. chunk
+    return true
+  end
 
-  local function decode_message()
+  local r = socket_inst.r
+
+  local function encode(object)
+    return send(table.concat{r.encode(object), '\0'})
+  end
+
+  local function get_message()
     local i = string.find(buffer, '\0')
     while not i do
-      local buf, err = raw_socket.recv(32)
-      if err then
+      local success, err = ltn12.pump.step(socket_inst.source(1), sink)
+      if not success then
         return nil, err
       end
-      buffer = buffer .. buf
       i = string.find(buffer, '\0')
     end
 
     local message = string.sub(buffer, 1, i - 1)
     buffer = string.sub(buffer, i + 1)
-
-    local response = r.decode(message)
-
-    if not response then
-      return nil, message
-    end
-
-    return response, nil
+    return message
   end
 
-  local nonce = r.b64(rand_bytes(18))
-
-  local client_first_message_bare = 'n=' .. user .. ',r=' .. nonce
-
-  local size, send_err = raw_socket.send(
-    '\195\189\194\52', r.encode{
-      protocol_version = 0,
-      authentication_method = 'SCRAM-SHA-256',
-      authentication = 'n,,' .. client_first_message_bare
-    }, '\0'
-  )
-  if not size then
-    return nil, send_err
+  local success, err = send'\195\189\194\52'
+  if not success then
+    return nil, err
   end
 
   -- Now we have to wait for a response from the server
   -- acknowledging the connection
   -- this will be a null terminated json document on success
   -- or a null terminated error string on failure
-  local response, err = decode_message()
-
-  if not response then
+  local message
+  message, err = get_message()
+  if not message then
     return nil, err
+  end
+
+  local valid, response = pcall(r.decode, message)
+
+  if not (valid and response) then
+    return nil, message
   end
 
   if not response.success then
     return nil, response
   end
 
-  -- when protocol versions are updated this is where we send the following
-  -- for now it is sent above
+  local nonce = r.b64(rand_bytes(18))
+
+  local client_first_message_bare = 'n=' .. user .. ',r=' .. nonce
+
+  -- send the second client message
   -- {
   --   "protocol_version": <number>,
   --   "authentication_method": <method>,
   --   "authentication": "n,,n=<user>,r=<nonce>"
   -- }
+  success, err = encode{
+    protocol_version = response.min_protocol_version,
+    authentication_method = 'SCRAM-SHA-256',
+    authentication = 'n,,' .. client_first_message_bare
+  }
+  if not success then
+    return nil, err
+  end
+
 
   -- wait for the second server challenge
   -- this is always a json document
@@ -157,27 +163,31 @@ local function current_handshake(raw_socket, auth_key, user)
   --   "success": <bool>,
   --   "authentication": "r=<nonce><server_nonce>,s=<salt>,i=<iteration>"
   -- }
-  -- the authentication property will need to be retained
-  local authentication = {}
-  local server_first_message
 
-  response, err = decode_message()
-
-  if not response then
+  message, err = get_message()
+  if not message then
     return nil, err
+  end
+
+  valid, response = pcall(r.decode, message)
+
+  if not (valid and response) then
+    return nil, message
   end
 
   if not response.success then
     return nil, response
   end
 
-  server_first_message = response.authentication
+  -- the authentication property will need to be retained
+  local authentication = {}
+  local server_first_message = response.authentication
   local response_authentication = server_first_message .. ','
   for k, v in string.gmatch(response_authentication, '([rsi])=(.-),') do
     authentication[k] = v
   end
 
-  if string.sub(authentication.r, 1, #nonce) ~= nonce then
+  if string.sub(authentication.r, 1, string.len(nonce)) ~= nonce then
     return nil, 'Invalid nonce'
   end
 
@@ -188,7 +198,7 @@ local function current_handshake(raw_socket, auth_key, user)
   local salt = r.unb64(authentication.s)
 
   -- SaltedPassword := Hi(Normalize(password), salt, i)
-  local salted_password = __pbkdf2_hmac('sha256', auth_key, salt, authentication.i)
+  local salted_password = pbkdf2(auth_key, salt, authentication.i)
 
   -- ClientKey := HMAC(SaltedPassword, "Client Key")
   local client_key = hmac.digest('sha256', salted_password, 'Client Key', true)
@@ -219,12 +229,12 @@ local function current_handshake(raw_socket, auth_key, user)
   -- {
   --   "authentication": "c=biws,r=<nonce><server_nonce>,p=<proof>"
   -- }
-  size, send_err = raw_socket.send(r.encode{
+  success, err = encode{
     authentication =
-    table.concat({client_final_message_without_proof, r.b64(client_proof)}, ',p=')
-  }, '\0')
-  if not size then
-    return nil, send_err
+    table.concat{client_final_message_without_proof, ',p=', r.b64(client_proof)}
+  }
+  if not success then
+    return nil, err
   end
 
   -- wait for the third server challenge
@@ -233,10 +243,15 @@ local function current_handshake(raw_socket, auth_key, user)
   --   "success": <bool>,
   --   "authentication": "v=<server_signature>"
   -- }
-  response, err = decode_message()
-
-  if not response then
+  message, err = get_message()
+  if not message then
     return nil, err
+  end
+
+  valid, response = pcall(r.decode, message)
+
+  if not (valid and response) then
+    return nil, message
   end
 
   if not response.success then
