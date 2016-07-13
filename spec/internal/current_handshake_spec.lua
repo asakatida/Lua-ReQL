@@ -5,20 +5,6 @@ local function reql_error_formatter(err)
   end
 end
 
-local ltn12 = require('ltn12')
-
-local log, buffer = ltn12.sink.table()
-
-local function filter(chunk)
-  if chunk then
-    local success, err = ltn12.pump.all(ltn12.source.string(chunk), log)
-    if not success then
-      return nil, err
-    end
-  end
-  return chunk
-end
-
 describe('current handshake', function()
   local r, socket, current_handshake
 
@@ -34,9 +20,6 @@ describe('current handshake', function()
     socket = nil
     r = nil
     assert:remove_formatter(reql_error_formatter)
-    assert.is_nil(string.gsub(table.concat(buffer), '[^%g]', function(s)
-      return string.format('\\u%d', string.byte(s))
-    end))
   end)
 
   it('no password', function()
@@ -44,12 +27,6 @@ describe('current handshake', function()
     assert.is_nil(err)
     assert.is_not_nil(client)
     finally(client.close)
-
-    client.sink = ltn12.sink.chain(filter, client.sink)
-    local source = client.source
-    function client.source(length)
-      return ltn12.source.chain(source(length), filter)
-    end
 
     local success
 

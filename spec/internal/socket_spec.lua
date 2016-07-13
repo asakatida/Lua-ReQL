@@ -39,17 +39,17 @@ describe('socket', function()
 
     local sink, buffer = ltn12.sink.table()
 
-    success, err = ltn12.pump.all(client.source, sink)
-    assert.is_nil(err)
-    assert.is_truthy(success)
-
-    local message = table.concat(buffer)
-
     local expected = table.concat{
       'ERROR: Received an unsupported protocol version. This port is for ',
       'RethinkDB queries. Does your client driver version not match the ',
       'server?\n\0',
     }
+
+    success, err = ltn12.pump.all(client.source(string.len(expected)), sink)
+    assert.is_nil(err)
+    assert.is_truthy(success)
+
+    local message = table.concat(buffer)
 
     assert.are_equal(expected, message)
   end)

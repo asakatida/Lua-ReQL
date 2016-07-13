@@ -15,31 +15,18 @@ local function prequire(mod_name, ...)
   local success, bits = pcall(require, mod_name)
 
   if success then
-    return true, bits
+    return bits
   end
 
   return prequire(...)
 end
 
-local load_success, bits = prequire(
+local bits = prequire(
   'rethinkdb.internal.bits53', 'bit32', 'bit', 'rethinkdb.internal.bits51')
-
-if load_success then
-  if not bits.tobit then
-    --- normalize integer to bitfield
-    -- @int a integer
-    -- @treturn int
-    function bits.tobit(a)
-      return bits.bor(a, 0)
-    end
-  end
-end
 
 local bor = bits.bor
 local bxor = bits.bxor
-local tobit = bits.tobit
 local rand_bytes = crypto.rand.bytes
-local hmac = crypto.hmac
 
 local unpack = _G.unpack or table.unpack
 
@@ -65,7 +52,7 @@ local function __compare_digest(a, b)
     result = bor(result, bxor(string.byte(a, i) or 0, string.byte(b, i) or 0))
   end
 
-  return tobit(result) ~= tobit(0)
+  return result ~= 0
 end
 
 local function current_handshake(socket_inst, auth_key, user)
@@ -198,10 +185,10 @@ local function current_handshake(socket_inst, auth_key, user)
   local salt = r.unb64(authentication.s)
 
   -- SaltedPassword := Hi(Normalize(password), salt, i)
-  local salted_password = pbkdf2(auth_key, salt, authentication.i)
+  local salted_password = pbkdf2('sha256', auth_key, salt, authentication.i, 32)
 
   -- ClientKey := HMAC(SaltedPassword, "Client Key")
-  local client_key = hmac.digest('sha256', salted_password, 'Client Key', true)
+  local client_key = crypto.hmac.digest('sha256', 'Client Key', salted_password, true)
 
   -- StoredKey := H(ClientKey)
   local stored_key = crypto.digest('sha256', client_key, true)
@@ -215,15 +202,15 @@ local function current_handshake(socket_inst, auth_key, user)
       client_final_message_without_proof}, ',')
 
   -- ClientSignature := HMAC(StoredKey, AuthMessage)
-  local client_signature = hmac.digest('sha256', stored_key, auth_message, true)
+  local client_signature = crypto.hmac.digest('sha256', auth_message, stored_key, true)
 
   local client_proof = bxor256(client_key, client_signature)
 
   -- ServerKey := HMAC(SaltedPassword, "Server Key")
-  local server_key = hmac.digest('sha256', salted_password, 'Server Key', true)
+  local server_key = crypto.hmac.digest('sha256', 'Server Key', salted_password, true)
 
   -- ServerSignature := HMAC(ServerKey, AuthMessage)
-  local server_signature = hmac.digest('sha256', server_key, auth_message, true)
+  local server_signature = crypto.hmac.digest('sha256', auth_message, server_key, true)
 
   -- send the third client message
   -- {
@@ -258,7 +245,16 @@ local function current_handshake(socket_inst, auth_key, user)
     return nil, response
   end
 
-  if not __compare_digest(response.v, server_signature) then
+  response_authentication = response.authentication .. ','
+  for k, v in string.gmatch(response_authentication, '([v])=(.-),') do
+    authentication[k] = v
+  end
+
+  if not authentication.v then
+    return nil, response
+  end
+
+  if not __compare_digest(authentication.v, server_signature) then
     return nil, response
   end
 
