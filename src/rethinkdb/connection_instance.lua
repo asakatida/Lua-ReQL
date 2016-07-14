@@ -16,6 +16,7 @@ local function connection_instance(r, handshake_inst, host, port, ssl_params, ti
 
   local function reset(err)
     db = nil
+    protocol_inst.close()
     protocol_inst = nil
     for _, cursor_inst in ipairs(outstanding_callbacks) do
       cursor_inst.close()
@@ -56,7 +57,7 @@ local function connection_instance(r, handshake_inst, host, port, ssl_params, ti
     while not responses[token] do
       local success, err = protocol_inst.step()
       if not success then
-        return nil, err
+        return reset(err)
       end
     end
     protocol_inst.continue_query(token)
@@ -65,7 +66,7 @@ local function connection_instance(r, handshake_inst, host, port, ssl_params, ti
     response, responses[token] = responses[token], response
     response, err = conn_inst.r.decode(response)
     if err and not response then
-      return nil, err
+      return reset(err)
     end
 
     local add_response = outstanding_callbacks[token]
@@ -84,7 +85,7 @@ local function connection_instance(r, handshake_inst, host, port, ssl_params, ti
     return cursor_inst
   end
 
-  function conn_inst._start(term, callback, opts)
+  function conn_inst._start(reql_inst, options, callback)
     local function cb(err, cur)
       if type(callback) == 'function' then
         local res
@@ -101,28 +102,24 @@ local function connection_instance(r, handshake_inst, host, port, ssl_params, ti
     -- Set global options
     local global_opts = {}
 
-    for first, second in pairs(opts) do
+    for first, second in pairs(options) do
       global_opts[first] = r.reql(second)
     end
 
-    if opts.db then
-      global_opts.db = r.reql.db(opts.db)
+    if options.db then
+      global_opts.db = r.reql.db(options.db)
     elseif db then
       global_opts.db = db
     end
 
-    if type(callback) ~= 'function' then
-      global_opts.noreply = true
-    end
-
     -- Construct query
-    local token, err = protocol_inst.send_query(term, global_opts)
+    local token, err = protocol_inst.send_query(reql_inst, global_opts)
 
     if err then
       return cb(err)
     end
 
-    return cb(nil, make_cursor(token, opts, term))
+    return cb(nil, make_cursor(token, options, reql_inst))
   end
 
   function conn_inst.close(opts_or_callback, callback)
@@ -138,6 +135,8 @@ local function connection_instance(r, handshake_inst, host, port, ssl_params, ti
     if noreply_wait then
       conn_inst.noreply_wait()
     end
+
+    reset()
 
     if callback then
       return callback()
@@ -161,7 +160,6 @@ local function connection_instance(r, handshake_inst, host, port, ssl_params, ti
 
     if callback then
       local function with(...)
-        protocol_inst.close()
         reset()
         return ...
       end
@@ -205,11 +203,13 @@ local function connection_instance(r, handshake_inst, host, port, ssl_params, ti
   end
 
   function conn_inst.server(callback)
-    local function cb(err)
+    local function cb(err, ...)
       if callback then
-        return callback(err)
+        return callback(err, ...)
       end
-      return nil, err
+      if err then
+        return reset(err)
+      end
     end
     if not conn_inst.is_open() then return cb(errors.ReQLDriverError'Connection is closed.') end
 
@@ -220,7 +220,7 @@ local function connection_instance(r, handshake_inst, host, port, ssl_params, ti
       return cb(err)
     end
 
-    return make_cursor(token).next(callback)
+    return make_cursor(token).next(cb)
   end
 
   return conn_inst
