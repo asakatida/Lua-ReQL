@@ -155,6 +155,10 @@ local function protocol(r, handshake, host, port, ssl_params, timeout, responses
     return write_socket(get_token(), data)
   end
 
+  function protocol_inst.close()
+    socket_inst.close()
+  end
+
   function protocol_inst.continue_query(token)
     return write_socket(token, CONTINUE)
   end
