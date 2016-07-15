@@ -19,44 +19,20 @@ end
 local m = {}
 
 function m.init(r, driver_options)
-  if not driver_options.mime then
-    driver_options.mime = mime
-  end
-  if not driver_options.b64 then
-    driver_options.b64 = driver_options.mime.b64
-  end
-  if not driver_options.unb64 then
-    driver_options.unb64 = driver_options.mime.unb64
-  end
-
-  if not driver_options.json then
-    driver_options.json = json
-  end
-  if not driver_options.decode then
-    driver_options.decode = driver_options.json.decode
-  end
-  if not driver_options.encode then
-    driver_options.encode = driver_options.json.encode
-  end
-
-  if not driver_options.socket then
-    driver_options.socket = socket
-  end
-  if not driver_options.tcp then
-    driver_options.tcp = driver_options.socket.tcp
-  end
+  local _mime = driver_options.mime or mime
+  local _json = driver_options.json or json
 
   r.r = r
 
-  r.b64 = driver_options.b64
-  r.unb64 = driver_options.unb64
+  r.b64 = driver_options.b64 or _mime.b64
+  r.unb64 = driver_options.unb64 or _mime.unb64
 
-  r.decode = driver_options.decode
-  r.encode = driver_options.encode
+  r.decode = driver_options.decode or _json.decode
+  r.encode = driver_options.encode or _json.encode
 
-  r.tcp = driver_options.tcp
+  r.socket = driver_options.socket or socket
 
-  r.socket = driver_options.socket
+  r.tcp = driver_options.tcp or r.socket.tcp
 end
 
 return m
