@@ -145,13 +145,13 @@ local function protocol(r, handshake, host, port, ssl_params, timeout, responses
 
   local protocol_inst = {r = r}
 
-  function protocol_inst.send_query(term, global_opts)
+  function protocol_inst.send_query(reql_inst, global_opts)
     for k, v in pairs(global_opts) do
       global_opts[k] = build(v)
     end
 
     -- Assign token
-    local data = r.encode{START, build(term), global_opts}
+    local data = r.encode{START, build(reql_inst), global_opts}
     return write_socket(get_token(), data)
   end
 

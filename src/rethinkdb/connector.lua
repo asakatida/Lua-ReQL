@@ -16,7 +16,7 @@ local DEFAULT_AUTH_KEY = ''
 local DEFAULT_TIMEOUT = 0.1 -- In seconds
 
 function m.init(r)
-  function r.Connector(connection_opts)
+  function r.connector(connection_opts)
     local auth_key = connection_opts.password or connection_opts.auth_key or DEFAULT_AUTH_KEY
     local db = connection_opts.db -- left nil if this is not set
     local host = connection_opts.host or DEFAULT_HOST
@@ -72,7 +72,7 @@ function m.init(r)
       return conn
     end
 
-    function connector_inst._start(term, callback, opts)
+    function connector_inst._start(reql_inst, options, callback)
       local function cb(err, conn)
         if err then
           if callback then
@@ -81,7 +81,7 @@ function m.init(r)
           return nil, err
         end
         conn.use(db)
-        return conn._start(term, callback, opts)
+        return conn._start(reql_inst, options, callback)
       end
       return connector_inst.connect(cb)
     end

@@ -239,15 +239,11 @@ function m.init(r)
       function reql_inst.run(connection, options, callback)
         -- Handle run(connection, callback)
         if type(options) == 'function' then
-          if callback ~= nil then
-            return nil, errors.ReQLDriverError'Second argument to `run` cannot be a function if a third argument is provided.'
-          end
-          callback = options
-          options = {}
+          callback, options = options, callback
         end
-        -- else we suppose that we have run(connection[, options][, callback])
+        -- else we suppose that we have run(connection[, options[, callback]])
 
-        return connection._start(reql_inst, callback, options or {})
+        return connection._start(reql_inst, options or {}, callback)
       end
 
       return reql_inst
