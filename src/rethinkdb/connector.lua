@@ -26,8 +26,8 @@ function m.init(r)
     local timeout = connection_opts.timeout or DEFAULT_TIMEOUT
     local user = connection_opts.user or DEFAULT_USER
 
-    local function handshake_inst(socket_inst)
-      return proto_version(socket_inst, auth_key, user)
+    local function handshake_inst(_r, socket_inst)
+      return proto_version(_r, socket_inst, auth_key, user)
     end
 
     local connector_inst_meta_table = {}

@@ -40,12 +40,12 @@ local function socket(r, host, port, ssl_params, timeout)
     end
   end
 
-  local socket_inst = {r = r}
+  local socket_inst = {}
 
   socket_inst.sink = r.socket.sink('keep-open', raw_socket)
 
-  function socket_inst.source(length)
-    return r.socket.source('by-length', raw_socket, length)
+  function socket_inst.source(_r, length)
+    return _r.socket.source('by-length', raw_socket, length)
   end
 
   function socket_inst.close()

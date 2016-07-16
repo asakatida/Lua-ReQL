@@ -30,7 +30,7 @@ describe('current handshake', function()
 
     local success
 
-    success, err = current_handshake(client, '', 'admin')
+    success, err = current_handshake(r, client, '', 'admin')
     assert.is_nil(err)
     assert.is_true(success)
   end)

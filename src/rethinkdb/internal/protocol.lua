@@ -7,8 +7,8 @@
 local bytes_to_int = require'rethinkdb.internal.bytes_to_int'
 local int_to_bytes = require'rethinkdb.internal.int_to_bytes'
 local ltn12 = require('ltn12')
+local protect = require'rethinkdb.internal.protect'
 local protodef = require'rethinkdb.internal.protodef'
-local socket = require'rethinkdb.internal.socket'
 
 local unpack = _G.unpack or table.unpack
 
@@ -54,18 +54,6 @@ local function build(term)
   return res
 end
 
-local function tokens()
-  local next_token = 1
-
-  local function get_token()
-    local token
-    token, next_token = next_token, next_token + 1
-    return token
-  end
-
-  return get_token
-end
-
 local function get_response(ctx)
   if ctx.response_length then
     if string.len(ctx.buffer) < ctx.response_length then
@@ -98,26 +86,23 @@ local function buffer_response(ctx, chunk)
   return get_response(ctx) or nil_table, ctx
 end
 
-local function protocol(r, handshake, host, port, ssl_params, timeout, responses)
-  local socket_inst, init_err = socket(r, host, port, ssl_params, timeout)
+local function new_token()
+  local var = 0
 
-  if not socket_inst then
-    return nil, init_err
+  local function get_token()
+    var = var + 1
+    return var
   end
 
-  local init_success
+  return get_token
+end
 
-  init_success, init_err = handshake(socket_inst)
-
-  if not init_success then
-    return nil, init_err
-  end
-
+local function protocol(responses, socket_inst)
   local ctx = {buffer = ''}
   local filter = ltn12.filter.cycle(buffer_response, ctx)
 
-  local function source()
-    return ltn12.source.chain(socket_inst.source(ctx.response_length or 12), filter)
+  local function source(r)
+    return ltn12.source.chain(socket_inst.source(r, ctx.response_length or 12), filter)
   end
 
   local function sink(chunk, err)
@@ -141,17 +126,17 @@ local function protocol(r, handshake, host, port, ssl_params, timeout, responses
     return token
   end
 
-  local get_token = tokens()
+  local get_token = new_token()
 
-  local protocol_inst = {r = r}
+  local protocol_inst = {}
 
-  function protocol_inst.send_query(reql_inst, global_opts)
+  function protocol_inst.send_query(r, reql_inst, global_opts)
     for k, v in pairs(global_opts) do
       global_opts[k] = build(v)
     end
 
     -- Assign token
-    local data = r.encode{START, build(reql_inst), global_opts}
+    local data = protect(r.encode, {START, build(reql_inst), global_opts})
     return write_socket(get_token(), data)
   end
 
@@ -175,12 +160,8 @@ local function protocol(r, handshake, host, port, ssl_params, timeout, responses
     return write_socket(get_token(), SERVER_INFO)
   end
 
-  function protocol_inst.step()
-    local success, err = ltn12.pump.step(source(), sink)
-    if success then
-      return true
-    end
-    return nil, err
+  function protocol_inst.step(r)
+    return ltn12.pump.step(source(r), sink)
   end
 
   return protocol_inst

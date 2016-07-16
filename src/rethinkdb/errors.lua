@@ -4,6 +4,8 @@
 -- @license Apache
 -- @copyright Adam Grandquist 2016
 
+local protect = require'rethinkdb.internal.protect'
+
 --- get debug represention of query
 -- @tab _args represention of arguments
 -- @tab[opt] _optargs represention of options
@@ -13,7 +15,7 @@ local function compose(term, args, optargs)
     if term.args[1] == nil then
       return 'nil'
     end
-    return term.r.encode(term.args[1])
+    return protect(term.r.encode, term.args[1]) or '...'
   end
   if term.st == 'make_array' then
     local res = {}
@@ -52,7 +54,7 @@ local function compose(term, args, optargs)
       ') return ', args[2], ' end'
     }
   end
-  if term.st == 'do_' then
+  if term.st == 'funcall' then
     local func = table.remove(args, 1)
     if func then
       table.insert(args, func)
@@ -145,13 +147,14 @@ local heiarchy = {
 
   ReQLServerError = 'ReQLError',
 
+  ReQLClientError = 'ReQLServerError',
   ReQLCompileError = 'ReQLServerError',
   ReQLRuntimeError = 'ReQLServerError',
-  ReQLClientError = 'ReQLServerError',
 
   ReQLAvailabilityError = 'ReQLRuntimeError',
-  ReQLQueryLogicError = 'ReQLRuntimeError',
   ReQLInternalError = 'ReQLRuntimeError',
+  ReQLPermissionsError = 'ReQLRuntimeError',
+  ReQLQueryLogicError = 'ReQLRuntimeError',
   ReQLResourceLimitError = 'ReQLRuntimeError',
   ReQLTimeoutError = 'ReQLRuntimeError',
   ReQLUserError = 'ReQLRuntimeError',

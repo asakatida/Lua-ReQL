@@ -7,6 +7,8 @@
 local cursor = require'rethinkdb.cursor'
 local errors = require'rethinkdb.errors'
 local protocol = require'rethinkdb.internal.protocol'
+local protect = require'rethinkdb.internal.protect'
+local socket = require'rethinkdb.internal.socket'
 
 local function connection_instance(r, handshake_inst, host, port, ssl_params, timeout)
   local db = nil
@@ -18,8 +20,8 @@ local function connection_instance(r, handshake_inst, host, port, ssl_params, ti
     db = nil
     protocol_inst.close()
     protocol_inst = nil
-    for _, cursor_inst in ipairs(outstanding_callbacks) do
-      cursor_inst.close()
+    for _, state in ipairs(outstanding_callbacks) do
+      state.open = nil
     end
     outstanding_callbacks = {}
     if type(err) == 'string' then
@@ -28,17 +30,12 @@ local function connection_instance(r, handshake_inst, host, port, ssl_params, ti
     return nil, err
   end
 
-  local function del_query(token)
-    -- This query is done, delete this cursor
-    outstanding_callbacks[token] = nil
-  end
-
   local conn_inst_meta_table = {}
 
-  function conn_inst_meta_table.__tostring()
+  function conn_inst_meta_table.__tostring(conn_inst)
     return (
       protocol_inst and 'open' or 'closed'
-    ) .. ' rethinkdb connection to ' .. host .. ':' .. port
+    ) .. ' rethinkdb connection to ' .. conn_inst.host .. ':' .. conn_inst.port
   end
 
   local conn_inst = setmetatable(
@@ -52,35 +49,48 @@ local function connection_instance(r, handshake_inst, host, port, ssl_params, ti
     db = conn_inst.r.reql.db(_db)
   end
 
-  local function step(token)
-    -- Buffer data, execute return results if need be
-    while not responses[token] do
-      local success, err = protocol_inst.step()
-      if not success then
-        return reset(err)
+  local function make_cursor(token, opts, term)
+    local state = {open = true, opts = opts, term = term}
+
+    function state.del_query()
+      -- This query is done, delete this cursor
+      outstanding_callbacks[token] = nil
+      state.open = nil
+    end
+
+    function state.end_query()
+      if protocol_inst then
+        return protocol_inst.end_query(token)
       end
     end
-    protocol_inst.continue_query(token)
 
-    local response, err = nil
-    response, responses[token] = responses[token], response
-    response, err = conn_inst.r.decode(response)
-    if err and not response then
-      return reset(err)
+    function state.step()
+      -- Buffer data, execute return results if need be
+      while not responses[token] do
+        local success, err = protocol_inst.step(conn_inst.r)
+        if not success then
+          return reset(err)
+        end
+      end
+      protocol_inst.continue_query(token)
+
+      local response, err = nil
+      response, responses[token] = responses[token], response
+      response, err = protect(conn_inst.r.decode, response)
+      if not response then
+        return reset(err)
+      end
+
+      if not outstanding_callbacks[token] then
+        return reset('Unexpected token ' .. token)
+      end
+      return state.add_response(response)
     end
 
-    local add_response = outstanding_callbacks[token]
-    if not add_response then
-      return reset('Unexpected token ' .. token)
-    end
-    return add_response(response)
-  end
+    local cursor_inst = cursor(conn_inst.r, state, opts, term)
 
-  local function make_cursor(token, opts, term)
-    local cursor_inst, add_response = cursor(token, del_query, opts or {}, step, protocol_inst, term)
-
-    -- Save cursor
-    outstanding_callbacks[token] = add_response
+    -- Save cursor shared state
+    outstanding_callbacks[token] = state
 
     return cursor_inst
   end
@@ -113,10 +123,14 @@ local function connection_instance(r, handshake_inst, host, port, ssl_params, ti
     end
 
     -- Construct query
-    local token, err = protocol_inst.send_query(reql_inst, global_opts)
+    local token, err = protocol_inst.send_query(conn_inst.r, reql_inst, global_opts)
 
     if err then
       return cb(err)
+    end
+
+    if options.noreply then
+      return true
     end
 
     return cb(nil, make_cursor(token, options, reql_inst))
@@ -144,17 +158,29 @@ local function connection_instance(r, handshake_inst, host, port, ssl_params, ti
   end
 
   function conn_inst.connect(callback)
-    local err
+    local socket_inst, err = socket(conn_inst.r, conn_inst.host, conn_inst.port, ssl_params, timeout)
 
-    protocol_inst, err = protocol(r, handshake_inst, host, port, ssl_params, timeout, responses)
+    if not socket_inst then
+      return reset(err)
+    end
 
-    if not protocol_inst then
+    local init_success
+
+    init_success, err = handshake_inst(conn_inst.r, socket_inst)
+
+    if not init_success then
       if type(err) == 'table' then
         if 10 <= err.error_code and err.error_code <= 20 then
           return reset(errors.ReQLAuthError(err.error))
         end
         return reset(err.error)
       end
+      return reset(err)
+    end
+
+    protocol_inst, err = protocol(responses, socket_inst)
+
+    if not protocol_inst then
       return reset(err)
     end
 
@@ -188,7 +214,7 @@ local function connection_instance(r, handshake_inst, host, port, ssl_params, ti
       return cb(err)
     end
 
-    return make_cursor(token).next(callback)
+    return make_cursor(token).to_array(cb)
   end
 
   function conn_inst.reconnect(opts_or_callback, callback)
@@ -210,6 +236,7 @@ local function connection_instance(r, handshake_inst, host, port, ssl_params, ti
       if err then
         return reset(err)
       end
+      return ...
     end
     if not conn_inst.is_open() then return cb(errors.ReQLDriverError'Connection is closed.') end
 
@@ -220,7 +247,7 @@ local function connection_instance(r, handshake_inst, host, port, ssl_params, ti
       return cb(err)
     end
 
-    return make_cursor(token).next(cb)
+    return make_cursor(token).to_array(cb)
   end
 
   return conn_inst

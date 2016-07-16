@@ -7,6 +7,7 @@
 local crypto = require('crypto')
 local ltn12 = require('ltn12')
 local pbkdf2 = require'rethinkdb.internal.pbkdf'
+local protect = require'rethinkdb.internal.protect'
 
 --- Helper for bitwise operations.
 local function prequire(mod_name, ...)
@@ -55,7 +56,7 @@ local function __compare_digest(a, b)
   return result ~= 0
 end
 
-local function current_handshake(socket_inst, auth_key, user)
+local function current_handshake(r, socket_inst, auth_key, user)
   local function send(data)
     local success, err = ltn12.pump.all(ltn12.source.string(data), socket_inst.sink)
     if not success then
@@ -78,16 +79,18 @@ local function current_handshake(socket_inst, auth_key, user)
     return true
   end
 
-  local r = socket_inst.r
-
   local function encode(object)
-    return send(table.concat{r.encode(object), '\0'})
+    local json, err = protect(r.encode, object)
+    if not json then
+      return nil, err
+    end
+    return send(table.concat{json, '\0'})
   end
 
   local function get_message()
     local i = string.find(buffer, '\0')
     while not i do
-      local success, err = ltn12.pump.step(socket_inst.source(1), sink)
+      local success, err = ltn12.pump.step(socket_inst.source(r, 1), sink)
       if not success then
         return nil, err
       end
@@ -114,9 +117,9 @@ local function current_handshake(socket_inst, auth_key, user)
     return nil, err
   end
 
-  local valid, response = pcall(r.decode, message)
+  local response = protect(r.decode, message)
 
-  if not (valid and response) then
+  if not response then
     return nil, message
   end
 
@@ -156,10 +159,10 @@ local function current_handshake(socket_inst, auth_key, user)
     return nil, err
   end
 
-  valid, response = pcall(r.decode, message)
+  response, err = protect(r.decode, message)
 
-  if not (valid and response) then
-    return nil, message
+  if not response then
+    return nil, err
   end
 
   if not response.success then
@@ -235,10 +238,10 @@ local function current_handshake(socket_inst, auth_key, user)
     return nil, err
   end
 
-  valid, response = pcall(r.decode, message)
+  response, err = protect(r.decode, message)
 
-  if not (valid and response) then
-    return nil, message
+  if not response then
+    return nil, err
   end
 
   if not response.success then

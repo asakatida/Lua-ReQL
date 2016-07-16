@@ -45,7 +45,7 @@ describe('socket', function()
       'server?\n\0',
     }
 
-    success, err = ltn12.pump.all(client.source(string.len(expected)), sink)
+    success, err = ltn12.pump.all(client.source(r, string.len(expected)), sink)
     assert.is_nil(err)
     assert.is_truthy(success)
 

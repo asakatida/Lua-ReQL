@@ -25,13 +25,16 @@ end
 
 --- native conversion from reql time data to Lua
 -- @tab obj reql time pseudo-type table
--- @treturn number
+-- @treturn table from os.date
 -- @todo description is from Javascript driver
 -- We ignore the timezone field of the pseudo-type TIME table. JS dates do not support timezones.
 -- By converting to a native date table we are intentionally throwing out timezone information.
 -- field 'epoch_time' is in seconds but the Date constructor expects milliseconds
 local function native_time(obj)
-  return assert(obj.epoch_time, 'pseudo-type TIME table missing expected field `epoch_time`')
+  local epoch_time = assert(obj.epoch_time, 'pseudo-type TIME table missing expected field `epoch_time`')
+  local time = os.date("*t", epoch_time)
+  time.timezone = obj.timezone
+  return time
 end
 
 --- raw pseudo-type from server
@@ -58,8 +61,7 @@ local time_table = {
 -- @treturn table
 local function convert_pseudotype(r, _obj, opts)
   local function native_binary(obj)
-    assert(obj.data, 'pseudo-type BINARY table missing expected field `data`')
-    return r.unb64(obj.data)
+    return r.unb64(assert(obj.data, 'pseudo-type BINARY table missing expected field `data`'))
   end
 
   local binary_table = {
@@ -92,6 +94,7 @@ local function convert_pseudotype(r, _obj, opts)
 
   local conversion = {
     BINARY = BINARY,
+    GEOMETRY = raw,
     GROUPED_DATA = GROUPED_DATA,
     TIME = TIME,
   }
