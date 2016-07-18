@@ -160,11 +160,21 @@ local function cursor(r, state, opts, term)
   end
 
   function cursor_inst.close(callback)
+    local function cb(err)
+      if callback then return callback(err) end
+      if err then
+        return nil, err
+      end
+      return true
+    end
     if state.open then
-      state.end_query()
+      local success, err = state.end_query()
+      if not success then
+        return cb(err)
+      end
       state.del_query()
     end
-    if callback then return callback() end
+    return cb()
   end
 
   function cursor_inst.each(callback, on_finished)
