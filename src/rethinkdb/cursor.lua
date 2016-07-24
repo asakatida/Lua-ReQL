@@ -30,7 +30,7 @@ local USER = ErrorType.USER
 local PERMISSION_ERROR = ErrorType.PERMISSION_ERROR
 
 local function simplify(state)
-  if state.outstanding_callback then
+  if state.outstanding_callback and state.open then
     local response, err = state.step()
     if not response then
       return nil, errors.ReQLDriverError(err)
@@ -38,31 +38,37 @@ local function simplify(state)
   end
 end
 
-local function iter(response, shared)
-  local ipairs_f, ipairs_s, ipairs_var = ipairs(response.r)
+local function new_response(shared, response, reql_inst)
+  -- Behavior varies considerably based on response type
   local t = response.t
+  if not t == WAIT_COMPLETE then
+    local function it()
+    end
+    return it
+  end
   if t ~= SUCCESS_PARTIAL then
     -- We got the final document for this cursor
     shared.del_query()
   end
-  local function f(state)
-    local res
-    ipairs_var, res = ipairs_f(ipairs_s, ipairs_var)
-    if res ~= nil then
-      return res
+  if t == SERVER_INFO or t == SUCCESS_ATOM or t == SUCCESS_PARTIAL or t == SUCCESS_SEQUENCE then
+    local ipairs_f, ipairs_s, ipairs_var = ipairs(response.r)
+    local function f(state, prev)
+      local res
+      ipairs_var, res = ipairs_f(ipairs_s, ipairs_var)
+      if res ~= nil then
+        return prev + 1, res
+      end
+      return simplify(state)
     end
-    return simplify(state)
+    return f, shared
   end
-  return f, shared
-end
-
-local function final(response, reql_inst)
-  local t, r, b = response.t, response.r[1], response.b
+  local r, b = response.r[1], response.b
   local function new(err)
+    -- Error responses are not discarded, and the error will be sent to all future callbacks
     local function it()
       return nil, err(r, reql_inst, b)
     end
-    return it
+    return nil, it
   end
   if t == COMPILE_ERROR then
     return new(errors.ReQLCompileError)
@@ -91,19 +97,6 @@ local function final(response, reql_inst)
   end
 end
 
-local function new_response(response, reql_inst)
-  local t = response.t
-  if not t == WAIT_COMPLETE then
-    local function it()
-    end
-    return it
-  end
-  if t == SERVER_INFO or t == SUCCESS_ATOM or t == SUCCESS_PARTIAL or t == SUCCESS_SEQUENCE then
-    return iter(response)
-  end
-  return nil, final(response, reql_inst)
-end
-
 local meta_table = {}
 
 function meta_table.__tostring(cursor_inst)
@@ -122,21 +115,6 @@ local function cursor(r, state, opts, term)
 
   local cursor_inst = setmetatable({r = r}, meta_table)
 
-  local function run_cb()
-    -- Behavior varies considerably based on response type
-    -- Error responses are not discarded, and the error will be sent to all future callbacks
-    if final_error then return state.outstanding_callback(final_error()) end
-    if it then
-      local row, err = convert_pseudotype(cursor_inst.r, it(), opts)
-      if row == nil then
-        it = nil
-      else
-        return state.outstanding_callback(err, row)
-      end
-    end
-    state.outstanding_callback = nil
-  end
-
   function state.add_response(response)
     if not cursor_inst.feed_type then
       if response.n then
@@ -149,9 +127,18 @@ local function cursor(r, state, opts, term)
         cursor_inst.feed_type = 'finite'
       end
     end
-    it, final_error = new_response(response, term)
+    it, final_error = new_response(state, response, term)
     while state.outstanding_callback do
-      run_cb()
+      if final_error then return state.outstanding_callback(final_error()) end
+      if it then
+        local row, err = convert_pseudotype(cursor_inst.r, it(), opts)
+        if row == nil then
+          it = nil
+        else
+          return state.outstanding_callback(err, row)
+        end
+      end
+      state.outstanding_callback = nil
     end
   end
 
@@ -179,7 +166,7 @@ local function cursor(r, state, opts, term)
 
   function cursor_inst.each(callback, on_finished)
     if not callback then
-      return iter()
+      return it
     end
     local e
     local function cb(err, data)
@@ -210,7 +197,7 @@ local function cursor(r, state, opts, term)
         return callback(err, arr)
       end
       if err then
-        return nil, err
+        return nil, err, arr
       end
       return arr
     end
