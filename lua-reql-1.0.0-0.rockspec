@@ -32,6 +32,10 @@ Rethinkdb driver in Lua
 
 ## Installing from source
 - `luarocks make`
+
+[![Build Status](https://travis-ci.org/grandquista/Lua-ReQL.svg?branch=master)](https://travis-ci.org/grandquista/Lua-ReQL)
+
+[![Coverage Status](https://coveralls.io/repos/github/grandquista/Lua-ReQL/badge.svg?branch=master)](https://coveralls.io/github/grandquista/Lua-ReQL?branch=master)
   ]],
   homepage = 'https://github.com/grandquista/Lua-ReQL/wiki',
   license = 'Apache',
