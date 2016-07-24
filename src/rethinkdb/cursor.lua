@@ -29,15 +29,6 @@ local OP_INDETERMINATE = ErrorType.OP_INDETERMINATE
 local USER = ErrorType.USER
 local PERMISSION_ERROR = ErrorType.PERMISSION_ERROR
 
-local function simplify(state)
-  if state.outstanding_callback and state.open then
-    local response, err = state.step()
-    if not response then
-      return nil, errors.ReQLDriverError(err)
-    end
-  end
-end
-
 local function new_response(shared, response, reql_inst)
   -- Behavior varies considerably based on response type
   local t = response.t
@@ -52,23 +43,28 @@ local function new_response(shared, response, reql_inst)
   end
   if t == SERVER_INFO or t == SUCCESS_ATOM or t == SUCCESS_PARTIAL or t == SUCCESS_SEQUENCE then
     local ipairs_f, ipairs_s, ipairs_var = ipairs(response.r)
-    local function f(state, prev)
+    local function it(state, prev)
       local res
       ipairs_var, res = ipairs_f(ipairs_s, ipairs_var)
-      if res ~= nil then
+      if ipairs_var ~= nil then
         return prev + 1, res
       end
-      return simplify(state)
+      if t == SUCCESS_PARTIAL then
+        local success, err = state.step()
+        if not success then
+          return 0, errors.ReQLDriverError(err)
+        end
+      end
     end
-    return f, shared
+    return it, shared, 0
   end
   local r, b = response.r[1], response.b
   local function new(err)
     -- Error responses are not discarded, and the error will be sent to all future callbacks
     local function it()
-      return nil, err(r, reql_inst, b)
+      return 0, err(r, reql_inst, b)
     end
-    return nil, it
+    return it
   end
   if t == COMPILE_ERROR then
     return new(errors.ReQLCompileError)
@@ -95,6 +91,10 @@ local function new_response(shared, response, reql_inst)
     end
     return new(errors.ReQLRuntimeError)
   end
+  local function it()
+    return 0, errors.ReQLDriverError('unknown response type from server [' .. t .. '].')
+  end
+  return it
 end
 
 local meta_table = {}
@@ -111,7 +111,7 @@ function meta_table.__pairs(cursor_inst)
 end
 
 local function cursor(r, state, opts, term)
-  local final_error, it
+  local it, it_state, it_var
 
   local cursor_inst = setmetatable({r = r}, meta_table)
 
@@ -127,18 +127,31 @@ local function cursor(r, state, opts, term)
         cursor_inst.feed_type = 'finite'
       end
     end
-    it, final_error = new_response(state, response, term)
-    while state.outstanding_callback do
-      if final_error then return state.outstanding_callback(final_error()) end
-      if it then
-        local row, err = convert_pseudotype(cursor_inst.r, it(), opts)
-        if row == nil then
-          it = nil
-        else
-          return state.outstanding_callback(err, row)
-        end
+    it, it_state, it_var = new_response(state, response, term)
+    while it and state.outstanding_callback do
+      local row
+      it_var, row = it(it_state, it_var)
+      if not it_var and not state.open then
+        it = nil
+        cursor_inst.set()
+        return
       end
-      state.outstanding_callback = nil
+      if it_var == 0 then
+        it = nil
+        state.outstanding_callback(row)
+        cursor_inst.set()
+        return
+      end
+      local err
+      row, err = convert_pseudotype(cursor_inst.r, row, opts)
+      if row == nil then
+        state.outstanding_callback(err)
+        it = nil
+        cursor_inst.set()
+        return
+      else
+        state.outstanding_callback(nil, row)
+      end
     end
   end
 
@@ -166,7 +179,19 @@ local function cursor(r, state, opts, term)
 
   function cursor_inst.each(callback, on_finished)
     if not callback then
-      return it
+      cursor_inst.set()
+      local function f(pairs_state, var)
+        local next_var, next_row = it(it_state, var)
+        if not next_var then
+          local success, err = state.step()
+          if not success then
+            return 0, errors.ReQLDriverError(err)
+          end
+          return f(pairs_state, var)
+        end
+        return next_var, next_row
+      end
+      return f, {}, it_var
     end
     local e
     local function cb(err, data)
