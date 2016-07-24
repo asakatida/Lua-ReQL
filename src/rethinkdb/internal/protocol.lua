@@ -10,8 +10,6 @@ local ltn12 = require('ltn12')
 local protect = require'rethinkdb.internal.protect'
 local protodef = require'rethinkdb.internal.protodef'
 
-local unpack = _G.unpack or table.unpack
-
 local Query = protodef.Query
 
 local CONTINUE = '[' .. Query.CONTINUE .. ']'
@@ -97,24 +95,9 @@ local function new_token()
   return get_token
 end
 
-local function protocol(responses, socket_inst)
+local function protocol(socket_inst)
   local ctx = {buffer = ''}
   local filter = ltn12.filter.cycle(buffer_response, ctx)
-
-  local function source(r)
-    return ltn12.source.chain(socket_inst.source(r, ctx.response_length or 12), filter)
-  end
-
-  local function sink(chunk, err)
-    if not chunk then
-      return nil, err
-    end
-    local token, response = unpack(chunk)
-    if token then
-      responses[token] = response
-    end
-    return true
-  end
 
   local function write_socket(token, data)
     data = table.concat{int_to_bytes(token, 8), int_to_bytes(string.len(data), 4), data}
@@ -160,8 +143,8 @@ local function protocol(responses, socket_inst)
     return write_socket(get_token(), SERVER_INFO)
   end
 
-  function protocol_inst.step(r)
-    return ltn12.pump.step(source(r), sink)
+  function protocol_inst.source(r)
+    return ltn12.source.chain(socket_inst.source(r, ctx.response_length or 12), filter)
   end
 
   return protocol_inst

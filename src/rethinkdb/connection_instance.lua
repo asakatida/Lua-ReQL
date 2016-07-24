@@ -6,9 +6,12 @@
 
 local cursor = require'rethinkdb.cursor'
 local errors = require'rethinkdb.errors'
+local ltn12 = require('ltn12')
 local protocol = require'rethinkdb.internal.protocol'
 local protect = require'rethinkdb.internal.protect'
 local socket = require'rethinkdb.internal.socket'
+
+local unpack = _G.unpack or table.unpack
 
 local function connection_instance(r, handshake_inst, host, port, ssl_params, timeout)
   local db = nil
@@ -20,7 +23,7 @@ local function connection_instance(r, handshake_inst, host, port, ssl_params, ti
     db = nil
     protocol_inst.close()
     protocol_inst = nil
-    for _, state in ipairs(outstanding_callbacks) do
+    for _, state in pairs(outstanding_callbacks) do
       state.open = nil
     end
     outstanding_callbacks = {}
@@ -49,6 +52,40 @@ local function connection_instance(r, handshake_inst, host, port, ssl_params, ti
     db = conn_inst.r.reql.db(_db)
   end
 
+  local function add_response(token, response, state)
+    protocol_inst.continue_query(token)
+
+    local err
+    response, err = protect(conn_inst.r.decode, response)
+    if not response then
+      return reset(err)
+    end
+
+    return state.add_response(response)
+  end
+
+  local function sink(chunk, err)
+    if not chunk then
+      return nil, err
+    end
+    local token, response = unpack(chunk)
+    if token then
+      local state = outstanding_callbacks[token]
+      if not state then
+        return reset('Unexpected token ' .. token)
+      end
+      if state.outstanding_callback and state.open then
+        response, err = add_response(token, response, state)
+        if not response then
+          return nil, err
+        end
+      else
+        responses[token] = response
+      end
+    end
+    return true
+  end
+
   local function make_cursor(token, opts, term)
     local state = {open = true, opts = opts, term = term}
 
@@ -67,24 +104,15 @@ local function connection_instance(r, handshake_inst, host, port, ssl_params, ti
     function state.step()
       -- Buffer data, execute return results if need be
       while not responses[token] do
-        local success, err = protocol_inst.step(conn_inst.r)
+        local success, err = ltn12.pump.step(protocol_inst.source(conn_inst.r), sink)
         if not success then
           return reset(err)
         end
       end
-      protocol_inst.continue_query(token)
-
-      local response, err = nil
+      local response = nil
       response, responses[token] = responses[token], response
-      response, err = protect(conn_inst.r.decode, response)
-      if not response then
-        return reset(err)
-      end
 
-      if not outstanding_callbacks[token] then
-        return reset('Unexpected token ' .. token)
-      end
-      return state.add_response(response)
+      add_response(token, response, state)
     end
 
     local cursor_inst = cursor(conn_inst.r, state, opts, term)
@@ -178,7 +206,7 @@ local function connection_instance(r, handshake_inst, host, port, ssl_params, ti
       return reset(err)
     end
 
-    protocol_inst, err = protocol(responses, socket_inst)
+    protocol_inst, err = protocol(socket_inst)
 
     if not protocol_inst then
       return reset(err)
