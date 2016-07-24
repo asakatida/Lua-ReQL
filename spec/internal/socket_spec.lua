@@ -23,19 +23,16 @@ describe('socket', function()
   end)
 
   it('closes repeatedly', function()
-    local client = assert.is_not_nil(socket(r, 'localhost', 28015, nil, 1))
+    local client = assert.is_table(socket(r, 'localhost', 28015, nil, 1))
     client.close()
     client.close()
   end)
 
   it('connects', function()
-    local client = assert.is_not_nil(socket(r, 'localhost', 28015, nil, 1))
-
+    local client = assert.is_table(socket(r, 'localhost', 28015, nil, 1))
     finally(client.close)
 
-    local success, err = ltn12.pump.all(ltn12.source.string'\0\0\0\0\0\0\0\0\0\0\0\0', client.sink)
-    assert.is_nil(err)
-    assert.is_truthy(success)
+    assert.is_truthy(ltn12.pump.all(ltn12.source.string'\0\0\0\0\0\0\0\0\0\0\0\0', client.sink))
 
     local sink, buffer = ltn12.sink.table()
 
@@ -45,9 +42,7 @@ describe('socket', function()
       'server?\n\0',
     }
 
-    success, err = ltn12.pump.all(client.source(r, string.len(expected)), sink)
-    assert.is_nil(err)
-    assert.is_truthy(success)
+    assert.is_truthy(ltn12.pump.all(client.source(r, string.len(expected)), sink))
 
     local message = table.concat(buffer)
 

@@ -13,18 +13,13 @@ describe('datum', function()
     r = require('rethinkdb')
 
     function r.run(query)
-      return query.run(query.r.c, function(err, cur)
-        return cur, err
-      end)
+      return query.run(query.r.c)
     end
 
     local reql_db = 'roundtrip'
     r.reql_table = r.reql.table'datum'
 
-    local err
-
-    r.c, err = r.connect{proto_version = r.proto_V0_4}
-    assert.is_nil(err)
+    r.c = assert.is_table(r.connect{proto_version = r.proto_V0_4})
 
     r.run(r.reql.db_create(reql_db))
     r.c.use(reql_db)
@@ -39,8 +34,7 @@ describe('datum', function()
 
   it('false', function()
     local var = false
-    local cur, _err = r.run(r.reql(var))
-    assert.is_nil(_err)
+    local cur = assert.is_table(r.run(r.reql(var)))
     cur.to_array(function(err, arr)
       assert.is_nil(err)
       assert.same({var}, arr)
@@ -49,8 +43,7 @@ describe('datum', function()
 
   it('true', function()
     local var = true
-    local cur, _err = r.run(r.reql(var))
-    assert.is_nil(_err)
+    local cur = assert.is_table(r.run(r.reql(var)))
     cur.to_array(function(err, arr)
       assert.is_nil(err)
       assert.same({var}, arr)
@@ -59,8 +52,7 @@ describe('datum', function()
 
   it('nil', function()
     local var = nil
-    local cur, _err = r.run(r.reql(var))
-    assert.is_nil(_err)
+    local cur = assert.is_table(r.run(r.reql(var)))
     cur.to_array(function(err, arr)
       assert.is_nil(err)
       assert.same({var}, arr)
@@ -69,8 +61,7 @@ describe('datum', function()
 
   it('string', function()
     local var = 'not yap wa\' Hol'
-    local cur, _err = r.run(r.reql(var))
-    assert.is_nil(_err)
+    local cur = assert.is_table(r.run(r.reql(var)))
     cur.to_array(function(err, arr)
       assert.is_nil(err)
       assert.same({var}, arr)
@@ -79,8 +70,7 @@ describe('datum', function()
 
   it('0', function()
     local var = 0
-    local cur, _err = r.run(r.reql(var))
-    assert.is_nil(_err)
+    local cur = assert.is_table(r.run(r.reql(var)))
     cur.to_array(function(err, arr)
       assert.is_nil(err)
       assert.same({var}, arr)
@@ -89,8 +79,7 @@ describe('datum', function()
 
   it('1', function()
     local var = 1
-    local cur, _err = r.run(r.reql(var))
-    assert.is_nil(_err)
+    local cur = assert.is_table(r.run(r.reql(var)))
     cur.to_array(function(err, arr)
       assert.is_nil(err)
       assert.same({var}, arr)
@@ -99,8 +88,7 @@ describe('datum', function()
 
   it('-1', function()
     local var = -1
-    local cur, _err = r.run(r.reql(var))
-    assert.is_nil(_err)
+    local cur = assert.is_table(r.run(r.reql(var)))
     cur.to_array(function(err, arr)
       assert.is_nil(err)
       assert.same({var}, arr)
@@ -109,8 +97,7 @@ describe('datum', function()
 
   it('τ', function()
     local var = 6.28
-    local cur, _err = r.run(r.reql(var))
-    assert.is_nil(_err)
+    local cur = assert.is_table(r.run(r.reql(var)))
     cur.to_array(function(err, arr)
       assert.is_nil(err)
       assert.same({var}, arr)
@@ -119,8 +106,7 @@ describe('datum', function()
 
   it('𝑒', function()
     local var = 2.2
-    local cur, _err = r.run(r.reql(var))
-    assert.is_nil(_err)
+    local cur = assert.is_table(r.run(r.reql(var)))
     cur.to_array(function(err, arr)
       assert.is_nil(err)
       assert.same({var}, arr)
@@ -129,8 +115,7 @@ describe('datum', function()
 
   it('α', function()
     local var = 0.00001
-    local cur, _err = r.run(r.reql(var))
-    assert.is_nil(_err)
+    local cur = assert.is_table(r.run(r.reql(var)))
     cur.to_array(function(err, arr)
       assert.is_nil(err)
       assert.same({var}, arr)
@@ -139,8 +124,7 @@ describe('datum', function()
 
   it('array', function()
     local var = {[1] = 1, [2] = 2}
-    local cur, _err = r.run(r.reql(var))
-    assert.is_nil(_err)
+    local cur = assert.is_table(r.run(r.reql(var)))
     cur.to_array(function(err, arr)
       assert.is_nil(err)
       assert.same({var}, arr)
@@ -149,8 +133,7 @@ describe('datum', function()
 
   it('table', function()
     local var = {first = 1, second = 2}
-    local cur, _err = r.run(r.reql(var))
-    assert.is_nil(_err)
+    local cur = assert.is_table(r.run(r.reql(var)))
     cur.to_array(function(err, arr)
       assert.is_nil(err)
       assert.same({var}, arr)

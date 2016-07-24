@@ -13,28 +13,22 @@ describe('array limits', function()
     r = require('rethinkdb')
 
     function r.run(query, array_limit)
-      return query.run(query.r.c, {array_limit = array_limit}, function(err, cur)
-        return cur, err
-      end)
+      return query.run(query.r.c, {array_limit = array_limit})
     end
 
     local reql_db = 'array'
     r.reql_table = r.reql.table'limits'
 
-    -- local ten_l = r.reql{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
-    -- local function ten_f() return ten_l end
-    -- huge_l = ten_l.concat_map(ten_f).concat_map(ten_f).concat_map(
-    --   ten_f).concat_map(ten_f)
-    r.huge_l = r.reql{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+    local ten_l = r.reql{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+    local function ten_f() return ten_l end
+    r.huge_l = ten_l.concat_map(ten_f).concat_map(ten_f).concat_map(
+      ten_f).concat_map(ten_f)
 
-    local err
+    r.c = assert.is_table(r.connect{proto_version = r.proto_V0_4})
 
-    r.c, err = r.connect{proto_version = r.proto_V0_4}
-    assert.is_nil(err)
-
-    r.reql.db_create(reql_db).run(r.c)
+    assert.is_table(r.reql.db_create(reql_db).run(r.c)).to_array()
     r.c.use(reql_db)
-    r.reql.table_create'limits'.run(r.c)
+    assert.is_table(r.reql.table_create'limits'.run(r.c)).to_array()
   end)
 
   teardown(function()
@@ -44,52 +38,29 @@ describe('array limits', function()
   end)
 
   it('create', function()
-    local cur, _err = r.run(r.reql{1, 2, 3, 4, 5, 6, 7, 8}, 4)
-    assert.is_nil(_err)
-    cur.to_array(function(err, arr)
-      assert.is_nil(arr)
-      assert.is_not_nil(err)
-    end)
+    local cur = assert.is_table(r.run(r.reql{1, 2, 3, 4, 5, 6, 7, 8}, 4))
+    assert.is_nil(cur.to_array())
   end)
 
   it('equal', function()
-    local cur, _err = r.run(r.reql{1, 2, 3, 4}.union{5, 6, 7, 8}, 8)
-    assert.is_nil(_err)
-    assert.same({{1, 2, 3, 4, 5, 6, 7, 8}}, cur.to_array(function(err, arr)
-      assert.is_nil(err)
-      return arr
-    end))
+    local cur = assert.is_table(r.run(r.reql{1, 2, 3, 4}.union{5, 6, 7, 8}, 8))
+    assert.same({{1, 2, 3, 4, 5, 6, 7, 8}}, assert.is_table(cur.to_array()))
   end)
 
   it('huge', function()
-    local cur, _err = r.run(r.huge_l.append(1).count(), 100001)
-    assert.is_nil(_err)
-    assert.same({100001}, cur.to_array(function(err, arr)
-      assert.is_nil(err)
-      return arr
-    end))
+    local cur = assert.is_table(r.run(r.huge_l.append(1).count(), 100001))
+    assert.same({100001}, assert.is_table(cur.to_array()))
   end)
 
   it('huge read', function()
-    local cur, _err = r.run(r.reql_table.insert{id = 0, array = r.huge_l.append(1)}, 100001)
-    assert.is_nil(_err)
-    cur.to_array(function(err, arr)
-      assert.is_nil(err)
-      return arr
-    end)
-    cur, _err = r.run(r.reql_table.get(0), 100001)
-    assert.is_nil(_err)
-    assert.same(
-      {}, cur.to_array(function(err, arr)
-        assert.is_nil(err)
-        return arr
-      end)
-    )
+    local cur = assert.is_table(r.run(r.reql_table.insert{id = 0, array = r.huge_l.append(1)}, 100001))
+    assert.is_table(cur.to_array())
+    cur = assert.is_table(r.run(r.reql_table.get(0), 100001))
+    assert.same({}, assert.is_table(cur.to_array()))
   end)
 
   it('huge table', function()
-    local cur, _err = r.run(r.reql_table.insert{id = 0, array = r.huge_l.append(1)}, 100001)
-    assert.is_nil(_err)
+    local cur = assert.is_table(r.run(r.reql_table.insert{id = 0, array = r.huge_l.append(1)}, 100001))
     assert.same(
       {{
         deleted = 0, unchanged = 0, replaced = 0, skipped = 0,
@@ -97,56 +68,34 @@ describe('array limits', function()
         first_error =
         'Array too large for disk writes (limit 100,000 elements).'
       }},
-      cur.to_array(function(err, arr)
-        assert.is_nil(err)
-        return arr
-      end)
+      assert.is_table(cur.to_array())
     )
   end)
 
   it('less than', function()
-    local cur, _err = r.run(r.reql{1, 2, 3, 4}.union{5, 6, 7, 8}, 4)
-    assert.is_nil(_err)
-    cur.to_array(function(err, arr)
-      assert.is_nil(arr)
-      assert.is_not_nil(err)
-    end)
+    local cur = assert.is_table(r.run(r.reql{1, 2, 3, 4}.union{5, 6, 7, 8}, 4))
+    assert.is_nil(cur.to_array())
   end)
 
   it('less than read', function()
-    local cur, _err = r.run(r.reql_table.insert(
+    local cur = assert.is_table(r.run(r.reql_table.insert(
       {id = 1, array = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}}
-    ))
-    assert.is_nil(_err)
-    cur.to_array(function(err)
-      assert.is_nil(err)
-    end)
-    cur, _err = r.run(r.reql_table.get(1), 4)
-    assert.is_nil(_err)
+    )))
+    assert.is_table(cur.to_array())
+    cur = assert.is_table(r.run(r.reql_table.get(1), 4))
     assert.same(
       {{array = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}, id = 1}},
-      cur.to_array(function(err, arr)
-        assert.is_nil(err)
-        return arr
-      end)
+      assert.is_table(cur.to_array())
     )
   end)
 
   it('negative', function()
-    local cur, _err = r.run(r.reql{1, 2, 3, 4, 5, 6, 7, 8}, -1)
-    assert.is_nil(_err)
-    cur.to_array(function(err, arr)
-      assert.is_nil(arr)
-      assert.is_not_nil(err)
-    end)
+    local cur = assert.is_table(r.run(r.reql{1, 2, 3, 4, 5, 6, 7, 8}, -1))
+    assert.is_nil(cur.to_array())
   end)
 
   it('zero', function()
-    local cur, _err = r.run(r.reql{1, 2, 3, 4, 5, 6, 7, 8}, 0)
-    assert.is_nil(_err)
-    cur.to_array(function(err, arr)
-      assert.is_nil(arr)
-      assert.is_not_nil(err)
-    end)
+    local cur = assert.is_table(r.run(r.reql{1, 2, 3, 4, 5, 6, 7, 8}, 0))
+    assert.is_nil(cur.to_array())
   end)
 end)

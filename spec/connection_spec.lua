@@ -35,15 +35,15 @@ describe('connection', function()
     assert.is_false(conn.is_open())
   end)
 
-  -- it('noreply wait', function()
-  --   local conn, err = r.connect{proto_version = r.proto_V0_4}
-  --   assert.is_nil(err)
-  --   assert.is_not_nil(conn)
-  --   assert.is_true(conn.is_open())
-  --   err = conn.close()
-  --   assert.is_nil(err)
-  --   assert.is_false(conn.is_open())
-  -- end)
+  it('noreply wait', function()
+    local conn, err = r.connect{proto_version = r.proto_V0_4}
+    assert.is_nil(err)
+    assert.is_not_nil(conn)
+    assert.is_true(conn.is_open())
+    err = conn.close{noreply_wait = true}
+    assert.is_nil(err)
+    assert.is_false(conn.is_open())
+  end)
 
   it('fails to insert eventually', function()
     local reql_db = 'connection'
@@ -59,7 +59,7 @@ describe('connection', function()
     for _id=1,500000 do
       local cur, err = r.reql.table(reql_table).insert{id=_id}.run(c)
       assert.is_nil(err)
-      assert.is_nil(cur)
+      assert.is_not_nil(cur)
     end
 
     c.reconnect(function(err, conn)

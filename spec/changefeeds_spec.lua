@@ -48,12 +48,10 @@ describe('change feeds', function()
   end)
 
   it('all', function()
-    local cur, _err = r.run(r.reql_table.changes().limit(4))
-    assert.is_nil(_err)
-    _err = select(1, r.run(r.reql_table.insert(
+    local cur = assert.is_table(r.run(r.reql_table.changes().limit(4)))
+    assert.is_table(r.run(r.reql_table.insert(
       {{id = 7}, {id = 8}, {id = 9}, {id = 10}}
-    )))
-    assert.is_nil(_err)
+    ))).to_array()
     local res = {}
     cur.each(function(row)
       table.insert(res, row.new_val.id)
@@ -65,16 +63,14 @@ describe('change feeds', function()
   end)
 
   it('even', function()
-    local cur, _err = r.run(r.reql_table.changes().filter(
+    local cur = assert.is_table(r.run(r.reql_table.changes().filter(
       function(row)
         return (row'new_val''id' % 2).eq(0)
       end
-    ).limit(2))
-    assert.is_nil(_err)
-    _err = select(1, r.run(r.reql_table.insert(
+    ).limit(2)))
+    assert.is_table(r.run(r.reql_table.insert(
       {{id = 7}, {id = 8}, {id = 9}, {id = 10}}
-    )))
-    assert.is_nil(_err)
+    ))).to_array()
     local res = {}
     cur.each(function(row)
       table.insert(res, row.new_val.id)

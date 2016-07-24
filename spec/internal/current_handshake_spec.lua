@@ -23,15 +23,8 @@ describe('current handshake', function()
   end)
 
   it('no password', function()
-    local client, err = socket(r, 'localhost', 28015, nil, 20)
-    assert.is_nil(err)
-    assert.is_not_nil(client)
+    local client = assert.is_table(socket(r, 'localhost', 28015, nil, 20))
     finally(client.close)
-
-    local success
-
-    success, err = current_handshake(r, client, '', 'admin')
-    assert.is_nil(err)
-    assert.is_true(success)
+    assert.is_true(current_handshake(r, client, '', 'admin'))
   end)
 end)

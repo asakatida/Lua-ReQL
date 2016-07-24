@@ -13,24 +13,33 @@ describe('cursor', function()
     r = require('rethinkdb')
 
     function r.run(query)
-      return query.run(query.r.c, function(err, cur)
-        return cur, err
-      end)
+      return query.run(query.r.c)
     end
 
     local reql_db = 'cursor'
     r.reql_table = r.reql.table'tests'
 
-    local err
+    r.c = assert.is_table(r.connect{proto_version = r.proto_V0_4})
 
-    r.c, err = r.connect{proto_version = r.proto_V0_4}
-    assert.is_nil(err)
-
-    r.run(r.reql.db_create(reql_db))
+    assert.is_table(assert.is_table(r.run(r.reql.db_create(reql_db))).to_array())
     r.c.use(reql_db)
-    r.run(r.reql.table_create'tests')
+    assert.is_table(assert.is_table(r.run(r.reql.table_create'tests')).to_array())
+  end)
 
-    r.num_rows = math.random(1111, 2222)
+  teardown(function()
+    assert.is_table(assert.is_table(r.run(r.reql_table.delete())).to_array())
+    if r.c then r.c.close() end
+    r = nil
+    assert:remove_formatter(reql_error_formatter)
+  end)
+
+  it('type', function()
+    local cur = assert.is_table(r.run(r.reql_table))
+    assert.are.equal('cursor', r.type(cur))
+  end)
+
+  it('count', function()
+    local num_rows = math.random(1111, 2222)
 
     local doc = {}
     for i=0, 500, 1 do
@@ -41,37 +50,19 @@ describe('cursor', function()
       table.insert(document, doc)
     end
 
-    r.run(r.reql_table.insert(document))
-  end)
-
-  teardown(function()
-    r.run(r.reql_table.delete())
-    r = nil
-    assert:remove_formatter(reql_error_formatter)
-  end)
-
-  it('type', function()
-    local cur, err = r.run(r.reql_table)
-    assert.is_nil(err)
-    assert.are.equal('cursor', r.type(cur))
-  end)
-
-  it('count', function()
-    local cur, _err = r.run(r.reql_table)
-    assert.is_nil(_err)
+    local insert = assert.is_table(r.run(r.reql_table.insert(document)))
+    finally(insert.close)
+    assert.is_table(insert.to_array())
+    local cur = assert.is_table(r.run(r.reql_table))
+    finally(cur.close)
     assert.are.equal(
-      r.num_rows,
-      cur.to_array(function(err, arr)
-        assert.is_nil(err)
-        return #arr
-      end)
+      num_rows,
+      #assert.is_table(cur.to_array())
     )
   end)
 
   it('close', function()
-    local cur, _err = r.run(r.reql_table)
-    assert.is_nil(_err)
-    assert.is_nil(_err)
+    local cur = assert.is_table(r.run(r.reql_table))
     cur.close(function(err) assert.is_nil(err) end)
   end)
 end)
