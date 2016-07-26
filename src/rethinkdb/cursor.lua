@@ -11,90 +11,91 @@ local protodef = require'rethinkdb.internal.protodef'
 local Response = protodef.Response
 local ErrorType = protodef.ErrorType
 
-local COMPILE_ERROR = Response.COMPILE_ERROR
-local CLIENT_ERROR = Response.CLIENT_ERROR
-local RUNTIME_ERROR = Response.RUNTIME_ERROR
-local SERVER_INFO = Response.SERVER_INFO
-local SUCCESS_ATOM = Response.SUCCESS_ATOM
 local SUCCESS_PARTIAL = Response.SUCCESS_PARTIAL
-local SUCCESS_SEQUENCE = Response.SUCCESS_SEQUENCE
 local WAIT_COMPLETE = Response.WAIT_COMPLETE
 
-local INTERNAL = ErrorType.INTERNAL
-local RESOURCE_LIMIT = ErrorType.RESOURCE_LIMIT
-local QUERY_LOGIC = ErrorType.QUERY_LOGIC
-local NON_EXISTENCE = ErrorType.NON_EXISTENCE
-local OP_FAILED = ErrorType.OP_FAILED
-local OP_INDETERMINATE = ErrorType.OP_INDETERMINATE
-local USER = ErrorType.USER
-local PERMISSION_ERROR = ErrorType.PERMISSION_ERROR
+local basic_resposes = {
+  [Response.SERVER_INFO] = true,
+  [Response.SUCCESS_ATOM] = true,
+  [Response.SUCCESS_PARTIAL] = true,
+  [Response.SUCCESS_SEQUENCE] = true,
+}
 
-local function new_response(shared, response, reql_inst)
+local error_types = {
+  [Response.COMPILE_ERROR] = errors.ReQLCompileError,
+  [Response.CLIENT_ERROR] = errors.ReQLClientError,
+  [Response.RUNTIME_ERROR] = errors.ReQLRuntimeError,
+}
+
+local runtime_error_types = {
+  [ErrorType.INTERNAL] = errors.ReQLInternalError,
+  [ErrorType.NON_EXISTENCE] = errors.ReQLNonExistenceError,
+  [ErrorType.OP_FAILED] = errors.ReQLOpFailedError,
+  [ErrorType.OP_INDETERMINATE] = errors.ReQLOpIndeterminateError,
+  [ErrorType.PERMISSION_ERROR] = errors.ReQLPermissionsError,
+  [ErrorType.QUERY_LOGIC] = errors.ReQLQueryLogicError,
+  [ErrorType.RESOURCE_LIMIT] = errors.ReQLResourceLimitError,
+  [ErrorType.USER] = errors.ReQLUserError,
+}
+
+local function new_response(state, response, reql_inst)
   -- Behavior varies considerably based on response type
   local t = response.t
+  if t ~= SUCCESS_PARTIAL then
+    -- We got the final document for this cursor
+    state.del_query()
+  end
+  local err = error_types[t]
+  if err then
+    local r, b = response.r[1], response.b
+    local err_type = runtime_error_types[response.e]
+    -- Error responses are not discarded, and the error will be sent to all future callbacks
+    if err_type then
+      local function it()
+        return err_type(r, reql_inst, b)
+      end
+      return it
+    end
+    local function it()
+      return err(r, reql_inst, b)
+    end
+    return it
+  end
   if not t == WAIT_COMPLETE then
     local function it()
     end
     return it
   end
-  if t ~= SUCCESS_PARTIAL then
-    -- We got the final document for this cursor
-    shared.del_query()
-  end
-  if t == SERVER_INFO or t == SUCCESS_ATOM or t == SUCCESS_PARTIAL or t == SUCCESS_SEQUENCE then
+  if basic_resposes[t] then
     local ipairs_f, ipairs_s, ipairs_var = ipairs(response.r)
-    local function it(state, prev)
+    local function it()
       local res
       ipairs_var, res = ipairs_f(ipairs_s, ipairs_var)
       if ipairs_var ~= nil then
-        return prev + 1, res
+        return res
       end
-      if t == SUCCESS_PARTIAL then
-        local success, err = state.step()
-        if not success then
-          return 0, errors.ReQLDriverError(err)
-        end
-      end
-    end
-    return it, shared, 0
-  end
-  local r, b = response.r[1], response.b
-  local function new(err)
-    -- Error responses are not discarded, and the error will be sent to all future callbacks
-    local function it()
-      return 0, err(r, reql_inst, b)
     end
     return it
   end
-  if t == COMPILE_ERROR then
-    return new(errors.ReQLCompileError)
-  elseif t == CLIENT_ERROR then
-    return new(errors.ReQLClientError)
-  elseif t == RUNTIME_ERROR then
-    local e = response.e
-    if e == INTERNAL then
-      return new(errors.ReQLInternalError)
-    elseif e == RESOURCE_LIMIT then
-      return new(errors.ReQLResourceLimitError)
-    elseif e == QUERY_LOGIC then
-      return new(errors.ReQLQueryLogicError)
-    elseif e == NON_EXISTENCE then
-      return new(errors.ReQLNonExistenceError)
-    elseif e == OP_FAILED then
-      return new(errors.ReQLOpFailedError)
-    elseif e == OP_INDETERMINATE then
-      return new(errors.ReQLOpIndeterminateError)
-    elseif e == USER then
-      return new(errors.ReQLUserError)
-    elseif e == PERMISSION_ERROR then
-      return new(errors.ReQLPermissionsError)
-    end
-    return new(errors.ReQLRuntimeError)
-  end
   local function it()
-    return 0, errors.ReQLDriverError('unknown response type from server [' .. t .. '].')
+    return errors.ReQLDriverError('unknown response type from server [' .. t .. '].')
   end
   return it
+end
+
+local function each(state, var)
+  local row = state.it()
+  if not row then
+    if not state.open then
+      return
+    end
+    local success, err = state.step()
+    if not success then
+      return 0, errors.ReQLDriverError(err)
+    end
+    return each(state, var)
+  end
+  return var + 1, row
 end
 
 local meta_table = {}
@@ -110,9 +111,7 @@ function meta_table.__pairs(cursor_inst)
   return cursor_inst.each()
 end
 
-local function cursor(r, state, opts, term)
-  local it, it_state, it_var
-
+local function cursor(r, state, opts, reql_inst)
   local cursor_inst = setmetatable({r = r}, meta_table)
 
   function state.add_response(response)
@@ -127,32 +126,33 @@ local function cursor(r, state, opts, term)
         cursor_inst.feed_type = 'finite'
       end
     end
-    it, it_state, it_var = new_response(state, response, term)
-    while it and state.outstanding_callback do
-      local row
-      it_var, row = it(it_state, it_var)
-      if not it_var and not state.open then
-        it = nil
-        cursor_inst.set()
-        return
+    local it = new_response(state, response, reql_inst)
+    while state.outstanding_callback do
+      local row = it()
+      if not row then
+        if not state.open then
+          state.it = nil
+          cursor_inst.set()
+        end
+        return true
       end
-      if it_var == 0 then
-        it = nil
+      if type(row) == 'table' and row.ReQLError then
         state.outstanding_callback(row)
         cursor_inst.set()
-        return
+        return true
       end
       local err
       row, err = convert_pseudotype(cursor_inst.r, row, opts)
       if row == nil then
         state.outstanding_callback(err)
-        it = nil
+        state.it = nil
         cursor_inst.set()
-        return
-      else
-        state.outstanding_callback(nil, row)
+        return true
       end
+      state.outstanding_callback(nil, row)
     end
+    state.it = it
+    return true
   end
 
   function cursor_inst.set(callback)
@@ -169,29 +169,17 @@ local function cursor(r, state, opts, term)
     end
     if state.open then
       local success, err = state.end_query()
+      state.del_query()
       if not success then
         return cb(err)
       end
-      state.del_query()
     end
     return cb()
   end
 
   function cursor_inst.each(callback, on_finished)
     if not callback then
-      cursor_inst.set()
-      local function f(pairs_state, var)
-        local next_var, next_row = it(it_state, var)
-        if not next_var then
-          local success, err = state.step()
-          if not success then
-            return 0, errors.ReQLDriverError(err)
-          end
-          return f(pairs_state, var)
-        end
-        return next_var, next_row
-      end
-      return f, {}, it_var
+      return each, state, 0
     end
     local e
     local function cb(err, data)
@@ -202,32 +190,34 @@ local function cursor(r, state, opts, term)
       callback(data)
     end
     cursor_inst.set(cb)
-    state.step()
+    while state.outstanding_callback do
+      local success, err = state.step()
+      if not success then
+        return nil, err
+      end
+    end
     if not state.open then
       if on_finished then
         return on_finished(e)
       end
+      if e then
+        return nil, e
+      end
     end
+    return true
   end
 
-  function cursor_inst.to_array(callback)
+  function cursor_inst.to_array()
     local arr = {}
 
-    local function cb(row)
-      table.insert(arr, row)
+    for i, v in cursor_inst.each() do
+      if i == 0 then
+        return nil, v, arr
+      end
+      arr[i] = v
     end
 
-    local function on_finished(err)
-      if callback then
-        return callback(err, arr)
-      end
-      if err then
-        return nil, err, arr
-      end
-      return arr
-    end
-
-    return cursor_inst.each(cb, on_finished)
+    return arr
   end
 
   return cursor_inst

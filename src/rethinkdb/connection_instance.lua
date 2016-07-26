@@ -74,14 +74,14 @@ local function connection_instance(r, handshake_inst, host, port, ssl_params, ti
       if not state then
         return reset('Unexpected token ' .. token)
       end
-      if state.outstanding_callback and state.open then
-        response, err = add_response(token, response, state)
-        if not response then
-          return nil, err
+      if state.outstanding_callback then
+        local success, result = add_response(token, response, state)
+        if not success then
+          return nil, result
         end
-      else
-        responses[token] = response
+        return true
       end
+      responses[token] = response
     end
     return true
   end
