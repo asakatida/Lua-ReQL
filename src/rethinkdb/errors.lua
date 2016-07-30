@@ -173,8 +173,6 @@ end
 
 local errors_meta_table = {}
 
-local errors = setmetatable({}, errors_meta_table)
-
 function errors_meta_table.__index(r, name)
   local function ReQLError(msg, term, frames)
     local error_inst = setmetatable({r = r, msg = msg}, error_inst_meta_table)
@@ -201,5 +199,7 @@ function errors_meta_table.__index(r, name)
 
   return ReQLError
 end
+
+local errors = setmetatable({}, errors_meta_table)
 
 return errors
