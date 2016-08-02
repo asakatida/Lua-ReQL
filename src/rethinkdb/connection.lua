@@ -14,7 +14,7 @@ function m.init(r)
     elseif type(host) == 'string' then
       host = {host = host}
     end
-    return r.connector(host).connect(callback)
+    return r.connector(host or {}).connect(callback)
   end
 end
 
