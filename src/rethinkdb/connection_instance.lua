@@ -149,7 +149,7 @@ local function connection_instance(r, handshake_inst, host, port, ssl_params, ti
     end
 
     if options.db then
-      global_opts.db = r.reql.db(options.db)
+      global_opts.db = conn_inst.r.reql.db(options.db)
     elseif db then
       global_opts.db = db
     end
