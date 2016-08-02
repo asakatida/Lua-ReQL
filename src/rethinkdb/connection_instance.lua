@@ -72,7 +72,7 @@ local function connection_instance(r, handshake_inst, host, port, ssl_params, ti
     if token then
       local state = outstanding_callbacks[token]
       if not state then
-        return reset('Unexpected token ' .. token)
+        return true
       end
       if state.outstanding_callback then
         local success, result = add_response(token, response, state)
