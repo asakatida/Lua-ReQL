@@ -12,14 +12,15 @@ describe('cursor', function()
     assert:add_formatter(reql_error_formatter)
     r = require('rethinkdb')
 
-    function r.run(query)
-      return query.run(query.r.c)
+    function r.run(query, ...)
+      assert.is_table(query, ...)
+      return assert.is_table(query.run(query.r.c))
     end
 
     local reql_db = 'cursor'
     r.reql_table = r.reql.table'tests'
 
-    r.c = assert.is_table(r.connect{proto_version = r.proto_V0_4})
+    r.c = assert.is_table(r.connect())
 
     assert.is_table(assert.is_table(r.run(r.reql.db_create(reql_db))).to_array())
     r.c.use(reql_db)
@@ -27,8 +28,9 @@ describe('cursor', function()
   end)
 
   teardown(function()
-    assert.is_table(assert.is_table(r.run(r.reql_table.delete())).to_array())
-    if r.c then r.c.close() end
+    if r.c then
+      r.run(r.reql_table.delete()).to_array()
+    end
     r = nil
     assert:remove_formatter(reql_error_formatter)
   end)

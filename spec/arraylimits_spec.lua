@@ -19,20 +19,20 @@ describe('array limits', function()
     local reql_db = 'array'
     r.reql_table = r.reql.table'limits'
 
-    local ten_l = r.reql{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
-    local function ten_f() return ten_l end
-    r.huge_l = ten_l.concat_map(ten_f).concat_map(ten_f).concat_map(
-      ten_f).concat_map(ten_f)
+    local ten_l = assert.is_table(r.reql{1, 2, 3, 4, 5, 6, 7, 8, 9, 10})
+    r.huge_l = ten_l.concat_map(ten_l).concat_map(ten_l).concat_map(ten_l).concat_map(ten_l)
 
-    r.c = assert.is_table(r.connect{proto_version = r.proto_V0_4})
+    r.c = assert.is_table(r.connect())
 
-    assert.is_table(r.reql.db_create(reql_db).run(r.c)).to_array()
+    r.run(r.reql.db_create(reql_db)).to_array()
     r.c.use(reql_db)
-    assert.is_table(r.reql.table_create'limits'.run(r.c)).to_array()
+    r.run(r.reql.table_create'limits').to_array()
   end)
 
   teardown(function()
-    r.reql_table.delete().run(r.c)
+    if r.c then
+      r.run(r.reql_table.delete()).to_array()
+    end
     r = nil
     assert:remove_formatter(reql_error_formatter)
   end)

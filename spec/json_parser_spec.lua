@@ -13,19 +13,17 @@ describe('control dkjson', function()
     local dkjson = require('dkjson')
     r = require('rethinkdb').new{json_parser = dkjson}
 
-    function r.run(query)
+    function r.run(query, ...)
+      assert.is_table(query, ...)
       assert.equal(query.r.decode, dkjson.decode)
       assert.equal(query.r.encode, dkjson.encode)
-      return query.run(query.r.c)
+      return assert.is_table(query.run(query.r.c))
     end
 
     local reql_db = 'dkjson'
     r.reql_table = r.reql.table'func'
 
-    local err
-
-    r.c, err = r.connect{proto_version = r.proto_V0_4}
-    assert.is_nil(err)
+    r.c = assert.is_table(r.connect())
 
     r.run(r.reql.db_create(reql_db))
     r.c.use(reql_db)
@@ -33,7 +31,9 @@ describe('control dkjson', function()
   end)
 
   teardown(function()
-    r.run(r.reql_table.delete())
+    if r.c then
+      r.run(r.reql_table.delete()).to_array()
+    end
     r = nil
     assert:remove_formatter(reql_error_formatter)
   end)

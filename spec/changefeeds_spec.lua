@@ -12,34 +12,30 @@ describe('change feeds', function()
     assert:add_formatter(reql_error_formatter)
     r = require('rethinkdb')
 
-    function r.run(query)
-      return query.run(query.r.c, function(err, cur)
-        return cur, err
-      end)
+    function r.run(query, ...)
+      assert.is_table(query, ...)
+      return assert.is_table(query.run(query.r.c))
     end
 
     r.reql_db = r.reql.db'changefeeds'
     r.reql_table = r.reql.table'watched'
 
-    local err
+    r.c = assert.is_table(r.connect())
 
-    r.c, err = r.connect{proto_version = r.proto_V0_4}
-    assert.is_nil(err)
-
-    r.run(r.reql.db_create'changefeeds')
+    r.run(r.reql.db_create'changefeeds').to_array()
     r.c.use'changefeeds'
-    r.run(r.reql.table_create'watched')
+    r.run(r.reql.table_create'watched').to_array()
   end)
 
   before_each(function()
     r.run(r.reql_table.insert{
       {id = 1}, {id = 2}, {id = 3},
       {id = 4}, {id = 5}, {id = 6}
-    })
+    }).to_array()
   end)
 
   after_each(function()
-    r.run(r.reql_table.delete())
+    r.run(r.reql_table.delete()).to_array()
   end)
 
   teardown(function()

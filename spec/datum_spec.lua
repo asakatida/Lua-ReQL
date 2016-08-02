@@ -12,14 +12,15 @@ describe('datum', function()
     assert:add_formatter(reql_error_formatter)
     r = require('rethinkdb')
 
-    function r.run(query)
-      return query.run(query.r.c)
+    function r.run(query, ...)
+      assert.is_table(query, ...)
+      return assert.is_table(query.run(query.r.c))
     end
 
     local reql_db = 'roundtrip'
     r.reql_table = r.reql.table'datum'
 
-    r.c = assert.is_table(r.connect{proto_version = r.proto_V0_4})
+    r.c = assert.is_table(r.connect())
 
     r.run(r.reql.db_create(reql_db))
     r.c.use(reql_db)
@@ -27,7 +28,9 @@ describe('datum', function()
   end)
 
   teardown(function()
-    r.run(r.reql_table.delete())
+    if r.c then
+      r.run(r.reql_table.delete()).to_array()
+    end
     r = nil
     assert:remove_formatter(reql_error_formatter)
   end)

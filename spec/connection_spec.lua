@@ -21,14 +21,14 @@ describe('connection', function()
   it('basic', function()
     r.connect(function(err, c)
       assert.is_nil(err)
-      assert.is_not_nil(c)
+      assert.is_table(c)
     end)
   end)
 
   it('return conn', function()
-    local conn, err = r.connect{proto_version = r.proto_V0_4}
+    local conn, err = r.connect()
     assert.is_nil(err)
-    assert.is_not_nil(conn)
+    assert.is_table(conn)
     assert.is_true(conn.is_open())
     err = conn.close{noreply_wait = false}
     assert.is_nil(err)
@@ -36,9 +36,9 @@ describe('connection', function()
   end)
 
   it('noreply wait', function()
-    local conn, err = r.connect{proto_version = r.proto_V0_4}
+    local conn, err = r.connect()
     assert.is_nil(err)
-    assert.is_not_nil(conn)
+    assert.is_table(conn)
     assert.is_true(conn.is_open())
     err = conn.close{noreply_wait = true}
     assert.is_nil(err)
@@ -49,22 +49,23 @@ describe('connection', function()
     local reql_db = 'connection'
     local reql_table = 'tests'
 
-    local c, _err = r.connect{proto_version = r.proto_V0_4}
+    local c, _err = r.connect()
     assert.is_nil(_err)
 
-    r.reql.db_create(reql_db).run(c)
+    r.reql.db_create(reql_db).run(c).to_array()
     c.use(reql_db)
-    r.reql.table_create(reql_table).run(c)
+    r.reql.table_create(reql_table).run(c).to_array()
 
     for _id=1,500000 do
       local cur, err = r.reql.table(reql_table).insert{id=_id}.run(c)
       assert.is_nil(err)
-      assert.is_not_nil(cur)
+      assert.is_table(cur)
+      cur.to_array()
     end
 
     c.reconnect(function(err, conn)
       assert.is_nil(err)
-      r.reql.table(reql_table).delete().run(conn)
+      r.reql.table(reql_table).delete().run(conn).to_array()
     end)
   end)
 end)
