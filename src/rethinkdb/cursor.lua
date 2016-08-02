@@ -126,9 +126,9 @@ local function cursor(r, state, opts, reql_inst)
         cursor_inst.feed_type = 'finite'
       end
     end
-    local it = new_response(state, response, reql_inst)
+    state.it = new_response(state, response, reql_inst)
     while state.outstanding_callback do
-      local row = it()
+      local row = state.it()
       if not row then
         if not state.open then
           state.it = nil
@@ -151,7 +151,6 @@ local function cursor(r, state, opts, reql_inst)
       end
       state.outstanding_callback(nil, row)
     end
-    state.it = it
     return true
   end
 
@@ -169,7 +168,6 @@ local function cursor(r, state, opts, reql_inst)
     end
     if state.open then
       local success, err = state.end_query()
-      state.del_query()
       if not success then
         return cb(err)
       end
@@ -179,6 +177,13 @@ local function cursor(r, state, opts, reql_inst)
 
   function cursor_inst.each(callback, on_finished)
     if not callback then
+      cursor_inst.set()
+      if not state.it then
+        local success, err = state.step()
+        if not success then
+          return nil, errors.ReQLDriverError(err)
+        end
+      end
       return each, state, 0
     end
     local e
