@@ -61,7 +61,7 @@ local function new_response(state, response, reql_inst)
     end
     return it
   end
-  if not t == WAIT_COMPLETE then
+  if t == WAIT_COMPLETE then
     local function it()
     end
     return it
