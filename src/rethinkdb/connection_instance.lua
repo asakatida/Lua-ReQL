@@ -92,12 +92,22 @@ local function connection_instance(r, handshake_inst, host, port, ssl_params, ti
     function state.del_query()
       -- This query is done, delete this cursor
       outstanding_callbacks[token] = nil
+      responses[token] = nil
       state.open = nil
     end
 
     function state.end_query()
       if protocol_inst then
         return protocol_inst.end_query(token)
+      end
+    end
+
+    function state.maybe_response()
+      if responses[token] then
+        local response = nil
+        response, responses[token] = responses[token], response
+
+        add_response(token, response, state)
       end
     end
 
@@ -109,10 +119,7 @@ local function connection_instance(r, handshake_inst, host, port, ssl_params, ti
           return reset(err)
         end
       end
-      local response = nil
-      response, responses[token] = responses[token], response
-
-      add_response(token, response, state)
+      state.maybe_response()
     end
 
     local cursor_inst = cursor(conn_inst.r, state, opts, term)

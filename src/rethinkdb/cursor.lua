@@ -156,6 +156,9 @@ local function cursor(r, state, opts, reql_inst)
 
   function cursor_inst.set(callback)
     state.outstanding_callback = callback
+    if callback then
+      state.maybe_response()
+    end
   end
 
   function cursor_inst.close(callback)
@@ -175,41 +178,15 @@ local function cursor(r, state, opts, reql_inst)
     return cb()
   end
 
-  function cursor_inst.each(callback, on_finished)
-    if not callback then
-      cursor_inst.set()
-      if not state.it then
-        local success, err = state.step()
-        if not success then
-          return nil, errors.ReQLDriverError(err)
-        end
-      end
-      return each, state, 0
-    end
-    local e
-    local function cb(err, data)
-      if err then
-        e = err
-        return
-      end
-      callback(data)
-    end
-    cursor_inst.set(cb)
-    while state.outstanding_callback do
+  function cursor_inst.each()
+    cursor_inst.set()
+    if not state.it then
       local success, err = state.step()
       if not success then
-        return nil, err
+        return nil, errors.ReQLDriverError(err)
       end
     end
-    if not state.open then
-      if on_finished then
-        return on_finished(e)
-      end
-      if e then
-        return nil, e
-      end
-    end
-    return true
+    return each, state, 0
   end
 
   function cursor_inst.to_array()
