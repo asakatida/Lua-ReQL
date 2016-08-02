@@ -13,6 +13,14 @@ local socket = require'rethinkdb.internal.socket'
 
 local unpack = _G.unpack or table.unpack
 
+local conn_inst_meta_table = {}
+
+function conn_inst_meta_table.__tostring(conn_inst)
+  return (
+    conn_inst.is_open() and 'open' or 'closed'
+  ) .. ' rethinkdb connection to ' .. conn_inst.host .. ':' .. conn_inst.port
+end
+
 local function connection_instance(r, handshake_inst, host, port, ssl_params, timeout)
   local db = nil
   local outstanding_callbacks = {}
@@ -31,14 +39,6 @@ local function connection_instance(r, handshake_inst, host, port, ssl_params, ti
       return nil, errors.ReQLDriverError(err)
     end
     return nil, err
-  end
-
-  local conn_inst_meta_table = {}
-
-  function conn_inst_meta_table.__tostring(conn_inst)
-    return (
-      protocol_inst and 'open' or 'closed'
-    ) .. ' rethinkdb connection to ' .. conn_inst.host .. ':' .. conn_inst.port
   end
 
   local conn_inst = setmetatable(
