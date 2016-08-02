@@ -67,7 +67,7 @@ local function compose(term, args, optargs)
   if optargs and next(optargs) then
     table.insert(argrepr, kved())
   end
-  return table.concat{'r.', term.st, '(', table.concat(argrepr, ', '), ')'}
+  return table.concat{'reql.', term.st, '(', table.concat(argrepr, ', '), ')'}
 end
 
 local carrot_marker = {}
