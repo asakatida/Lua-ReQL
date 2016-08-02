@@ -135,7 +135,7 @@ local function connection_instance(r, handshake_inst, host, port, ssl_params, ti
       end
       return cur, err
     end
-    if not protocol_inst then return cb(errors.ReQLDriverError'Connection is closed.') end
+    if not conn_inst.is_open() then return cb(errors.ReQLDriverError'Connection is closed.') end
 
     -- Set global options
     local global_opts = {}
