@@ -141,7 +141,11 @@ local function connection_instance(r, handshake_inst, host, port, ssl_params, ti
     local global_opts = {}
 
     for first, second in pairs(options) do
-      global_opts[first] = r.reql(second)
+      local data, err = conn_inst.r.reql(second)
+      if not data then
+        return cb(err)
+      end
+      global_opts[first] = data
     end
 
     if options.db then
