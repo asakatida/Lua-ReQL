@@ -126,12 +126,12 @@ local function connection_instance(r, handshake_inst, host, port, ssl_params, ti
   function conn_inst._start(reql_inst, options, callback)
     local function cb(err, cur)
       if type(callback) == 'function' then
-        local res
-        res = callback(err, cur)
         if cur then
+          local res = {callback(err, cur)}
           cur.close()
+          return unpack(res)
         end
-        return res
+        return callback(err)
       end
       return cur, err
     end
