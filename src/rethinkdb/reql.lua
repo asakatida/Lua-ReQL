@@ -60,6 +60,10 @@ function meta_table.__div(term, ...)
   return term.div(...)
 end
 
+local function continue_boolean(reql, val)
+  return reql.datum(val)
+end
+
 local function continue_function(reql, val)
   return reql.func(val)
 end
@@ -104,6 +108,7 @@ local function continue_userdata()
 end
 
 local continue_reql = {
+  boolean = continue_boolean,
   ['function'] = continue_function,
   ['nil'] = continue_nil,
   number = continue_number,
@@ -244,7 +249,7 @@ local function func(r, args, optargs)
   return {arg_nums, __func}, optargs
 end
 
-local function funcall(r, args, optargs)
+local function call(r, args, optargs)
   local __func = table.remove(args)
   if type(__func) == 'function' then
     __func = r.reql.func(__func, {arity = #args})
@@ -264,7 +269,7 @@ local mutate_table = {
   binary = binary,
   fold = fold,
   func = func,
-  funcall = funcall,
+  call = call,
   reduce = reduce,
 }
 
@@ -296,21 +301,23 @@ local function index(r, st)
     local reql_inst = setmetatable({
       args = {}, optargs = {}, r = r, st = st, tt = tt}, meta_table)
 
-    for i, a in ipairs(args) do
-      local data, err = r.reql(a)
-      if not data then
-        return nil, err
-      end
-      reql_inst.args[i] = data
-    end
-
-    if optargs then
-      for k, v in pairs(optargs) do
-        local data, err = r.reql(v)
+    if st ~= 'datum' then
+      for i, a in ipairs(args) do
+        local data, err = r.reql(a)
         if not data then
           return nil, err
         end
-        reql_inst.optargs[k] = data
+        reql_inst.args[i] = data
+      end
+
+      if optargs then
+        for k, v in pairs(optargs) do
+          local data, err = r.reql(v)
+          if not data then
+            return nil, err
+          end
+          reql_inst.optargs[k] = data
+        end
       end
     end
 
@@ -351,7 +358,7 @@ end
 -- @treturn table reql
 -- @raise Cannot insert userdata object into query
 -- @raise Cannot insert thread object into query
-local function call(reql, val, nesting_depth)
+local function __call(reql, val, nesting_depth)
   nesting_depth = nesting_depth or 20
   if nesting_depth <= 0 then
     return nil, errors.ReQLDriverError'Nesting depth limit exceeded'
@@ -370,10 +377,10 @@ function m.init(r)
   -- @func __call
   -- @func __index
   -- @table reql_meta_table
-  local reql_meta_table = {__call = call}
+  local reql_meta_table = {__call = __call}
 
   --- creates a top level term
-  -- @tab reql driver ast module
+  -- @tab _ driver ast module
   -- @string st reql term name
   -- @treturn table reql
   function reql_meta_table.__index(_, st)

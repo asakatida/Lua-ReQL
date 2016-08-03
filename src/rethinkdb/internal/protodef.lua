@@ -148,7 +148,7 @@ return {
     index_status = 139,
     index_wait = 140,
     index_rename = 156,
-    funcall = 64,
+    call = 64,
     branch = 65,
     or_ = 66,
     and_ = 67,
