@@ -18,11 +18,7 @@ local function compose(term, args, optargs)
     return protect(term.r.encode, term.args[1]) or '...'
   end
   if term.st == 'make_array' then
-    local res = {}
-    for first, second in ipairs(args) do
-      res[first] = second .. ','
-    end
-    return {'{', res, '\n}'}
+    return table.concat{'{', table.concat(args, ','), '}'}
   end
   local function kved()
     local res = {}
@@ -54,7 +50,7 @@ local function compose(term, args, optargs)
       ') return ', args[2], ' end'
     }
   end
-  if term.st == 'funcall' then
+  if term.st == 'call' then
     local func = table.remove(args, 1)
     if func then
       table.insert(args, func)
@@ -136,8 +132,8 @@ local function print_query(term, frames)
   else
     carrots = {carrotify(compose_term(term))}
   end
-  carrots = string.gsub(join_tree(carrots), '[^%^]', '')
-  return join_tree(compose_term(term)) .. '\n' .. carrots
+  carrots = string.gsub(join_tree(carrots), '[^%^]', ' ')
+  return compose_term(term) .. '\n' .. carrots
 end
 
 local heiarchy = {
@@ -173,8 +169,9 @@ end
 
 local errors_meta_table = {}
 
-function errors_meta_table.__index(r, name)
-  local function ReQLError(msg, term, frames)
+function errors_meta_table.__index(_, name)
+  local function ReQLError(r, msg, term, frames)
+    assert(msg)
     local error_inst = setmetatable({r = r, msg = msg}, error_inst_meta_table)
 
     local _name = name
