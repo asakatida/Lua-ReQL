@@ -52,12 +52,12 @@ local function new_response(state, response, reql_inst)
     -- Error responses are not discarded, and the error will be sent to all future callbacks
     if err_type then
       local function it()
-        return err_type(r, reql_inst, b)
+        return err_type(reql_inst.r, r, reql_inst, b)
       end
       return it
     end
     local function it()
-      return err(r, reql_inst, b)
+      return err(reql_inst.r, r, reql_inst, b)
     end
     return it
   end
@@ -78,22 +78,28 @@ local function new_response(state, response, reql_inst)
     return it
   end
   local function it()
-    return errors.ReQLDriverError('unknown response type from server [' .. t .. '].')
+    return errors.ReQLDriverError(reql_inst.r, 'unknown response type from server [' .. t .. '].')
   end
   return it
 end
 
 local function each(state, var)
-  local row = state.it()
-  if not row then
+  if not state.it then
     if not state.open then
       return
     end
     local success, err = state.step()
     if not success then
-      return 0, errors.ReQLDriverError(err)
+      return 0, errors.ReQLDriverError({}, err)  -- @todo
     end
+  end
+  local row = state.it()
+  if not row then
+    state.it = nil
     return each(state, var)
+  end
+  if type(row) == 'table' and row.ReQLError then
+    return 0, row
   end
   return var + 1, row
 end
@@ -180,12 +186,6 @@ local function cursor(r, state, opts, reql_inst)
 
   function cursor_inst.each()
     cursor_inst.set()
-    if not state.it then
-      local success, err = state.step()
-      if not success then
-        return nil, errors.ReQLDriverError(err)
-      end
-    end
     return each, state, 0
   end
 
