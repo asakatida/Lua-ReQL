@@ -94,7 +94,7 @@ local function each(state, var)
     end
   end
   local row = state.it()
-  if not row then
+  if row == nil then
     state.it = nil
     return each(state, var)
   end
