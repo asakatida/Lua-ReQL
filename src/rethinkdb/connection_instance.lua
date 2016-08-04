@@ -36,7 +36,7 @@ local function connection_instance(r, handshake_inst, host, port, ssl_params, ti
     end
     outstanding_callbacks = {}
     if type(err) == 'string' then
-      return nil, errors.ReQLDriverError(err)
+      return nil, errors.ReQLDriverError(r, err)
     end
     return nil, err
   end
@@ -49,7 +49,11 @@ local function connection_instance(r, handshake_inst, host, port, ssl_params, ti
   end
 
   function conn_inst.use(_db)
-    db = conn_inst.r.reql.db(_db)
+    if _db then
+      db = conn_inst.r.reql.db(_db)
+    else
+      db = nil
+    end
   end
 
   local function add_response(token, response, state)
@@ -107,8 +111,9 @@ local function connection_instance(r, handshake_inst, host, port, ssl_params, ti
         local response = nil
         response, responses[token] = responses[token], response
 
-        add_response(token, response, state)
+        return add_response(token, response, state)
       end
+      return true
     end
 
     function state.step()
@@ -119,7 +124,7 @@ local function connection_instance(r, handshake_inst, host, port, ssl_params, ti
           return reset(err)
         end
       end
-      state.maybe_response()
+      return state.maybe_response()
     end
 
     local cursor_inst = cursor(conn_inst.r, state, opts, term)
@@ -142,7 +147,7 @@ local function connection_instance(r, handshake_inst, host, port, ssl_params, ti
       end
       return cur, err
     end
-    if not conn_inst.is_open() then return cb(errors.ReQLDriverError'Connection is closed.') end
+    if not conn_inst.is_open() then return cb(errors.ReQLDriverError(r, 'Connection is closed.')) end
 
     -- Set global options
     local global_opts = {}
@@ -210,7 +215,7 @@ local function connection_instance(r, handshake_inst, host, port, ssl_params, ti
     if not init_success then
       if type(err) == 'table' then
         if 10 <= err.error_code and err.error_code <= 20 then
-          return reset(errors.ReQLAuthError(err.error))
+          return reset(errors.ReQLAuthError(r, err.error))
         end
         return reset(err.error)
       end
@@ -244,7 +249,7 @@ local function connection_instance(r, handshake_inst, host, port, ssl_params, ti
       end
       return true
     end
-    if not conn_inst.is_open() then return cb(errors.ReQLDriverError'Connection is closed.') end
+    if not conn_inst.is_open() then return cb(errors.ReQLDriverError(r, 'Connection is closed.')) end
 
     -- Construct query
     local token, err = protocol_inst.noreply_wait()
@@ -277,7 +282,7 @@ local function connection_instance(r, handshake_inst, host, port, ssl_params, ti
       end
       return ...
     end
-    if not conn_inst.is_open() then return cb(errors.ReQLDriverError'Connection is closed.') end
+    if not conn_inst.is_open() then return cb(errors.ReQLDriverError(r, 'Connection is closed.')) end
 
     -- Construct query
     local token, err = protocol_inst.server_info()
