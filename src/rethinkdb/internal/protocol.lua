@@ -25,9 +25,6 @@ local nil_table = {}
 local function build(term)
   if type(term) ~= 'table' then return term end
   if term.st == 'datum' then
-    if term.args[1] == nil then
-      return term.r.encode()
-    end
     return term.args[1]
   end
   if term.st == 'make_obj' then

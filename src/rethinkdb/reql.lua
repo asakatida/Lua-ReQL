@@ -60,30 +60,31 @@ function meta_table.__div(term, ...)
   return term.div(...)
 end
 
-local function continue_boolean(reql, val)
+local function continue_boolean(_, reql, val)
   return reql.datum(val)
 end
 
-local function continue_function(reql, val)
+local function continue_function(_, reql, val)
   return reql.func(val)
 end
 
-local function continue_nil(reql)
-  return reql.datum()
+local function continue_nil(_, reql)
+  return reql.json'null'
 end
 
-local function continue_number(reql, val)
+local function continue_number(_, reql, val)
   return reql.datum(val)
 end
 
-local function continue_string(reql, val)
+local function continue_string(_, reql, val)
   return reql.datum(val)
 end
 
-local function continue_table(reql, val, nesting_depth)
-  if getmetatable(val) ~= nil then
+local function continue_table(_, reql, val, nesting_depth)
+  if getmetatable(val) == meta_table then
     return val
   end
+  local result = {}
   local array = true
   for first, second in pairs(val) do
     local data, err = reql(second, nesting_depth - 1)
@@ -91,20 +92,20 @@ local function continue_table(reql, val, nesting_depth)
       return nil, err
     end
     if array then array = type(first) == 'number' end
-    val[first] = data
+    result[first] = data
   end
   if array then
-    return reql.make_array(unpack(val))
+    return reql.make_array(unpack(result))
   end
-  return reql.make_obj(val)
+  return reql.make_obj(result)
 end
 
-local function continue_thread()
-  return nil, errors.ReQLDriverError'Cannot insert thread object into query'
+local function continue_thread(r)
+  return nil, errors.ReQLDriverError(r ,'Cannot insert thread object into query')
 end
 
-local function continue_userdata()
-  return nil, errors.ReQLDriverError'Cannot insert userdata object into query'
+local function continue_userdata(r)
+  return nil, errors.ReQLDriverError(r, 'Cannot insert userdata object into query')
 end
 
 local continue_reql = {
@@ -117,11 +118,6 @@ local continue_reql = {
   thread = continue_thread,
   userdata = continue_userdata,
 }
-
---- terms that take no options as final arguments
-local function no_opts(...)
-  return {...}
-end
 
 --- terms that take a variable number of arguments and an optional final argument that is a table of options
 local function get_opts(...)
@@ -244,7 +240,7 @@ local function func(r, args, optargs)
   end
   __func = __func(unpack(anon_args))
   if __func == nil then
-    return nil, errors.ReQLDriverError'Anonymous function returned `nil`. Did you forget a `return`?'
+    return nil, errors.ReQLDriverError(r, 'Anonymous function returned `nil`. Did you forget a `return`?')
   end
   return {arg_nums, __func}, optargs
 end
@@ -284,12 +280,17 @@ local function index(r, st)
     return nil
   end
 
-  local wrap = arg_wrappers[st] or no_opts
+  local wrap = arg_wrappers[st]
   local mutate = mutate_table[st]
 
   --- instantiates a chained term
   local function reql_term(...)
-    local args, optargs = wrap(...)
+    local args, optargs
+    if wrap then
+      args, optargs = wrap(...)
+    else
+      args = {...}
+    end
 
     if mutate then
       args, optargs = mutate(r, args, optargs)
@@ -301,7 +302,9 @@ local function index(r, st)
     local reql_inst = setmetatable({
       args = {}, optargs = {}, r = r, st = st, tt = tt}, meta_table)
 
-    if st ~= 'datum' then
+    if st == 'datum' then
+      reql_inst.args[1] = args[1]
+    else
       for i, a in ipairs(args) do
         local data, err = r.reql(a)
         if not data then
@@ -351,25 +354,6 @@ function meta_table.__index(cls, st)
   return reql_term
 end
 
---- wrap lua value
--- @tab reql driver ast module
--- @param[opt] val lua value to wrap
--- @int[opt=20] nesting_depth max depth of value recursion
--- @treturn table reql
--- @raise Cannot insert userdata object into query
--- @raise Cannot insert thread object into query
-local function __call(reql, val, nesting_depth)
-  nesting_depth = nesting_depth or 20
-  if nesting_depth <= 0 then
-    return nil, errors.ReQLDriverError'Nesting depth limit exceeded'
-  end
-  local continue = continue_reql[type(val)]
-  if not continue then
-    return nil, errors.ReQLDriverError('Unknown Lua type ' .. type(val))
-  end
-  return continue(reql, val, nesting_depth)
-end
-
 local m = {}
 
 function m.init(r)
@@ -377,7 +361,26 @@ function m.init(r)
   -- @func __call
   -- @func __index
   -- @table reql_meta_table
-  local reql_meta_table = {__call = __call}
+  local reql_meta_table = {}
+
+  --- wrap lua value
+  -- @tab reql driver ast module
+  -- @param[opt] val lua value to wrap
+  -- @int[opt=20] nesting_depth max depth of value recursion
+  -- @treturn table reql
+  -- @raise Cannot insert userdata object into query
+  -- @raise Cannot insert thread object into query
+  function reql_meta_table.__call(reql, val, nesting_depth)
+    nesting_depth = nesting_depth or 20
+    if nesting_depth <= 0 then
+      return nil, errors.ReQLDriverError(r, 'Nesting depth limit exceeded')  -- @todo
+    end
+    local continue = continue_reql[type(val)]
+    if not continue then
+      return nil, errors.ReQLDriverError(r, 'Unknown Lua type ' .. type(val))  -- @todo
+    end
+    return continue(r, reql, val, nesting_depth)
+  end
 
   --- creates a top level term
   -- @tab _ driver ast module
