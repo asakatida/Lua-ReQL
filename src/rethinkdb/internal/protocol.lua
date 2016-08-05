@@ -111,12 +111,16 @@ local function protocol(socket_inst)
   local protocol_inst = {}
 
   function protocol_inst.send_query(r, reql_inst, global_opts)
-    for k, v in pairs(global_opts) do
-      global_opts[k] = build(v)
+    local optargs
+    if global_opts and next(global_opts) then
+      optargs = {}
+      for k, v in pairs(global_opts) do
+        optargs[k] = build(v)
+      end
     end
 
     -- Assign token
-    local data = protect(r.encode, {START, build(reql_inst), global_opts})
+    local data = protect(r.encode, {START, build(reql_inst), optargs})
     return write_socket(get_token(), data)
   end
 
