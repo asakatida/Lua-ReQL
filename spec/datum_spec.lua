@@ -40,7 +40,7 @@ describe('datum', function()
   it('nil', function()
     local var = nil
     local cur = r.run(r.reql(var))
-    assert.same({var}, cur.to_array())
+    assert.same({r.decode'null'}, cur.to_array())
   end)
 
   it('string', function()

@@ -45,27 +45,24 @@ describe('connection', function()
     assert.is_false(conn.is_open())
   end)
 
-  it('fails to insert eventually', function()
-    local reql_db = 'connection'
-    local reql_table = 'tests'
-
-    local c, _err = r.connect()
-    assert.is_nil(_err)
-
-    r.reql.db_create(reql_db).run(c).to_array()
-    c.use(reql_db)
-    r.reql.table_create(reql_table).run(c).to_array()
-
-    for _id=1,500000 do
-      local cur, err = r.reql.table(reql_table).insert{id=_id}.run(c)
-      assert.is_nil(err)
-      assert.is_table(cur)
-      cur.to_array()
-    end
-
-    c.reconnect(function(err, conn)
-      assert.is_nil(err)
-      r.reql.table(reql_table).delete().run(conn).to_array()
-    end)
-  end)
+  -- it('fails to insert eventually', function()
+  --   local reql_db = 'connection'
+  --   local reql_table = 'tests'
+  --
+  --   local c, _err = r.connect()
+  --   assert.is_nil(_err)
+  --
+  --   assert.is_table(r.reql.db_create(reql_db).run(c)).to_array()
+  --   c.use(reql_db)
+  --   assert.is_table(r.reql.table_create(reql_table).run(c)).to_array()
+  --
+  --   for id=1, 500000 do
+  --     assert.is_true(r.reql.table(reql_table).insert{id=id}.run(c, {noreply = true}))
+  --   end
+  --
+  --   c.reconnect(function(err, conn)
+  --     assert.is_table(conn, err)
+  --     r.reql.table(reql_table).delete().run(conn).to_array()
+  --   end)
+  -- end)
 end)

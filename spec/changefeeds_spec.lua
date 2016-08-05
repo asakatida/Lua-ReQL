@@ -44,35 +44,33 @@ describe('change feeds', function()
   end)
 
   it('all', function()
-    local cur = assert.is_table(r.run(r.reql_table.changes().limit(4)))
-    assert.is_table(r.run(r.reql_table.insert(
-      {{id = 7}, {id = 8}, {id = 9}, {id = 10}}
-    ))).to_array()
+    local cur = r.run(r.reql_table.changes().limit(4))
+    r.run(r.reql_table.insert{
+      {id = 7}, {id = 8}, {id = 9}, {id = 10}
+    }).to_array()
     local res = {}
-    cur.each(function(row)
-      table.insert(res, row.new_val.id)
-    end, function(err)
-      assert.is_nil(err)
-    end)
+    for i, v in cur.each() do
+      assert.is_not_equal(0, i, v)
+      res[i] = v.new_val.id
+    end
     table.sort(res)
-    assert.same(res, {7, 8, 9, 10})
+    assert.same({7, 8, 9, 10}, res)
   end)
 
   it('even', function()
-    local cur = assert.is_table(r.run(r.reql_table.changes().filter(
+    local cur = r.run(r.reql_table.changes().filter(
       function(row)
         return (row'new_val''id' % 2).eq(0)
       end
-    ).limit(2)))
-    assert.is_table(r.run(r.reql_table.insert(
-      {{id = 7}, {id = 8}, {id = 9}, {id = 10}}
-    ))).to_array()
+    ).limit(2))
+    r.run(r.reql_table.insert{
+      {id = 7}, {id = 8}, {id = 9}, {id = 10}
+    }).to_array()
     local res = {}
-    cur.each(function(row)
-      table.insert(res, row.new_val.id)
-    end, function(err)
-      assert.is_nil(err)
-    end)
+    for i, v in cur.each() do
+      assert.is_not_equal(0, i, v)
+      res[i] = v.new_val.id
+    end
     table.sort(res)
     assert.same(res, {8, 10})
   end)

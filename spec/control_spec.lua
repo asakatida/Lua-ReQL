@@ -17,14 +17,16 @@ describe('control', function()
       return assert.is_table(query.run(query.r.c))
     end
 
-    r.reql_db = r.reql.db'control'
-    r.reql_table = r.reql.table'func'
+    local reql_db = 'control'
+    local reql_table = 'func'
+    r.reql_db = r.reql.db(reql_db)
+    r.reql_table = r.reql.table(reql_table)
 
     r.c = assert.is_table(r.connect())
 
-    r.run(r.reql.db_create'control').to_array()
-    r.c.use'control'
-    r.run(r.reql.table_create'func').to_array()
+    r.run(r.reql.db_create(reql_db)).to_array()
+    r.c.use(reql_db)
+    r.run(r.reql.table_create(reql_table)).to_array()
   end)
 
   teardown(function()
@@ -71,69 +73,69 @@ describe('control', function()
   end)
 
   it('do', function()
-    local cur = r.run(r.reql.funcall(function() return 1 end))
+    local cur = r.run(r.reql.call(function() return 1 end))
     assert.same({1}, assert.is_table(cur.to_array()))
   end)
 
   it('do add', function()
-    local cur = r.run(r.reql.funcall(1, 2, function(x, y) return x.add(y) end))
+    local cur = r.run(r.reql.call(1, 2, function(x, y) return x.add(y) end))
     assert.same({3}, assert.is_table(cur.to_array()))
   end)
 
   it('do append', function()
-    local cur = r.run(r.reql{0, 1, 2}.funcall(function(v) return v.append(3) end))
+    local cur = r.run(r.reql{0, 1, 2}.call(function(v) return v.append(3) end))
     assert.same({{0, 1, 2, 3}}, assert.is_table(cur.to_array()))
   end)
 
   if string.match(_VERSION, '5.[23]') then
     it('do extra arg', function()
-      local cur = r.run(r.reql.funcall(1, function(x, y) return x + y end))
+      local cur = r.run(r.reql.call(1, function(x, y) return x + y end))
       assert.is_nil(cur.to_array())
     end)
 
     it('do missing arg', function()
-      local cur = r.run(r.reql.funcall(1, 2, function(x) return x end))
+      local cur = r.run(r.reql.call(1, 2, function(x) return x end))
       assert.is_nil(cur.to_array())
     end)
   end
 
   it('do mul', function()
-    local cur = r.run(r.reql(1).funcall(function(v) return v.mul(2) end))
+    local cur = r.run(r.reql(1).call(function(v) return v.mul(2) end))
     assert.same({2}, assert.is_table(cur.to_array()))
   end)
 
   it('do no args', function()
-    local cur = r.run(r.reql.funcall())
+    local cur = r.run(r.reql.call())
     assert.is_nil(cur.to_array())
   end)
 
   it('do no func', function()
-    local cur = r.run(r.reql.funcall(1))
+    local cur = r.run(r.reql.call(1))
     assert.same({1}, assert.is_table(cur.to_array()))
   end)
 
   it('do no return', function()
-    local cur = r.run(r.reql.funcall(1, function() end))
+    local cur = r.run(r.reql.call(1, function() end))
     assert.is_not_nil(cur)
   end)
 
   it('do return nil', function()
-    local cur = r.run(r.reql.funcall(1, function() return nil end))
+    local cur = r.run(r.reql.call(1, function() return nil end))
     assert.is_not_nil(cur)
   end)
 
   it('do str add num', function()
-    local cur = r.run(r.reql'abc'.funcall(function(v) return v.add(3) end))
+    local cur = r.run(r.reql'abc'.call(function(v) return v.add(3) end))
     assert.is_nil(cur.to_array())
   end)
 
   it('do str add str add num', function()
-    local cur = r.run(r.reql'abc'.funcall(function(v) return v.add'def' end).add(3))
+    local cur = r.run(r.reql'abc'.call(function(v) return v.add'def' end).add(3))
     assert.is_nil(cur.to_array())
   end)
 
   it('do str append', function()
-    local cur = r.run(r.reql'abc'.funcall(function(v) return v.append(3) end))
+    local cur = r.run(r.reql'abc'.call(function(v) return v.append(3) end))
     assert.is_nil(cur.to_array())
   end)
 
@@ -153,16 +155,16 @@ describe('control', function()
   end)
 
   it('do js function add', function()
-    local cur = r.run(r.reql.funcall(1, 2, r.reql.js'(function(a, b) { return a + b; })'))
+    local cur = r.run(r.reql.call(1, 2, r.reql.js'(function(a, b) { return a + b; })'))
     assert.same({3}, assert.is_table(cur.to_array()))
   end)
 
   it('do js function', function()
-    local cur = r.run(r.reql.funcall(1, r.reql.js'(function(x) { return x + 1; })'))
+    local cur = r.run(r.reql.call(1, r.reql.js'(function(x) { return x + 1; })'))
     assert.same({2}, assert.is_table(cur.to_array()))
   end)
   it('do js function add str', function()
-    local cur = r.run(r.reql.funcall('foo', r.reql.js'(function(x) { return x + "bar"; })'))
+    local cur = r.run(r.reql.call('foo', r.reql.js'(function(x) { return x + "bar"; })'))
     assert.same({'foobar'}, assert.is_table(cur.to_array()))
   end)
 
@@ -182,17 +184,17 @@ describe('control', function()
   end)
 
   it('do js function missing arg', function()
-    local cur = r.run(r.reql.funcall(1, 2, r.reql.js'(function(a) { return a; })'))
+    local cur = r.run(r.reql.call(1, 2, r.reql.js'(function(a) { return a; })'))
     assert.same({1}, assert.is_table(cur.to_array()))
   end)
 
   it('do js function extra arg', function()
-    local cur = r.run(r.reql.funcall(1, 2, r.reql.js'(function(a, b, c) { return a; })'))
+    local cur = r.run(r.reql.call(1, 2, r.reql.js'(function(a, b, c) { return a; })'))
     assert.same({1}, assert.is_table(cur.to_array()))
   end)
 
   it('do js function return undefined', function()
-    local cur = r.run(r.reql.funcall(1, 2, r.reql.js'(function(a, b, c) { return c; })'))
+    local cur = r.run(r.reql.call(1, 2, r.reql.js'(function(a, b, c) { return c; })'))
     assert.is_nil(cur.to_array())
   end)
 
@@ -266,7 +268,9 @@ describe('control', function()
     cur = r.run(r.reql.for_each({1, 2, 3}, function(row) return r.reql_table.update({foo = row}) end))
     assert.is_table(cur.to_array())
     cur = r.run(r.reql.for_each({1, 2, 3}, function(row) return {r.reql_table.insert({id = row}), r.reql_table.insert({id = row * 10})} end))
-    assert.same({{first_error = 'Duplicate primary key `id`.\n{\n\t"foo".\t3,\n\t"id".\t1\n}\n{\n\t"id".\t1\n}', deleted = 0, replaced = 0, unchanged = 0, errors = 3, skipped = 0, inserted = 3}}, assert.is_table(cur.to_array()))
+    local res = assert.is_table(cur.to_array())
+    assert.is_equal(3, res[1].errors)
+    assert.is_equal(3, res[1].inserted)
   end)
 
   it('for each update many', function()
@@ -277,6 +281,6 @@ describe('control', function()
     cur = r.run(r.reql.for_each({1, 2, 3}, function(row) return {r.reql_table.insert({id = row}), r.reql_table.insert({id = row * 10})} end))
     assert.is_table(cur.to_array())
     cur = r.run(r.reql.for_each({1, 2, 3}, function(row) return r.reql_table.update({foo = row}) end))
-    assert.same({{deleted = 0, replaced = 36, unchanged = 0, errors = 0, skipped = 0, inserted = 0}}, assert.is_table(cur.to_array()))
+    assert.same({{deleted = 0, replaced = 18, unchanged = 0, errors = 0, skipped = 0, inserted = 0}}, assert.is_table(cur.to_array()))
   end)
 end)
