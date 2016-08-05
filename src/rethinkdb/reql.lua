@@ -125,6 +125,11 @@ local function get_opts(...)
   local n = #args
   local opt = args[n]
   if (type(opt) == 'table') and (getmetatable(opt) ~= meta_table) then
+    for k in pairs(opt) do
+      if type(k) ~= 'string' then
+        return args
+      end
+    end
     args[n] = nil
     return args, opt
   end
