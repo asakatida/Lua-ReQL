@@ -90,6 +90,9 @@ local function each(state, var)
     end
     local success, err = state.step()
     if not success then
+      if type(err) == 'table' then
+        return 0, err
+      end
       return 0, errors.ReQLDriverError({}, err)  -- @todo
     end
   end
