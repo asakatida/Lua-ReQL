@@ -6,6 +6,7 @@
 
 if string.pack then
   local function int_to_bytes(num, bytes)
+    num = math.fmod(num, 2 ^ (8 * bytes))
     return string.pack('!1<I' .. bytes, num)
   end
 
