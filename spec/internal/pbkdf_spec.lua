@@ -53,16 +53,15 @@ describe('pbkdf', function()
     assert.are_same('\x4b\x00\x79\x01\xb7\x65\x48\x9a\xbe\xad\x49\xd9\x26\xf7\x21\xd0\x65\xa4\x29\xc1', DK)
   end)
 
-  -- Test is disabled due to time constraints.
-  -- it('test 4', function()
-  --   local password = 'password'
-  --   local salt = 'salt'
-  --   local iteration = 16777216
-  --   local dkLen = 20
-  --   local DK = pbkdf('sha1', password, salt, iteration, dkLen)
-  --   assert.are_same(dkLen, string.len(DK))
-  --   assert.are_same('\xee\xfe\x3d\x61\xcd\x4d\xa4\xe4\xe9\x94\x5b\x3d\x6b\xa2\x15\x8c\x26\x34\xe9\x84', DK)
-  -- end)
+  it('test 4 #expensive', function()
+    local password = 'password'
+    local salt = 'salt'
+    local iteration = 16777216
+    local dkLen = 20
+    local DK = pbkdf('sha1', password, salt, iteration, dkLen)
+    assert.are_same(dkLen, string.len(DK))
+    assert.are_same('\xee\xfe\x3d\x61\xcd\x4d\xa4\xe4\xe9\x94\x5b\x3d\x6b\xa2\x15\x8c\x26\x34\xe9\x84', DK)
+  end)
 
   it('test 5', function()
     local password = 'passwordPASSWORDpassword'

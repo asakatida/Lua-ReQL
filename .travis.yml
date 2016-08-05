@@ -35,7 +35,7 @@ before_script:
   - luarocks install luacov-coveralls
 
 script:
-  - busted
+  - busted --exclude-tags="expensive"
 
 after_success:
   - luacov-coveralls
