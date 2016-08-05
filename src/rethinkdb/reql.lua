@@ -158,41 +158,41 @@ end
 
 --- mapping from reql term names to argument signatures
 local arg_wrappers = {
-  between = arity_4,
-  between_deprecated = arity_4,
-  changes = get_opts,
-  circle = get_opts,
-  delete = get_opts,
-  distance = get_opts,
-  distinct = get_opts,
-  during = arity_4,
-  eq_join = get_opts,
-  filter = arity_3,
-  fold = get_opts,
-  get_all = get_opts,
-  get_intersecting = get_opts,
-  get_nearest = get_opts,
-  group = get_opts,
-  http = arity_3,
-  index_create = get_opts,
-  index_rename = get_opts,
-  insert = arity_3,
-  iso8601 = get_opts,
-  js = get_opts,
-  make_obj = arity_0,
-  max = get_opts,
-  min = get_opts,
-  order_by = get_opts,
-  random = get_opts,
-  reconfigure = arity_2,
-  reduce = get_opts,
-  replace = arity_3,
-  slice = get_opts,
-  table = get_opts,
-  table_create = get_opts,
-  union = get_opts,
-  update = arity_3,
-  wait = arity_2
+  [Term.between] = arity_4,
+  [Term.between_deprecated] = arity_4,
+  [Term.changes] = get_opts,
+  [Term.circle] = get_opts,
+  [Term.delete] = get_opts,
+  [Term.distance] = get_opts,
+  [Term.distinct] = get_opts,
+  [Term.during] = arity_4,
+  [Term.eq_join] = get_opts,
+  [Term.filter] = arity_3,
+  [Term.fold] = get_opts,
+  [Term.get_all] = get_opts,
+  [Term.get_intersecting] = get_opts,
+  [Term.get_nearest] = get_opts,
+  [Term.group] = get_opts,
+  [Term.http] = arity_3,
+  [Term.index_create] = get_opts,
+  [Term.index_rename] = get_opts,
+  [Term.insert] = arity_3,
+  [Term.iso8601] = get_opts,
+  [Term.js] = get_opts,
+  [Term.make_obj] = arity_0,
+  [Term.max] = get_opts,
+  [Term.min] = get_opts,
+  [Term.order_by] = get_opts,
+  [Term.random] = get_opts,
+  [Term.reconfigure] = arity_2,
+  [Term.reduce] = get_opts,
+  [Term.replace] = arity_3,
+  [Term.slice] = get_opts,
+  [Term.table] = get_opts,
+  [Term.table_create] = get_opts,
+  [Term.union] = get_opts,
+  [Term.update] = arity_3,
+  [Term.wait] = arity_2
 }
 
 local function binary(r, args, optargs)
@@ -267,11 +267,11 @@ local function reduce(r, args, optargs)
 end
 
 local mutate_table = {
-  binary = binary,
-  fold = fold,
-  func = func,
-  call = call,
-  reduce = reduce,
+  [Term.binary] = binary,
+  [Term.call] = call,
+  [Term.fold] = fold,
+  [Term.func] = func,
+  [Term.reduce] = reduce,
 }
 
 --- returns a chained term
@@ -285,8 +285,8 @@ local function index(r, st)
     return nil
   end
 
-  local wrap = arg_wrappers[st]
-  local mutate = mutate_table[st]
+  local wrap = arg_wrappers[tt]
+  local mutate = mutate_table[tt]
 
   --- instantiates a chained term
   local function reql_term(...)
