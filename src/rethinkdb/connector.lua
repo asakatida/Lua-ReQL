@@ -13,7 +13,7 @@ local DEFAULT_HOST = 'localhost'
 local DEFAULT_PORT = 28015
 local DEFAULT_USER = 'admin'
 local DEFAULT_AUTH_KEY = ''
-local DEFAULT_TIMEOUT = 0.1 -- In seconds
+local DEFAULT_TIMEOUT = 20 -- In seconds
 
 function m.init(r)
   function r.connector(connection_opts)
