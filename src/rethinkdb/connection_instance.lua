@@ -65,7 +65,8 @@ local function connection_instance(r, handshake_inst, host, port, ssl_params, ti
       return reset(err)
     end
 
-    return state.add_response(response)
+    state.add_response(response)
+    return true
   end
 
   local function sink(chunk, err)

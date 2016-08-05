@@ -140,12 +140,10 @@ local function cursor(r, state, opts, reql_inst)
           state.it = nil
           cursor_inst.set()
         end
-        return true
       end
       if type(row) == 'table' and row.ReQLError then
         state.outstanding_callback(row)
         cursor_inst.set()
-        return true
       end
       local err
       row, err = convert_pseudotype(cursor_inst.r, row, opts)
@@ -153,11 +151,9 @@ local function cursor(r, state, opts, reql_inst)
         state.outstanding_callback(err)
         state.it = nil
         cursor_inst.set()
-        return true
       end
       state.outstanding_callback(nil, row)
     end
-    return true
   end
 
   function cursor_inst.set(callback)
