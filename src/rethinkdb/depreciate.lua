@@ -4,7 +4,7 @@
 -- @license Apache
 -- @copyright Adam Grandquist 2016
 
-local int_to_bytes = require'rethinkdb.internal.int_to_bytes'
+local int_to_little = require'rethinkdb.internal.int_to_bytes'.little
 local ltn12 = require('ltn12')
 
 local function proto_V0_x(r, socket_inst, auth_key, magic)
@@ -12,7 +12,7 @@ local function proto_V0_x(r, socket_inst, auth_key, magic)
 
   local data = table.concat{
     magic,
-    int_to_bytes(string.len(auth_key), 4),
+    int_to_little(string.len(auth_key), 4),
     auth_key,
     '\199\112\105\126'
   }

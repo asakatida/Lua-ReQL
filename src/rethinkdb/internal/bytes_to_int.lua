@@ -4,8 +4,10 @@
 -- @license Apache
 -- @copyright Adam Grandquist 2016
 
+local bytes_to_int = {}
+
 if not string.unpack then
-  local function big_to_int(str)
+  function bytes_to_int.little(str)
     local n = 0
     for k=1, string.len(str) do
       n = n + string.byte(str, k) * 2 ^ ((k - 1) * 8)
@@ -13,7 +15,7 @@ if not string.unpack then
     return n
   end
 
-  local function little_to_int(str)
+  function bytes_to_int.big(str)
     local n = 0
     local bytes = string.len(str)
     for k=1, bytes do
@@ -22,15 +24,15 @@ if not string.unpack then
     return n
   end
 
-  return big_to_int, little_to_int
+  return bytes_to_int
 end
 
-local function big_to_int(str)
+function bytes_to_int.little(str)
   return (string.unpack('!1<I' .. string.len(str), str))
 end
 
-local function little_to_int(str)
+function bytes_to_int.big(str)
   return (string.unpack('!1>I' .. string.len(str), str))
 end
 
-return big_to_int, little_to_int
+return bytes_to_int

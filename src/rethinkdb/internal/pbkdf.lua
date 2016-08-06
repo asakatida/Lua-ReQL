@@ -5,6 +5,8 @@
 -- @copyright Adam Grandquist 2016
 -- implemented following (https://tools.ietf.org/html/rfc2898)
 
+local int_to_big = require'rethinkdb.internal.int_to_bytes'.big
+
 --- Helper for bitwise operations.
 local function prequire(mod_name, ...)
   if not mod_name then return end
@@ -18,29 +20,14 @@ local function prequire(mod_name, ...)
   return prequire(...)
 end
 
-local _, bits = prequire(
-  'rethinkdb.internal.bits53', 'bit32', 'bit', 'rethinkdb.internal.bits51')
+local _, bits = assert(prequire(
+  'rethinkdb.internal.bits53', 'bit32', 'bit', 'rethinkdb.internal.bits51'))
 
 local crypto = require('crypto')
 
 local bxor = bits.bxor
 
 local unpack = _G.unpack or table.unpack
-
-local function int_to_bytes(num, bytes)
-  if string.pack then
-    return string.pack('!1>I' .. bytes, num)
-  end
-
-  local res = {}
-  num = math.fmod(num, 2 ^ (8 * bytes))
-  for k = 1, bytes do
-    local den = 2 ^ (8 * (bytes - k))
-    res[k] = math.floor(num / den)
-    num = math.fmod(num, den)
-  end
-  return string.char(unpack(res))
-end
 
 local function xor(t, U)
   for j=1, string.len(U) do
@@ -87,7 +74,7 @@ local function hmac_pbkdf2(dtype, password, salt, iteration, dkLen)
     -- U_2 = PRF (P, U_1) ,
     -- ...
     -- U_c = PRF (P, U_{c-1}) .
-    local U = PRF(password, salt .. int_to_bytes(i, 4))
+    local U = PRF(password, salt .. int_to_big(i, 4))
 
     local t = {}
 

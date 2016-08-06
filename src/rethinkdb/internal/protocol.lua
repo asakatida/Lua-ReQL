@@ -4,8 +4,8 @@
 -- @license Apache
 -- @copyright Adam Grandquist 2016
 
-local bytes_to_int = require'rethinkdb.internal.bytes_to_int'
-local int_to_bytes = require'rethinkdb.internal.int_to_bytes'
+local little_to_int = require'rethinkdb.internal.bytes_to_int'.little
+local int_to_little = require'rethinkdb.internal.int_to_bytes'.little
 local ltn12 = require('ltn12')
 local protect = require'rethinkdb.internal.protect'
 local protodef = require'rethinkdb.internal.protodef'
@@ -62,8 +62,8 @@ local function get_response(ctx)
   if string.len(ctx.buffer) < 12 then
     return
   end
-  ctx.token = bytes_to_int(string.sub(ctx.buffer, 1, 8))
-  ctx.response_length = bytes_to_int(string.sub(ctx.buffer, 9, 12))
+  ctx.token = little_to_int(string.sub(ctx.buffer, 1, 8))
+  ctx.response_length = little_to_int(string.sub(ctx.buffer, 9, 12))
   ctx.buffer = string.sub(ctx.buffer, 13)
 end
 
@@ -97,7 +97,7 @@ local function protocol(socket_inst)
   local filter = ltn12.filter.cycle(buffer_response, ctx)
 
   local function write_socket(token, data)
-    data = table.concat{int_to_bytes(token, 8), int_to_bytes(string.len(data), 4), data}
+    data = table.concat{int_to_little(token, 8), int_to_little(string.len(data), 4), data}
     local success, err = ltn12.pump.all(ltn12.source.string(data), socket_inst.sink)
     if not success then
       return nil, err

@@ -4,10 +4,12 @@
 -- @license Apache
 -- @copyright Adam Grandquist 2016
 
+local int_to_bytes = {}
+
 if not string.pack then
   local unpack = _G.unpack or table.unpack
 
-  local function int_to_big(num, bytes)
+  function int_to_bytes.little(num, bytes)
     local res = {}
     num = math.fmod(num, 2 ^ (8 * bytes))
     for k = bytes, 1, -1 do
@@ -18,7 +20,7 @@ if not string.pack then
     return string.char(unpack(res))
   end
 
-  local function int_to_little(num, bytes)
+  function int_to_bytes.big(num, bytes)
     local res = {}
     num = math.fmod(num, 2 ^ (8 * bytes))
     for k = 1, bytes do
@@ -29,17 +31,17 @@ if not string.pack then
     return string.char(unpack(res))
   end
 
-  return int_to_big, int_to_little
+  return int_to_bytes
 end
 
-local function int_to_big(num, bytes)
+function int_to_bytes.little(num, bytes)
   num = math.fmod(num, 2 ^ (8 * bytes))
   return string.pack('!1<I' .. bytes, num)
 end
 
-local function int_to_little(num, bytes)
+function int_to_bytes.big(num, bytes)
   num = math.fmod(num, 2 ^ (8 * bytes))
   return string.pack('!1>I' .. bytes, num)
 end
 
-return int_to_big, int_to_little
+return int_to_bytes
