@@ -19,9 +19,6 @@ local meta_table = {}
 --- printable represention
 function meta_table.__tostring(term)
   local args = table.concat(term.args, ', ')
-  if term.optargs then
-    args = table.concat({args, term.optargs}, ', ')
-  end
   return table.concat{'reql.', term.st, '(', args, ')'}
 end
 
