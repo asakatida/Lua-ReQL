@@ -42,6 +42,12 @@ local function int_to_bytes(num, bytes)
   return string.char(unpack(res))
 end
 
+local function xor(t, U)
+  for j=1, string.len(U) do
+    t[j] = bxor(t[j] or 0, string.byte(U, j) or 0)
+  end
+end
+
 --- key derivation function
 -- dtype
 -- password an octet string
@@ -49,8 +55,12 @@ end
 -- iteration count a positive integer
 -- dkLen length in octets of derived key, a positive integer
 local function hmac_pbkdf2(dtype, password, salt, iteration, dkLen)
+  local function PRF(P, S)
+    return crypto.hmac.digest(dtype, S, P, true)
+  end
+
   -- length in octets of pseudorandom function output, a positive integer
-  local hLen = string.len(crypto.hmac.digest(dtype, '', '', true))
+  local hLen = string.len(PRF('', ''))
 
   if dkLen > (2^32 - 1) * hLen then
     return nil, 'derived key too long'
@@ -77,21 +87,16 @@ local function hmac_pbkdf2(dtype, password, salt, iteration, dkLen)
     -- U_2 = PRF (P, U_1) ,
     -- ...
     -- U_c = PRF (P, U_{c-1}) .
-    local U = crypto.hmac.digest(dtype, salt .. int_to_bytes(i, 4), password, true)
+    local U = PRF(password, salt .. int_to_bytes(i, 4))
 
     local t = {}
 
     for _=2, iteration do
-      for j=1, string.len(U) do
-        t[j] = bxor(t[j] or 0, string.byte(U, j) or 0)
-      end
-
-      U = crypto.hmac.digest(dtype, U, password, true)
+      xor(t, U)
+      U = PRF(password, U)
     end
 
-    for j=1, string.len(U) do
-      t[j] = bxor(t[j] or 0, string.byte(U, j) or 0)
-    end
+    xor(t, U)
 
     -- message authentication code, an octet string
     T[i] = string.char(unpack(t))
