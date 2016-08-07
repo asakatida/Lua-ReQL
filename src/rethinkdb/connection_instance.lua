@@ -241,14 +241,14 @@ local function connection_instance(r, handshake_inst, host, port, ssl_params, ti
   end
 
   function conn_inst.noreply_wait(callback)
-    local function cb(err)
+    local function cb(err, success)
       if callback then
-        return callback(err)
+        return callback(err, success)
       end
       if err then
-        return false, err
+        return reset(err)
       end
-      return true
+      return success
     end
     if not conn_inst.is_open() then return cb(errors.ReQLDriverError(r, 'Connection is closed.')) end
 
@@ -259,7 +259,11 @@ local function connection_instance(r, handshake_inst, host, port, ssl_params, ti
       return cb(err)
     end
 
-    return make_cursor(token).to_array(cb)
+    local _, e = make_cursor(token, {}, {}).to_array()
+    if e then
+      return cb(e)
+    end
+    return cb(nil, true)
   end
 
   function conn_inst.reconnect(opts_or_callback, callback)
@@ -292,7 +296,7 @@ local function connection_instance(r, handshake_inst, host, port, ssl_params, ti
       return cb(err)
     end
 
-    return make_cursor(token).to_array(cb)
+    return cb(make_cursor(token, {}, {}).to_array())
   end
 
   return conn_inst
