@@ -49,8 +49,7 @@ describe('connection', function()
     local reql_db = 'connection'
     local reql_table = 'tests'
 
-    local c, _err = r.connect()
-    assert.is_nil(_err)
+    local c = assert.is_table(r.connect())
 
     assert.is_table(r.reql.db_create(reql_db).run(c)).to_array()
     c.use(reql_db)
@@ -59,6 +58,14 @@ describe('connection', function()
     for id=1, 500000 do
       assert.is_true(r.reql.table(reql_table).insert{id=id}.run(c, {noreply = true}))
     end
+    assert.is_true(c.noreply_wait())
+    assert.is_true(
+      assert.is_table(
+        assert.is_table(
+          r.reql.table(reql_table).get(500000)'id'.eq(500000).run(c)
+        ).to_array()
+      )[1]
+    )
 
     c.reconnect(function(err, conn)
       assert.is_table(conn, err)
