@@ -18,8 +18,7 @@ local meta_table = {}
 
 --- printable represention
 function meta_table.__tostring(term)
-  local args = table.concat(term.args, ', ')
-  return table.concat{'reql.', term.st, '(', args, ')'}
+  return table.concat{'reql.', term.st, '(...)'}
 end
 
 --- get index query on server
