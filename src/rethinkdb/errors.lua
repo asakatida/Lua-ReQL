@@ -4,28 +4,30 @@
 -- @license Apache
 -- @copyright Adam Grandquist 2016
 
-local protect = require'rethinkdb.internal.protect'
-
 --- get debug represention of query
 -- @tab _args represention of arguments
 -- @tab[opt] _optargs represention of options
 -- @treturn string
 local function compose(term, args, optargs)
   if term.st == 'datum' then
-    if term.args[1] == nil then
+    local data = args[1]
+    if data == nil then
       return 'nil'
     end
-    return protect(term.r.encode, term.args[1]) or '...'
+    if type(data) == 'string' then
+      return table.concat{'"', data, '"'}
+    end
+    return data
   end
   if term.st == 'make_array' then
-    return table.concat{'{', table.concat(args, ','), '}'}
+    return table.concat{'{', table.concat(args, ', '), '}'}
   end
   local function kved()
     local res = {}
     for first, second in pairs(optargs) do
       table.insert(res, first .. ' = ' .. second)
     end
-    return '{\n  ' .. table.concat(res, ',\n  ') .. '\n}'
+    return '{' .. table.concat(res, ', ') .. '}'
   end
   if term.st == 'make_obj' then
     return kved()
@@ -110,6 +112,7 @@ local function compose_carrots(term, frames)
 end
 
 local function join_tree(tree)
+  if type(tree) ~= 'table' then return tostring(tree) end
   local str = ''
   for _, term in ipairs(tree) do
     if type(term) == 'table' then
