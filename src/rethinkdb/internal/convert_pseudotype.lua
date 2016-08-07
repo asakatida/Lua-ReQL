@@ -4,6 +4,8 @@
 -- @license Apache
 -- @copyright Adam Grandquist 2016
 
+local protect = require'rethinkdb.internal.protect'
+
 --- native conversion from reql grouped data to Lua
 -- @tab obj reql group pseudo-type table
 -- @treturn table
@@ -59,7 +61,7 @@ local time_table = {
 -- @tab _obj reql response
 -- @tab opts table of options for native or raw conversions
 -- @treturn table
-local function convert_pseudotype(r, _obj, opts)
+local function convert_pseudotype(r, row, options)
   local function native_binary(obj)
     return r.unb64(assert(obj.data, 'pseudo-type BINARY table missing expected field `data`'))
   end
@@ -69,11 +71,15 @@ local function convert_pseudotype(r, _obj, opts)
     raw = raw
   }
 
-  local fomat = opts.format or 'raw'
+  if options and options.binary_format then
+    print(options.binary_format)
+  end
+
+  local fomat = options.format or 'raw'
   local binary_format, group_format, time_format =
-    opts.binary_format or fomat,
-    opts.group_format or fomat,
-    opts.time_format or fomat
+    options.binary_format or fomat,
+    options.group_format or fomat,
+    options.time_format or fomat
 
   local BINARY, GROUPED_DATA, TIME =
     binary_table[binary_format],
@@ -116,13 +122,7 @@ local function convert_pseudotype(r, _obj, opts)
     return obj
   end
 
-  local status, res = pcall(convert, _obj)
-
-  if status then
-    return res
-  end
-
-  return nil, res
+  return protect(convert, row)
 end
 
 return convert_pseudotype
