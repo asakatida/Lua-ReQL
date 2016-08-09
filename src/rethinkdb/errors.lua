@@ -15,7 +15,7 @@ local function compose(term, args, optargs)
       return 'nil'
     end
     if type(data) == 'string' then
-      return table.concat{'"', data, '"'}
+      return string.format('%q', data)
     end
     return data
   end
