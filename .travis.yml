@@ -6,6 +6,9 @@ cache:
   directories:
     - here
 
+before_cache:
+  - rm -rf $HOME/.cache/pip/log
+
 env:
   matrix:
     - LUA="lua 5.1" LUA_PATH="lua51" RDB_VER="http://download.rethinkdb.com/apt/pool/precise/main/r/rethinkdb/rethinkdb_2.3.0~0precise_amd64.deb"
