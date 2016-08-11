@@ -28,9 +28,10 @@ describe('pbkdf', function()
     local salt = 'salt'
     local iteration = 1
     local dkLen = 20
-    local DK = pbkdf('sha1', password, salt, iteration, dkLen)
-    assert.are_same(dkLen, string.len(DK))
-    assert.are_same('\x0c\x60\xc8\x0f\x96\x1f\x0e\x71\xf3\xa9\xb5\x24\xaf\x60\x12\x06\x2f\xe0\x37\xa6', DK)
+    assert.are_same(
+      '\12\96\200\15\150\31\14\113\243\169\181\36\175\96\18\6\47\224\55\166',
+      pbkdf('sha1', password, salt, iteration, dkLen)
+    )
   end)
 
   it('test 2', function()
@@ -38,9 +39,10 @@ describe('pbkdf', function()
     local salt = 'salt'
     local iteration = 2
     local dkLen = 20
-    local DK = pbkdf('sha1', password, salt, iteration, dkLen)
-    assert.are_same(dkLen, string.len(DK))
-    assert.are_same('\xea\x6c\x01\x4d\xc7\x2d\x6f\x8c\xcd\x1e\xd9\x2a\xce\x1d\x41\xf0\xd8\xde\x89\x57', DK)
+    assert.are_same(
+      '\234\108\1\77\199\45\111\140\205\30\217\42\206\29\65\240\216\222\137\87',
+      pbkdf('sha1', password, salt, iteration, dkLen)
+    )
   end)
 
   it('test 3', function()
@@ -48,9 +50,10 @@ describe('pbkdf', function()
     local salt = 'salt'
     local iteration = 4096
     local dkLen = 20
-    local DK = pbkdf('sha1', password, salt, iteration, dkLen)
-    assert.are_same(dkLen, string.len(DK))
-    assert.are_same('\x4b\x00\x79\x01\xb7\x65\x48\x9a\xbe\xad\x49\xd9\x26\xf7\x21\xd0\x65\xa4\x29\xc1', DK)
+    assert.are_same(
+      '\75\0\121\1\183\101\72\154\190\173\73\217\38\247\33\208\101\164\41\193',
+      pbkdf('sha1', password, salt, iteration, dkLen)
+    )
   end)
 
   it('test 4 #expensive', function()
@@ -58,9 +61,10 @@ describe('pbkdf', function()
     local salt = 'salt'
     local iteration = 16777216
     local dkLen = 20
-    local DK = pbkdf('sha1', password, salt, iteration, dkLen)
-    assert.are_same(dkLen, string.len(DK))
-    assert.are_same('\xee\xfe\x3d\x61\xcd\x4d\xa4\xe4\xe9\x94\x5b\x3d\x6b\xa2\x15\x8c\x26\x34\xe9\x84', DK)
+    assert.are_same(
+      '\238\254\61\97\205\77\164\228\233\148\91\61\107\162\21\140\38\52\233\132',
+      pbkdf('sha1', password, salt, iteration, dkLen)
+    )
   end)
 
   it('test 5', function()
@@ -68,9 +72,10 @@ describe('pbkdf', function()
     local salt = 'saltSALTsaltSALTsaltSALTsaltSALTsalt'
     local iteration = 4096
     local dkLen = 25
-    local DK = pbkdf('sha1', password, salt, iteration, dkLen)
-    assert.are_same(dkLen, string.len(DK))
-    assert.are_same('\x3d\x2e\xec\x4f\xe4\x1c\x84\x9b\x80\xc8\xd8\x36\x62\xc0\xe4\x4a\x8b\x29\x1a\x96\x4c\xf2\xf0\x70\x38', DK)
+    assert.are_same(
+      '\61\46\236\79\228\28\132\155\128\200\216\54\98\192\228\74\139\41\26\150\76\242\240\112\56',
+      pbkdf('sha1', password, salt, iteration, dkLen)
+    )
   end)
 
   it('test 6', function()
@@ -78,8 +83,9 @@ describe('pbkdf', function()
     local salt = 'sa\0lt'
     local iteration = 4096
     local dkLen = 16
-    local DK = pbkdf('sha1', password, salt, iteration, dkLen)
-    assert.are_same(dkLen, string.len(DK))
-    assert.are_same('\x56\xfa\x6a\xa7\x55\x48\x09\x9d\xcc\x37\xd7\xf0\x34\x25\xe0\xc3', DK)
+    assert.are_same(
+      '\86\250\106\167\85\72\9\157\204\55\215\240\52\37\224\195',
+      pbkdf('sha1', password, salt, iteration, dkLen)
+    )
   end)
 end)
