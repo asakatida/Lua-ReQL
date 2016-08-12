@@ -91,8 +91,8 @@ local function connection_instance(r, handshake_inst, host, port, ssl_params, ti
     return true
   end
 
-  local function make_cursor(token, opts, term)
-    local state = {open = true, opts = opts, term = term}
+  local function make_cursor(token, options, reql_inst)
+    local state = {open = true}
 
     function state.del_query()
       -- This query is done, delete this cursor
@@ -128,12 +128,10 @@ local function connection_instance(r, handshake_inst, host, port, ssl_params, ti
       return state.maybe_response()
     end
 
-    local cursor_inst = cursor(conn_inst.r, state, opts, term)
-
     -- Save cursor shared state
     outstanding_callbacks[token] = state
 
-    return cursor_inst
+    return cursor(conn_inst.r, state, options, reql_inst)
   end
 
   function conn_inst._start(reql_inst, options, callback)
@@ -162,7 +160,7 @@ local function connection_instance(r, handshake_inst, host, port, ssl_params, ti
     end
 
     if options.db then
-      global_opts.db = conn_inst.r.reql.db(options.db)
+      global_opts.db = conn_inst.r.reql.db(global_opts.db)
     elseif db then
       global_opts.db = db
     end

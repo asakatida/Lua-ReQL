@@ -47,17 +47,16 @@ local function new_response(state, response, reql_inst)
   end
   local err = error_types[t]
   if err then
-    local r, b = response.r[1], response.b
     local err_type = runtime_error_types[response.e]
     -- Error responses are not discarded, and the error will be sent to all future callbacks
     if err_type then
       local function it()
-        return err_type(reql_inst.r, r, reql_inst, b)
+        return err_type(reql_inst.r, response.r[1], reql_inst, response.b)
       end
       return it
     end
     local function it()
-      return err(reql_inst.r, r, reql_inst, b)
+      return err(reql_inst.r, response.r[1], reql_inst, response.b)
     end
     return it
   end
@@ -120,7 +119,7 @@ function meta_table.__pairs(cursor_inst)
   return cursor_inst.each()
 end
 
-local function cursor(r, state, opts, reql_inst)
+local function cursor(r, state, options, reql_inst)
   local cursor_inst = setmetatable({r = r}, meta_table)
 
   function state.add_response(response)
@@ -149,7 +148,7 @@ local function cursor(r, state, opts, reql_inst)
         cursor_inst.set()
       end
       local err
-      row, err = convert_pseudotype(cursor_inst.r, row, opts)
+      row, err = convert_pseudotype(cursor_inst.r, row, options)
       if row == nil then
         state.outstanding_callback(err)
         state.it = nil
