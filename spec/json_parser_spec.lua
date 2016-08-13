@@ -5,6 +5,8 @@ local function reql_error_formatter(err)
   end
 end
 
+local version = require('rethinkdb.internal.semver')(_VERSION)
+
 describe('control dkjson', function()
   local r
 
@@ -75,22 +77,22 @@ describe('control dkjson', function()
     assert.same({1}, assert.is_table(cur.to_array()))
   end)
 
-  it('do', function()
-    local cur = r.run(r.reql.call(function() return 1 end))
-    assert.same({1}, assert.is_table(cur.to_array()))
-  end)
-
-  it('do add', function()
-    local cur = r.run(r.reql.call(1, 2, function(x, y) return x.add(y) end))
-    assert.same({3}, assert.is_table(cur.to_array()))
-  end)
-
   it('do append', function()
     local cur = r.run(r.reql{0, 1, 2}.call(function(v) return v.append(3) end))
     assert.same({{0, 1, 2, 3}}, assert.is_table(cur.to_array()))
   end)
 
-  if string.match(_VERSION, '5.[23]') then
+  if version.major >= 5 and version.minor > 1 then
+    it('do', function()
+      local cur = r.run(r.reql.call(function() return 1 end))
+      assert.same({1}, assert.is_table(cur.to_array()))
+    end)
+
+    it('do add', function()
+      local cur = r.run(r.reql.call(1, 2, function(x, y) return x.add(y) end))
+      assert.same({3}, assert.is_table(cur.to_array()))
+    end)
+
     it('do extra arg', function()
       local cur = r.run(r.reql.call(1, function(x, y) return x + y end))
       assert.is_nil(cur.to_array())
