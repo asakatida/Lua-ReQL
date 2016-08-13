@@ -21,6 +21,13 @@ local START = Query.START
 
 local nil_table = {}
 
+local local_opts = {
+  binary_format = true,
+  format = true,
+  group_format = true,
+  time_format = true,
+}
+
 --- convert from internal represention to JSON
 local function build(term)
   if type(term) ~= 'table' then return term end
@@ -102,7 +109,6 @@ local function protocol(socket_inst)
     if not success then
       return nil, err
     end
-    -- buffer_response()
     return token
   end
 
@@ -115,7 +121,9 @@ local function protocol(socket_inst)
     if global_opts and next(global_opts) then
       optargs = {}
       for k, v in pairs(global_opts) do
-        optargs[k] = build(v)
+        if not local_opts[k] then
+          optargs[k] = build(v)
+        end
       end
     end
 
