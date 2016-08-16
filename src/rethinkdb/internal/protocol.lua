@@ -11,6 +11,10 @@ local protect = require'rethinkdb.internal.protect'
 local protodef = require'rethinkdb.internal.protodef'
 
 local Query = protodef.Query
+local Term = protodef.Term
+
+local datum = Term.datum
+local make_obj = Term.make_obj
 
 local CONTINUE = '[' .. Query.CONTINUE .. ']'
 local NOREPLY_WAIT = '[' .. Query.NOREPLY_WAIT .. ']'
@@ -31,27 +35,30 @@ local local_opts = {
 --- convert from internal represention to JSON
 local function build(term)
   if type(term) ~= 'table' then return term end
-  if term.st == 'datum' then
+  if term.tt == datum then
     return term.args[1]
   end
-  if term.st == 'make_obj' then
+  if term.tt == make_obj then
     local res = {}
     for key, val in pairs(term.optargs) do
       res[key] = build(val)
     end
     return res
   end
-  local _args = {}
-  for i, arg in ipairs(term.args) do
-    _args[i] = build(arg)
+  local res = {term.tt}
+  if next(term.args) then
+    local args = {}
+    for i, arg in ipairs(term.args) do
+      args[i] = build(arg)
+    end
+    res[2] = args
   end
-  local res = {term.tt, _args}
   if next(term.optargs) then
     local opts = {}
     for key, val in pairs(term.optargs) do
       opts[key] = build(val)
     end
-    table.insert(res, opts)
+    res[3] = opts
   end
   return res
 end
@@ -114,26 +121,23 @@ local function protocol(socket_inst)
 
   local get_token = new_token()
 
-  local protocol_inst = {}
+  local protocol_inst = {close = socket_inst.close}
 
   function protocol_inst.send_query(r, reql_inst, global_opts)
-    local optargs
+    local query = {START, build(reql_inst)}
     if global_opts and next(global_opts) then
-      optargs = {}
+      local optargs = {}
       for k, v in pairs(global_opts) do
         if not local_opts[k] then
           optargs[k] = build(v)
         end
       end
+      if next(optargs) then query[3] = optargs end
     end
 
     -- Assign token
-    local data = protect(r.encode, {START, build(reql_inst), optargs})
+    local data = protect(r.encode, query)
     return write_socket(get_token(), data)
-  end
-
-  function protocol_inst.close()
-    socket_inst.close()
   end
 
   function protocol_inst.continue_query(token)
