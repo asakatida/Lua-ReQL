@@ -40,7 +40,11 @@ describe('pseudotype', function()
     local query = assert.is_table(r.reql(data).group'x')
     local raw = assert.is_table(r.run(query).to_array())[1]
     local native = assert.is_table(query.run(r.c, {group_format = 'native'}).to_array())[1]
-    assert.are_same(native, raw)
+    assert.are_not_same(native, raw)
+    for i = 1, #raw.data do
+      assert.are_same(native[i].group, raw.data[i][1])
+      assert.are_same(native[i].reduction, raw.data[i][2])
+    end
   end)
 
   it('time', function()
@@ -50,7 +54,9 @@ describe('pseudotype', function()
     local query = assert.is_table(r.reql.db'time'.table'now'.get(0)'time')
     local raw = assert.is_table(r.run(query).to_array())[1]
     local native = assert.is_table(query.run(r.c, {time_format = 'native'}).to_array())[1]
-    assert.are_same(native, raw)
     assert.is_table(r.run(r.reql.db'time'.table'now'.delete()).to_array())
+    assert.are_not_same(native, raw)
+    assert.is_number(raw.epoch_time)
+    assert.is_number(native.hour)
   end)
 end)

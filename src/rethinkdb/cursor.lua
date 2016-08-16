@@ -38,7 +38,7 @@ local runtime_error_types = {
   [ErrorType.USER] = errors.ReQLUserError,
 }
 
-local function new_response(state, response, reql_inst)
+local function new_response(state, response, options, reql_inst)
   -- Behavior varies considerably based on response type
   local t = response.t
   if t ~= SUCCESS_PARTIAL then
@@ -71,7 +71,8 @@ local function new_response(state, response, reql_inst)
       local res
       ipairs_var, res = ipairs_f(ipairs_s, ipairs_var)
       if ipairs_var ~= nil then
-        return res
+        res, err = convert_pseudotype(reql_inst.r, res, options)
+        return res or errors.ReQLDriverError(err)
       end
     end
     return it
@@ -134,7 +135,7 @@ local function cursor(r, state, options, reql_inst)
         cursor_inst.feed_type = 'finite'
       end
     end
-    state.it = new_response(state, response, reql_inst)
+    state.it = new_response(state, response, options, reql_inst)
     while state.outstanding_callback do
       local row = state.it()
       if not row then
@@ -145,13 +146,6 @@ local function cursor(r, state, options, reql_inst)
       end
       if type(row) == 'table' and row.ReQLError then
         state.outstanding_callback(row)
-        cursor_inst.set()
-      end
-      local err
-      row, err = convert_pseudotype(cursor_inst.r, row, options)
-      if row == nil then
-        state.outstanding_callback(err)
-        state.it = nil
         cursor_inst.set()
       end
       state.outstanding_callback(nil, row)

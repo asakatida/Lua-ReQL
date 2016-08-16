@@ -59,7 +59,7 @@ local time_table = {
 -- @treturn table
 local function convert_pseudotype(r, row, options)
   local function native_binary(obj)
-    return r.unb64(assert(obj.data, 'pseudo-type BINARY table missing expected field `data`'))
+    return r.unb64('' .. assert(obj.data, 'pseudo-type BINARY table missing expected field `data`'))
   end
 
   local binary_table = {
