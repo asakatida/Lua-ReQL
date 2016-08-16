@@ -72,7 +72,10 @@ local function new_response(state, response, options, reql_inst)
       ipairs_var, res = ipairs_f(ipairs_s, ipairs_var)
       if ipairs_var ~= nil then
         res, err = convert_pseudotype(reql_inst.r, res, options)
-        return res or errors.ReQLDriverError(reql_inst.r, err, reql_inst)
+        if not res then
+          return errors.ReQLDriverError(reql_inst.r, err, reql_inst)
+        end
+        return res
       end
     end
     return it
