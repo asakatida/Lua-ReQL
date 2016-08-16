@@ -15,14 +15,10 @@ local protect = require'rethinkdb.internal.protect'
 -- [ { 'group': <group>, 'reduction': <value(s)> }, ... ]
 local function native_group(obj)
   assert(obj.data, 'pseudo-type GROUPED_DATA table missing expected field `data`')
-  local res = {}
-  for group, reduction in pairs(obj.data) do
-    table.insert(res, {
-      group = group,
-      reduction = reduction
-    })
+  for i = 1, #obj.data do
+    obj.data[i] = {group = obj.data[i][1], reduction = obj.data[i][2]}
   end
-  return res
+  return obj.data
 end
 
 --- native conversion from reql time data to Lua
@@ -70,10 +66,6 @@ local function convert_pseudotype(r, row, options)
     native = native_binary,
     raw = raw
   }
-
-  if options and options.binary_format then
-    print(options.binary_format)
-  end
 
   local fomat = options.format or 'raw'
   local binary_format, group_format, time_format =
