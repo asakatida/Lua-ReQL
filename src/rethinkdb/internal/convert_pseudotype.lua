@@ -30,7 +30,7 @@ end
 -- field 'epoch_time' is in seconds but the Date constructor expects milliseconds
 local function native_time(obj)
   local epoch_time = assert(obj.epoch_time, 'pseudo-type TIME table missing expected field `epoch_time`')
-  local time = os.date("*t", epoch_time)
+  local time = os.date("!*t", math.floor(epoch_time))
   time.timezone = obj.timezone
   return time
 end
