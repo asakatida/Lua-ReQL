@@ -14,7 +14,7 @@ local ErrorType = protodef.ErrorType
 local SUCCESS_PARTIAL = Response.SUCCESS_PARTIAL
 local WAIT_COMPLETE = Response.WAIT_COMPLETE
 
-local basic_resposes = {
+local basic_responses = {
   [Response.SERVER_INFO] = true,
   [Response.SUCCESS_ATOM] = true,
   [Response.SUCCESS_PARTIAL] = true,
@@ -65,16 +65,19 @@ local function new_response(state, response, options, reql_inst)
     end
     return it
   end
-  if basic_resposes[t] then
+  if basic_responses[t] then
+    response.r, err = convert_pseudotype(reql_inst.r, response.r, options)
+    if not response.r then
+      local function it()
+        return errors.ReQLDriverError(reql_inst.r, err, reql_inst)
+      end
+      return it
+    end
     local ipairs_f, ipairs_s, ipairs_var = ipairs(response.r)
     local function it()
       local res
       ipairs_var, res = ipairs_f(ipairs_s, ipairs_var)
       if ipairs_var ~= nil then
-        res, err = convert_pseudotype(reql_inst.r, res, options)
-        if not res then
-          return errors.ReQLDriverError(reql_inst.r, err, reql_inst)
-        end
         return res
       end
     end
