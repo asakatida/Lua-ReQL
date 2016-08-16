@@ -72,13 +72,13 @@ local function new_response(state, response, options, reql_inst)
       ipairs_var, res = ipairs_f(ipairs_s, ipairs_var)
       if ipairs_var ~= nil then
         res, err = convert_pseudotype(reql_inst.r, res, options)
-        return res or errors.ReQLDriverError(err)
+        return res or errors.ReQLDriverError(reql_inst.r, err, reql_inst)
       end
     end
     return it
   end
   local function it()
-    return errors.ReQLDriverError(reql_inst.r, 'unknown response type from server [' .. t .. '].')
+    return errors.ReQLDriverError(reql_inst.r, 'unknown response type from server [' .. t .. '].', reql_inst)
   end
   return it
 end
