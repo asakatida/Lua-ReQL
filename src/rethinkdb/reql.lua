@@ -1,4 +1,8 @@
 --- Interface
+-- The terms accepted and their signatures are more dependent on the server that
+-- the driver connects to. All reql terms are available as a top level property
+-- and as a chained term. See RethinkDB api documentation for terms and their
+-- arguments.
 -- @module rethinkdb.reql
 -- @author Adam Grandquist
 -- @license Apache
@@ -325,7 +329,7 @@ local function index(r, st)
       end
     end
 
-    --- send term to server for evaluation
+    --- Run a query on a connection and return a cursor or nil and an error
     -- @tab connection
     -- @tab[opt] options
     -- @func[opt] callback

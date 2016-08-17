@@ -48,6 +48,7 @@ local function connection_instance(r, handshake_inst, host, port, ssl_params, ti
     return protocol_inst and true or false
   end
 
+  --- Change the default database on this connection.
   function conn_inst.use(_db)
     if _db then
       db = conn_inst.r.reql.db(_db)
@@ -179,6 +180,14 @@ local function connection_instance(r, handshake_inst, host, port, ssl_params, ti
     return cb(nil, make_cursor(token, options, reql_inst))
   end
 
+  --- Close an open connection. Accepts the following options.
+  -- - noreply_wait: whether to wait for noreply writes to complete before
+  --   closing (default true). If this is set to false, some outstanding noreply
+  --   writes may be aborted. Has no effect if connection is already closing.
+  -- Closing a connection waits until all outstanding requests have finished and
+  -- then frees any open resources associated with the connection. If
+  -- noreply_wait is set to false, all outstanding requests are canceled
+  -- immediately.
   function conn_inst.close(opts_or_callback, callback)
     local opts = {}
     if callback or type(opts_or_callback) == 'table' then
@@ -238,6 +247,9 @@ local function connection_instance(r, handshake_inst, host, port, ssl_params, ti
     return conn_inst
   end
 
+  --- noreply_wait ensures that previous queries with the noreply flag have been
+  -- processed by the server. Note that this guarantee only applies to queries
+  -- run on the given connection.
   function conn_inst.noreply_wait(callback)
     local function cb(err, success)
       if callback then
@@ -264,6 +276,10 @@ local function connection_instance(r, handshake_inst, host, port, ssl_params, ti
     return cb(nil, true)
   end
 
+  --- Close and reopen a connection. Accepts the following options.
+  -- - noreply_wait. whether to wait for noreply writes to complete before
+  --   closing (default true). If this is set to false, some outstanding noreply
+  --   writes may be aborted. Has no effect if connection is already closing.
   function conn_inst.reconnect(opts_or_callback, callback)
     local opts = {}
     if callback or not type(opts_or_callback) == 'function' then

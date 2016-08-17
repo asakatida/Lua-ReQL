@@ -48,10 +48,16 @@ end
 local m = {}
 
 function m.init(r)
+  --- Depreciated implementation of RethinkDB handshake version 0.3. Supports
+  -- server version 1.16+. Passed to proto_version connection option. Will be
+  -- removed in driver version 2.
   function r.proto_V0_3(_, socket_inst, auth_key)
     return proto_V0_x(r, socket_inst, auth_key, '\62\232\117\95')
   end
 
+  --- Depreciated implementation of RethinkDB handshake version 0.4. Supports
+  -- server version 2.0+. Passed to proto_version connection option. Will be
+  -- removed in driver version 2.
   function r.proto_V0_4(_, socket_inst, auth_key)
     return proto_V0_x(r, socket_inst, auth_key, '\32\45\12\64')
   end

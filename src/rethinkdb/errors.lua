@@ -38,8 +38,27 @@ end
 local errors_meta_table = {}
 
 function errors_meta_table.__index(_, name)
+  --- Errors have the following heiarchy.
+  -- - ReQLError
+  --   - ReQLDriverError
+  --     - ReQLAuthError
+  --   - ReQLServerError
+  --     - ReQLClientError
+  --     - ReQLCompileError
+  --     - ReQLRuntimeError
+  --       - ReQLAvailabilityError
+  --         - ReQLOpFailedError
+  --         - ReQLOpIndeterminateError
+  --       - ReQLInternalError
+  --         - ReQLQueryLogicError
+  --       - ReQLNonExistenceError
+  --       - ReQLResourceLimitError
+  --       - ReQLTimeoutError
+  --       - ReQLUserError
+  -- An error instance has properties pointing to itself for each category it is
+  -- a part of.
   local function ReQLError(r, msg, term, frames)
-    assert(msg)
+    --- Error message string from server without attached query.
     local error_inst = setmetatable({r = r, msg = msg}, error_inst_meta_table)
 
     local _name = name
@@ -48,6 +67,8 @@ function errors_meta_table.__index(_, name)
       _name = rawget(heiarchy, _name)
     end
 
+    --- Provide a detailed message showing error category, problem, and location
+    -- in query. This is more relevant for ReQLServerErrors.
     function error_inst.message()
       local _message = name .. ' ' .. error_inst.msg
       if term and frames then

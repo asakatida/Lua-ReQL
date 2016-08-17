@@ -126,6 +126,8 @@ function meta_table.__pairs(cursor_inst)
   return cursor_inst.each()
 end
 
+--- Object returned from a successful send to server. This is used to retrieve
+-- results of a query.
 local function cursor(r, state, options, reql_inst)
   local cursor_inst = setmetatable({r = r}, meta_table)
 
@@ -158,6 +160,10 @@ local function cursor(r, state, options, reql_inst)
     end
   end
 
+  --- Set or clear a callback for asynchronous processing of query results.
+  -- Calling without arguments clears any previous function set, and retains
+  -- results for future retrieval. This will only be called if another cursor
+  -- from the same connection is retrieving rows synchronously.
   function cursor_inst.set(callback)
     state.outstanding_callback = callback
     if callback then
@@ -165,6 +171,8 @@ local function cursor(r, state, options, reql_inst)
     end
   end
 
+  --- Close a cursor. Closing a cursor cancels the corresponding query and frees
+  -- the memory associated with the open request.
   function cursor_inst.close(callback)
     local function cb(err)
       if callback then return callback(err) end
@@ -182,11 +190,18 @@ local function cursor(r, state, options, reql_inst)
     return cb()
   end
 
+  --- Supports iteration with a for loop. First variable is an auto incrementing
+  -- integer starting at 1. This does not correspond with any data on the
+  -- server. If this is 0 then the row is an error. This error will be returned
+  -- forever and the caller is responsible for breaking out of the loop. The
+  -- second variable is a row result from the query or an error.
   function cursor_inst.each()
     cursor_inst.set()
     return each, state, 0
   end
 
+  --- Collect all results from cursor and close. In the case of an error the
+  -- first result is nil and the third result contains any results received.
   function cursor_inst.to_array()
     local arr = {}
 
