@@ -1,81 +1,76 @@
+local function reql_error_formatter(err)
+  if type(err) ~= 'table' then return end
+  if err.ReQLError then
+    return err.message()
+  end
+end
+
 describe('change feeds', function()
-  local r, reql_db, reql_table, c
+  local r
 
   setup(function()
+    assert:add_formatter(reql_error_formatter)
     r = require('rethinkdb')
 
-    reql_db = 'changefeeds'
-    reql_table = 'watched'
+    function r.run(query, ...)
+      assert.is_table(query, ...)
+      return assert.is_table(query.run(query.r.c))
+    end
 
-    local err
+    r.reql_db = r.reql.db'changefeeds'
+    r.reql_table = r.reql.table'watched'
 
-    c, err = r.connect()
-    if err then error(err.message()) end
+    r.c = assert.is_table(r.connect())
 
-    r.db_create(reql_db).run(c)
-    c.use(reql_db)
-    r.table_create(reql_table).run(c)
+    r.run(r.reql.db_create'changefeeds').to_array()
+    r.c.use'changefeeds'
+    r.run(r.reql.table_create'watched').to_array()
   end)
 
   before_each(function()
-    r.table(reql_table).insert{
+    r.run(r.reql_table.insert{
       {id = 1}, {id = 2}, {id = 3},
       {id = 4}, {id = 5}, {id = 6}
-    }.run(c)
+    }).to_array()
   end)
 
   after_each(function()
-    r.table(reql_table).delete().run(c)
+    r.run(r.reql_table.delete()).to_array()
   end)
 
   teardown(function()
     r = nil
+    assert:remove_formatter(reql_error_formatter)
   end)
 
   it('all', function()
-    local res = r.table(reql_table).changes().limit(4).run(
-      c, function(_err, cur)
-        if _err then error(_err.message()) end
-        r.table(reql_table).insert(
-          {{id = 7}, {id = 8}, {id = 9}, {id = 10}}
-        ).run(c, function(err)
-          if err then error(err.message()) end
-        end)
-        local res = {}
-        cur.each(function(row)
-          table.insert(res, row.new_val.id)
-        end, function(err)
-          if err then error(err.message()) end
-        end)
-        return res
-      end
-    )
+    local cur = r.run(r.reql_table.changes().limit(4))
+    r.run(r.reql_table.insert{
+      {id = 7}, {id = 8}, {id = 9}, {id = 10}
+    }).to_array()
+    local res = {}
+    for i, v in cur.each() do
+      assert.is_not_equal(0, i, v)
+      res[i] = v.new_val.id
+    end
     table.sort(res)
-    assert.same(res, {7, 8, 9, 10})
+    assert.same({7, 8, 9, 10}, res)
   end)
 
   it('even', function()
-    local res = r.table(reql_table).changes().filter(
+    local cur = r.run(r.reql_table.changes().filter(
       function(row)
-        return (row('new_val')('id') % 2).eq(0)
+        return (row'new_val''id' % 2).eq(0)
       end
-    ).limit(2).run(
-      c, function(_err, cur)
-        if _err then error(_err.message()) end
-        r.table(reql_table).insert(
-          {{id = 7}, {id = 8}, {id = 9}, {id = 10}}
-        ).run(c, function(err)
-          if err then error(err.message()) end
-        end)
-        local res = {}
-        cur.each(function(row)
-          table.insert(res, row.new_val.id)
-        end, function(err)
-          if err then error(err.message()) end
-        end)
-        return res
-      end
-    )
+    ).limit(2))
+    r.run(r.reql_table.insert{
+      {id = 7}, {id = 8}, {id = 9}, {id = 10}
+    }).to_array()
+    local res = {}
+    for i, v in cur.each() do
+      assert.is_not_equal(0, i, v)
+      res[i] = v.new_val.id
+    end
     table.sort(res)
     assert.same(res, {8, 10})
   end)

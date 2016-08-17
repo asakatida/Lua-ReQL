@@ -2,7 +2,7 @@ describe('convert pseudotype', function()
   local convert_pseudotype
 
   setup(function()
-    convert_pseudotype = require('rethinkdb.convert_pseudotype')
+    convert_pseudotype = require('rethinkdb.internal.convert_pseudotype')
   end)
 
   teardown(function()

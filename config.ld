@@ -5,8 +5,8 @@ description = 'A Lua driver for RethinkDB.'
 file = {
   'src',
   exclude = {
-    'src/rethinkdb/protodef.lua',
-    'src/rethinkdb/semver.lua',
+    'src/rethinkdb/internal/protodef.lua',
+    'src/rethinkdb/internal/semver.lua',
   }
 }
 format = 'discount'

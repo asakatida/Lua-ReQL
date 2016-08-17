@@ -2,15 +2,11 @@ describe('bits', function()
   local bits
 
   setup(function()
-    bits = require('rethinkdb.bits')
+    bits = require('rethinkdb.internal.bits51')
   end)
 
   teardown(function()
     bits = nil
-  end)
-
-  it('tobit', function()
-    assert.same(7, bits.tobit(7))
   end)
 
   it('or 1', function()

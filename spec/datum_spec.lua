@@ -1,171 +1,99 @@
+local function reql_error_formatter(err)
+  if type(err) ~= 'table' then return end
+  if err.ReQLError then
+    return err.message()
+  end
+end
+
 describe('datum', function()
-  local r, reql_db, reql_table, c
+  local r
 
   setup(function()
+    assert:add_formatter(reql_error_formatter)
     r = require('rethinkdb')
 
-    reql_db = 'roundtrip'
-    reql_table = 'datum'
+    function r.run(query, ...)
+      assert.is_table(query, ...)
+      return assert.is_table(query.run(query.r.c))
+    end
 
-    local err
-
-    c, err = r.connect()
-    if err then error(err.message()) end
-
-    r.db_create(reql_db).run(c)
-    c.use(reql_db)
-    r.table_create(reql_table).run(c)
-  end)
-
-  after_each(function()
-    r.table(reql_table).delete().run(c)
+    r.c = assert.is_table(r.connect())
   end)
 
   teardown(function()
     r = nil
+    assert:remove_formatter(reql_error_formatter)
   end)
 
   it('false', function()
-    assert.same({false}, r(false).run(
-      c, function(_err, cur)
-        if _err then error(_err.message()) end
-        return cur.to_array(function(err, arr)
-          if err then error(err.message()) end
-          return arr
-        end)
-      end
-    ))
+    local var = false
+    local cur = r.run(r.reql(var))
+    assert.same({var}, cur.to_array())
   end)
 
   it('true', function()
-    assert.same({true}, r(true).run(
-      c, function(_err, cur)
-        if _err then error(_err.message()) end
-        return cur.to_array(function(err, arr)
-          if err then error(err.message()) end
-          return arr
-        end)
-      end
-    ))
+    local var = true
+    local cur = r.run(r.reql(var))
+    assert.same({var}, cur.to_array())
   end)
 
   it('nil', function()
-    assert.same({nil}, r(nil).run(
-      c, function(_err, cur)
-        if _err then error(_err.message()) end
-        return cur.to_array(function(err, arr)
-          if err then error(err.message()) end
-          return arr
-        end)
-      end
-    ))
+    local var = nil
+    local cur = r.run(r.reql(var))
+    assert.same({r.decode'null'}, cur.to_array())
   end)
 
   it('string', function()
-    assert.same({'not yap wa\' Hol'}, r('not yap wa\' Hol').run(
-      c, function(_err, cur)
-        if _err then error(_err.message()) end
-        return cur.to_array(function(err, arr)
-          if err then error(err.message()) end
-          return arr
-        end)
-      end
-    ))
+    local var = 'not yap wa\' Hol'
+    local cur = r.run(r.reql(var))
+    assert.same({var}, cur.to_array())
   end)
 
   it('0', function()
-    assert.same({0}, r(0).run(
-      c, function(_err, cur)
-        if _err then error(_err.message()) end
-        return cur.to_array(function(err, arr)
-          if err then error(err.message()) end
-          return arr
-        end)
-      end
-    ))
+    local var = 0
+    local cur = r.run(r.reql(var))
+    assert.same({var}, cur.to_array())
   end)
 
   it('1', function()
-    assert.same({1}, r(1).run(
-      c, function(_err, cur)
-        if _err then error(_err.message()) end
-        return cur.to_array(function(err, arr)
-          if err then error(err.message()) end
-          return arr
-        end)
-      end
-    ))
+    local var = 1
+    local cur = r.run(r.reql(var))
+    assert.same({var}, cur.to_array())
   end)
 
   it('-1', function()
-    assert.same({-1}, r(-1).run(
-      c, function(_err, cur)
-        if _err then error(_err.message()) end
-        return cur.to_array(function(err, arr)
-          if err then error(err.message()) end
-          return arr
-        end)
-      end
-    ))
+    local var = -1
+    local cur = r.run(r.reql(var))
+    assert.same({var}, cur.to_array())
   end)
 
   it('τ', function()
-    assert.same({6.28}, r(6.28).run(
-      c, function(_err, cur)
-        if _err then error(_err.message()) end
-        return cur.to_array(function(err, arr)
-          if err then error(err.message()) end
-          return arr
-        end)
-      end
-    ))
+    local var = 6.28
+    local cur = r.run(r.reql(var))
+    assert.same({var}, cur.to_array())
   end)
 
   it('𝑒', function()
-    assert.same({2.2}, r(2.2).run(
-      c, function(_err, cur)
-        if _err then error(_err.message()) end
-        return cur.to_array(function(err, arr)
-          if err then error(err.message()) end
-          return arr
-        end)
-      end
-    ))
+    local var = 2.2
+    local cur = r.run(r.reql(var))
+    assert.same({var}, cur.to_array())
   end)
 
   it('α', function()
-    assert.same({0.00001}, r(0.00001).run(
-      c, function(_err, cur)
-        if _err then error(_err.message()) end
-        return cur.to_array(function(err, arr)
-          if err then error(err.message()) end
-          return arr
-        end)
-      end
-    ))
+    local var = 0.00001
+    local cur = r.run(r.reql(var))
+    assert.same({var}, cur.to_array())
   end)
 
   it('array', function()
-    assert.same({{[1] = 1, [2] = 2}}, r({[1] = 1, [2] = 2}).run(
-      c, function(_err, cur)
-        if _err then error(_err.message()) end
-        return cur.to_array(function(err, arr)
-          if err then error(err.message()) end
-          return arr
-        end)
-      end
-    ))
+    local var = {[1] = 1, [2] = 2}
+    local cur = r.run(r.reql(var))
+    assert.same({var}, cur.to_array())
   end)
 
   it('table', function()
-    assert.same({{first = 1, second = 2}}, r({first = 1, second = 2}).run(
-      c, function(_err, cur)
-        if _err then error(_err.message()) end
-        return cur.to_array(function(err, arr)
-          if err then error(err.message()) end
-          return arr
-        end)
-      end
-    ))
+    local var = {first = 1, second = 2}
+    local cur = r.run(r.reql(var))
+    assert.same({var}, cur.to_array())
   end)
 end)

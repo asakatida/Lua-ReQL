@@ -1,86 +1,51 @@
 --- Main interface combining public modules in an export table.
+-- The api accepts a callback function as an optional last argument in several
+-- places. Where it does, the normal return objects are sent to the callback
+-- after an optional error object, and the callback results are returned.  All
+-- calls that can error will return a nil or false first and an error second. No
+-- results will be returned after an error. An error can be a string from other
+-- Lua modules or a ReQLError.
 -- @module rethinkdb
 -- @author Adam Grandquist
 -- @license Apache
 -- @copyright Adam Grandquist 2016
 -- @alias r
 
-local ast = require'rethinkdb.ast'
 local connection = require'rethinkdb.connection'
-local current_protocol = require'rethinkdb.current_protocol'
-local errors = require'rethinkdb.errors'
-local int_to_bytes = require'rethinkdb.int_to_bytes'
-local type_ = require'rethinkdb.type'
+local connector = require'rethinkdb.connector'
+local current_handshake = require'rethinkdb.internal.current_handshake'
+local depreciate = require'rethinkdb.depreciate'
+local utilities = require'rethinkdb.internal.utilities'
+local reql = require'rethinkdb.reql'
+local rtype = require'rethinkdb.rtype'
 
-local v = require('rethinkdb.semver')
+local v = require('rethinkdb.internal.semver')
 
-local function proto_V0_x(raw_socket, auth_key, magic)
-  -- Initialize connection with magic number to validate version
-  local size, send_err = raw_socket.send(
-    magic,
-    int_to_bytes(#auth_key, 4),
-    auth_key,
-    '\199\112\105\126'
-  )
-  if not size then
-    return nil, send_err
-  end
-  if send_err ~= '' then
-    size, send_err = raw_socket.send(send_err)
-    if not size then
-      return nil, send_err
-    end
-    if send_err ~= '' then
-      return nil, errors.ReQLDriverError'Incomplete protocol sent'
-    end
-  end
+--- Creates an independent driver instance with the passed options.
+local function new(driver_options)
+  --- The top-level ReQL namespace. Connections, cursors, errors, queries, and
+  -- driver instances have a property r that points to the driver instance they
+  -- were created with.
+  local r = {}
 
-  -- Now we have to wait for a response from the server
-  -- acknowledging the connection
-  local message, buffer = raw_socket.get_message('')
+  r.new = new
 
-  if message == 'SUCCESS' then
-    -- We're good, finish setting up the connection
-    return buffer
-  end
-  if message then
-    return nil, errors.ReQLDriverError(message)
-  end
-  return nil, buffer
+  --- Implementation of RethinkDB handshake version 1. Supports server version
+  -- 2.3+. Passed to proto_version connection option.
+  r.proto_V1_0 = current_handshake
+
+  --- The loaded luarocks version string as a semver.
+  r.version = v'1.0.0'
+  r._VERSION = r.version
+
+  connection.init(r)
+  connector.init(r)
+  depreciate.init(r)
+  reql.init(r)
+  rtype.init(r)
+  utilities.init(r, driver_options or {})
+
+  return r
 end
 
-local function proto_V0_3(_, raw_socket, auth_key)
-  return proto_V0_x(raw_socket, auth_key, '\62\232\117\95')
-end
-
-local function proto_V0_4(_, raw_socket, auth_key)
-  return proto_V0_x(raw_socket, auth_key, '\32\45\12\64')
-end
-
--- r is both the main export table for the module
--- and a function that wraps a native Lua value in a ReQL datum
-local r = ast
-
-r.Connection = connection
-r.type = type_
-r.version = v'1.0.0'
-
-function r.connect(host_or_callback, callback)
-  local host = {}
-  if type(host_or_callback) == 'function' then
-    callback = host_or_callback
-  elseif type(host_or_callback) == 'string' then
-    host = {host = host_or_callback}
-  elseif host_or_callback then
-    host = host_or_callback
-  end
-  if not host.r then host.r = r end
-  return r.Connection(host).connect(callback)
-end
-
-r.proto_V0_3 = proto_V0_3
-r.proto_V0_4 = proto_V0_4
-r.proto_V1_0 = current_protocol
-
--- Export all names defined on r
-return r
+return new()

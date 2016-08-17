@@ -1,14 +1,10 @@
 --- Helper for converting ReQL extensions into lua types.
--- @module rethinkdb.convert_pseudotype
+-- @module rethinkdb.internal.convert_pseudotype
 -- @author Adam Grandquist
 -- @license Apache
 -- @copyright Adam Grandquist 2016
 
-local utilities = require'rethinkdb.utilities'
-
-local errors = require'rethinkdb.errors'
-
-local unb64 = utilities.unb64
+local protect = require'rethinkdb.internal.protect'
 
 --- native conversion from reql grouped data to Lua
 -- @tab obj reql group pseudo-type table
@@ -19,25 +15,24 @@ local unb64 = utilities.unb64
 -- [ { 'group': <group>, 'reduction': <value(s)> }, ... ]
 local function native_group(obj)
   assert(obj.data, 'pseudo-type GROUPED_DATA table missing expected field `data`')
-  local res = {}
-  for group, reduction in pairs(obj.data) do
-    table.insert(res, {
-      group = group,
-      reduction = reduction
-    })
+  for i = 1, #obj.data do
+    obj.data[i] = {group = obj.data[i][1], reduction = obj.data[i][2]}
   end
-  return res
+  return obj.data
 end
 
 --- native conversion from reql time data to Lua
 -- @tab obj reql time pseudo-type table
--- @treturn number
+-- @treturn table from os.date
 -- @todo description is from Javascript driver
 -- We ignore the timezone field of the pseudo-type TIME table. JS dates do not support timezones.
 -- By converting to a native date table we are intentionally throwing out timezone information.
 -- field 'epoch_time' is in seconds but the Date constructor expects milliseconds
 local function native_time(obj)
-  return assert(obj.epoch_time, 'pseudo-type TIME table missing expected field `epoch_time`')
+  local epoch_time = assert(obj.epoch_time, 'pseudo-type TIME table missing expected field `epoch_time`')
+  local time = os.date("!*t", math.floor(epoch_time))
+  time.timezone = obj.timezone
+  return time
 end
 
 --- raw pseudo-type from server
@@ -62,10 +57,9 @@ local time_table = {
 -- @tab _obj reql response
 -- @tab opts table of options for native or raw conversions
 -- @treturn table
-local function convert_pseudotype(r, _obj, opts)
+local function convert_pseudotype(r, row, options)
   local function native_binary(obj)
-    assert(obj.data, 'pseudo-type BINARY table missing expected field `data`')
-    return unb64(r, obj.data)
+    return r.unb64('' .. assert(obj.data, 'pseudo-type BINARY table missing expected field `data`'))
   end
 
   local binary_table = {
@@ -73,11 +67,11 @@ local function convert_pseudotype(r, _obj, opts)
     raw = raw
   }
 
-  local fomat = opts.format or 'raw'
+  local fomat = options.format or 'raw'
   local binary_format, group_format, time_format =
-    opts.binary_format or fomat,
-    opts.group_format or fomat,
-    opts.time_format or fomat
+    options.binary_format or fomat,
+    options.group_format or fomat,
+    options.time_format or fomat
 
   local BINARY, GROUPED_DATA, TIME =
     binary_table[binary_format],
@@ -85,19 +79,20 @@ local function convert_pseudotype(r, _obj, opts)
     time_table[time_format]
 
   if not BINARY then
-    return nil, errors.ReQLDriverError('Unknown binary_format run option ' .. binary_format)
+    return nil, 'Unknown binary_format run option ' .. binary_format
   end
 
   if not GROUPED_DATA then
-    return nil, errors.ReQLDriverError('Unknown group_format run option ' .. group_format)
+    return nil, 'Unknown group_format run option ' .. group_format
   end
 
   if not TIME then
-    return nil, errors.ReQLDriverError('Unknown time_format run option ' .. time_format)
+    return nil, 'Unknown time_format run option ' .. time_format
   end
 
   local conversion = {
     BINARY = BINARY,
+    GEOMETRY = raw,
     GROUPED_DATA = GROUPED_DATA,
     TIME = TIME,
   }
@@ -119,13 +114,7 @@ local function convert_pseudotype(r, _obj, opts)
     return obj
   end
 
-  local status, res = pcall(convert, _obj)
-
-  if status then
-    return res
-  end
-
-  return nil, errors.ReQLDriverError(res)
+  return protect(convert, row)
 end
 
 return convert_pseudotype

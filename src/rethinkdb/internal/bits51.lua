@@ -1,7 +1,7 @@
 --- Helper for bitwise operations.
 -- slow implementations for Lua 5.1 without luabitops
 -- only includes functions used by lua-reql
--- @module rethinkdb.bits
+-- @module rethinkdb.internal.bits
 -- @author Adam Grandquist
 -- @license Apache
 -- @copyright Adam Grandquist 2016
@@ -38,13 +38,6 @@ function m.bxor(l, r)
     i = i + 1
   end
   return n
-end
-
---- normalize integer to bitfield
--- @int a integer
--- @treturn int
-function m.tobit(a)
-  return m.bor(a, 0)
 end
 
 return m
