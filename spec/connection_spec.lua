@@ -25,6 +25,14 @@ describe('connection', function()
     end)
   end)
 
+  it('refused', function()
+    local conn, err = r.connect'172.0.0.254'
+    assert.is_nil(conn)
+    assert.is_table(err)
+    assert.is_table(err.ReQLDriverError)
+    assert.is_nil(err.ReQLAuthError)
+  end)
+
   it('return conn', function()
     local conn, err = r.connect()
     assert.is_nil(err)
