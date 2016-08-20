@@ -28,8 +28,7 @@ local function connection_instance(r, handshake_inst, host, port, ssl_params, ti
   local responses = {}
 
   local function reset(err)
-    db = nil
-    protocol_inst.close()
+    if protocol_inst then protocol_inst.close() end
     protocol_inst = nil
     for _, state in pairs(outstanding_callbacks) do
       state.open = nil
