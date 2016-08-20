@@ -35,7 +35,7 @@ local function new(driver_options)
   r.proto_V1_0 = current_handshake
 
   --- The loaded luarocks version string as a semver.
-  r.version = v'1.0.0'
+  r.version = v'1.0.1'
   r._VERSION = r.version
 
   connection.init(r)
