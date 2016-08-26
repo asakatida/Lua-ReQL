@@ -13,8 +13,7 @@ local function socket(r, host, port, ssl_params, timeout)
     return nil, init_err
   end
 
-  raw_socket:settimeout(timeout, 't')
-  raw_socket:settimeout(timeout, 'b')
+  raw_socket:settimeout(timeout)
 
   local status
 
