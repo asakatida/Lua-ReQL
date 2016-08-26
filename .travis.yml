@@ -32,6 +32,7 @@ before_install:
   - pip install hererocks
   - hererocks here/$LUA_PATH -r^ --$LUA
   - source here/$LUA_PATH/bin/activate
+  - cd ../.. # previous line changes cwd
   - luarocks install luacheck
   - luacheck src
   # Fix from https://github.com/leafo/lapis/issues/6
