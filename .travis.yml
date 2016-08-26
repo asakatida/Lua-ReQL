@@ -29,10 +29,10 @@ before_install:
   - ./configure --with-debug --with-cc-opt="-DDEBUG_MALLOC" > build.log 2>&1 || (cat build.log && exit 1)
   - make -j$JOBS > build.log 2>&1 || (cat build.log && exit 1)
   - export PATH=$PATH:`pwd`/objs
+  - cd .. # previous line changes cwd
   - pip install hererocks
   - hererocks here/$LUA_PATH -r^ --$LUA
   - source here/$LUA_PATH/bin/activate
-  - cd ../.. # previous line changes cwd
   - luarocks install luacheck
   - luacheck src
   # Fix from https://github.com/leafo/lapis/issues/6
