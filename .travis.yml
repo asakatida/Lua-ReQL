@@ -23,10 +23,14 @@ env:
 before_install:
   - sudo apt-get update
   - sudo apt-get install -qq -y cpanminus
+  - sudo cpanm --notest Test::Nginx > build.log 2>&1 || (cat build.log && exit 1)
   - pip install hererocks
   - hererocks here/$LUA_PATH -r^ --$LUA
   - source here/$LUA_PATH/bin/activate
-  - sudo cpanm --notest Test::Nginx > build.log 2>&1 || (cat build.log && exit 1)
+  - export LUA_INCLUDE_DIR=$PWD/here/$LUA_PATH/include
+  - export LUA_CMODULE_DIR=$PWD/here/$LUA_PATH/lib/lua/
+  - export LUA_MODULE_DIR=$PWD/here/$LUA_PATH/share/lua/
+  - export LUA_BIN_DIR=$PWD/here/$LUA_PATH/bin
   - git clone https://github.com/openresty/lua-cjson.git
   - cd lua-cjson && make -j$JOBS && sudo make install && cd ..
   - git clone https://github.com/openresty/lua-nginx-module.git
