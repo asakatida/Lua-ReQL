@@ -51,6 +51,7 @@ before_script:
 
 script:
   - busted --exclude-tags="expensive"
+  - luarocks build lua-reql-1.0.1-0.rockspec
   - prove -r t
 
 after_success:

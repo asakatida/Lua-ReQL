@@ -3,7 +3,6 @@ use Test::Nginx::Socket::Lua;
 plan tests => repeat_each() * (3 * blocks());
 
 our $HttpConfig = <<'_EOC_';
-    lua_package_path 'src/?.lua;src/?/?.lua;;';
     error_log logs/error.log debug;
 _EOC_
 
@@ -19,13 +18,13 @@ __DATA__
     location /t {
       content_by_lua "
         local r = require 'rethinkdb'
-  
+
         r.connect(function(err, c)
           if err then
             error(err.message())
           end
-          
-          assert(c)
+
+          assert(c, 'Connection failed')
           ngx.print('pass')
         end)
       ";
