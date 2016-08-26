@@ -12,6 +12,7 @@ before_cache:
 env:
   global:
     - NGINX_VERSION=1.9.15
+    - JOBS=3
   matrix:
     - LUA="lua 5.1" LUA_PATH="lua51" RDB_VER="http://download.rethinkdb.com/apt/pool/precise/main/r/rethinkdb/rethinkdb_2.3.0~0precise_amd64.deb"
     - LUA="lua 5.2" LUA_PATH="lua52" RDB_VER="http://download.rethinkdb.com/apt/pool/precise/main/r/rethinkdb/rethinkdb_2.3.0~0precise_amd64.deb"
@@ -23,10 +24,13 @@ before_install:
   - sudo apt-get update
   - sudo apt-get install -qq -y cpanminus
   - sudo cpanm --notest Test::Nginx > build.log 2>&1 || (cat build.log && exit 1)
+  - git clone https://github.com/openresty/lua-cjson.git
+  - cd lua-cjson && make -j$JOBS && sudo make install && cd ..
+  - git clone https://github.com/openresty/lua-nginx-module.git
   - wget http://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz
   - tar xzf nginx-${NGINX_VERSION}.tar.gz
   - cd nginx-${NGINX_VERSION}/
-  - ./configure --with-debug --with-cc-opt="-DDEBUG_MALLOC" > build.log 2>&1 || (cat build.log && exit 1)
+  - ./configure --with-debug --with-cc-opt="-DDEBUG_MALLOC" --add-module=../lua-nginx-module > build.log 2>&1 || (cat build.log && exit 1)
   - make -j$JOBS > build.log 2>&1 || (cat build.log && exit 1)
   - export PATH=$PATH:`pwd`/objs
   - cd .. # previous line changes cwd
@@ -51,7 +55,6 @@ before_script:
 
 script:
   - busted --exclude-tags="expensive"
-  - luarocks build lua-reql-1.0.1-0.rockspec
   - prove -r t
 
 after_success:

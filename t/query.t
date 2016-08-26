@@ -3,6 +3,7 @@ use Test::Nginx::Socket::Lua;
 plan tests => repeat_each() * (3 * blocks());
 
 our $HttpConfig = <<'_EOC_';
+    lua_package_path 'src/?.lua;src/?/?.lua;;';
     error_log logs/error.log debug;
 _EOC_
 
