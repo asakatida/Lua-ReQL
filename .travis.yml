@@ -23,6 +23,9 @@ env:
 before_install:
   - sudo apt-get update
   - sudo apt-get install -qq -y cpanminus
+  - pip install hererocks
+  - hererocks here/$LUA_PATH -r^ --$LUA
+  - source here/$LUA_PATH/bin/activate
   - sudo cpanm --notest Test::Nginx > build.log 2>&1 || (cat build.log && exit 1)
   - git clone https://github.com/openresty/lua-cjson.git
   - cd lua-cjson && make -j$JOBS && sudo make install && cd ..
@@ -34,9 +37,6 @@ before_install:
   - make -j$JOBS > build.log 2>&1 || (cat build.log && exit 1)
   - export PATH=$PATH:`pwd`/objs
   - cd .. # previous line changes cwd
-  - pip install hererocks
-  - hererocks here/$LUA_PATH -r^ --$LUA
-  - source here/$LUA_PATH/bin/activate
   - luarocks install luacheck
   - luacheck src
   # Fix from https://github.com/leafo/lapis/issues/6
