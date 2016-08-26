@@ -19,13 +19,13 @@ __DATA__
     location /t {
       content_by_lua "
         local r = require 'rethinkdb'
-  
+
         r.connect(function(err, c)
           if err then
             error(err.message())
           end
-          
-          assert(c)
+
+          assert(c, 'Connection failed')
           ngx.print('pass')
         end)
       ";
