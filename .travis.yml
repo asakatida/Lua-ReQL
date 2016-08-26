@@ -17,22 +17,27 @@ env:
     - |
       LUA="lua 5.1"
       LUA_PATH="lua51"
+      LUA_LIB_NAME="liblua51.a"
       RDB_VER="http://download.rethinkdb.com/apt/pool/precise/main/r/rethinkdb/rethinkdb_2.3.0~0precise_amd64.deb"
     - |
       LUA="lua 5.2"
       LUA_PATH="lua52"
+      LUA_LIB_NAME="liblua52.a"
       RDB_VER="http://download.rethinkdb.com/apt/pool/precise/main/r/rethinkdb/rethinkdb_2.3.0~0precise_amd64.deb"
     - |
       LUA="lua 5.3"
       LUA_PATH="lua53"
+      LUA_LIB_NAME="liblua53.a"
       RDB_VER="http://download.rethinkdb.com/apt/pool/precise/main/r/rethinkdb/rethinkdb_2.3.0~0precise_amd64.deb"
     - |
       LUA="luajit 2.0"
       LUA_PATH="jit20"
+      LUA_LIB_NAME="libluajit-5.1.a"
       RDB_VER="http://download.rethinkdb.com/apt/pool/precise/main/r/rethinkdb/rethinkdb_2.3.0~0precise_amd64.deb"
     - |
       LUA="luajit 2.1"
       LUA_PATH="jit21"
+      LUA_LIB_NAME="libluajit-5.1.a"
       RDB_VER="http://download.rethinkdb.com/apt/pool/precise/main/r/rethinkdb/rethinkdb_2.3.0~0precise_amd64.deb"
 
 before_install:
@@ -41,6 +46,7 @@ before_install:
   - sudo cpanm --notest Test::Nginx > build.log 2>&1 || (cat build.log && exit 1)
   - pip install hererocks
   - hererocks here/$LUA_PATH -r^ --$LUA
+  - ln here/$LUA_PATH/lib/$LUA_LIB_NAME here/$LUA_PATH/lib/liblua.a
   - source here/$LUA_PATH/bin/activate
   - export LUA_INCLUDE_DIR=$PWD/here/$LUA_PATH/include
   - export LUA_CMODULE_DIR=$PWD/here/$LUA_PATH/lib/lua/
