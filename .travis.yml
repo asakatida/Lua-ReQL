@@ -51,11 +51,7 @@ before_install:
   - git clone https://github.com/openresty/lua-nginx-module.git
   - wget http://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz
   - tar xzf nginx-${NGINX_VERSION}.tar.gz
-  - if [ ${LUA:3:6} == "jit" ]; then
-    export LUAJIT_LIB=$PWD/here/$LUA_PATH/lib; export LUAJIT_INC=$PWD/here/$LUA_PATH/include;
-    else
-    export LUA_LIB=$PWD/here/$LUA_PATH/lib; export LUA_INC=$PWD/here/$LUA_PATH/include;
-    fi
+  - if [ ${LUA:3:6} == "jit" ]; then export LUAJIT_LIB=$PWD/here/$LUA_PATH/lib; export LUAJIT_INC=$PWD/here/$LUA_PATH/include; else export LUA_LIB=$PWD/here/$LUA_PATH/lib; export LUA_INC=$PWD/here/$LUA_PATH/include; fi
   - cd nginx-${NGINX_VERSION}/
   - ./configure --with-debug --with-cc-opt="-DDEBUG_MALLOC" --add-module=../lua-nginx-module > build.log 2>&1 || (cat build.log && exit 1)
   - make -j$JOBS > build.log 2>&1 || (cat build.log && exit 1)
